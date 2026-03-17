@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>j13 Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 0;
+      background: #0a0a0a;
+      color: #ccc;
+      font-family: 'JetBrains Mono', 'SF Mono', Menlo, Monaco, Consolas, monospace;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .topbar {
+      padding: 20px 32px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0a0a0a;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .stats {
+      display: flex;
+      gap: 24px;
+      font-weight: 500;
+      color: #00ff88;
+    }
+    .stats span { color: #ccc; }
+    #date {
+      font-weight: 500;
+      color: #888;
+      font-size: 14px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+      gap: 28px;
+      padding: 32px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    .card {
+      background: #111;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 28px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transition: all 0.2s ease;
+    }
+    .card:hover {
+      border-color: #333;
+      box-shadow: 0 12px 48px rgba(0,255,136,0.1);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .header h3 {
+      margin: 0;
+      font-size: 1.6em;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.02em;
+    }
+    .header > div {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .badge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.75em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .github-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid #333;
+      color: #00ff88;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 0.85em;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .github-btn:hover {
+      background: #222;
+      border-color: #00ff88;
+      box-shadow: 0 0 0 2px rgba(0,255,136,0.2);
+    }
+    .desc {
+      margin: 0 0 8px;
+      color: #ddd;
+      font-size: 0.95em;
+      line-height: 1.4;
+    }
+    .stack {
+      font-size: 0.85em;
+      color: #aaa;
+      background: #1a1a1a;
+      padding: 6px 12px;
+      border-radius: 6px;
+      margin: 0 0 16px;
+      font-weight: 500;
+    }
+    .progress-bar {
+      height: 6px;
+      background: #222;
+      border-radius: 3px;
+      overflow: hidden;
+      margin: 0 0 12px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #00ff88 0%, #00cc66 100%);
+      border-radius: 3px;
+      transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .updated {
+      font-size: 0.8em;
+      color: #888;
+      margin: 0 0 16px;
+      font-weight: 500;
+    }
+    .todos {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    .todos li {
+      padding: 12px;
+      margin: 8px 0;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      cursor: text;
+      transition: all 0.2s ease;
+      font-size: 0.9em;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .todos li:focus {
+      outline: none;
+      border-color: #00ff88;
+      background: #222;
+      box-shadow: 0 0 0 2px rgba(0,255,136,0.2);
+    }
+    .todos li:hover {
+      border-color: #444;
+    }
+    @media (max-width: 768px) {
+      .topbar { padding: 16px 20px; flex-direction: column; gap: 12px; align-items: flex-start; }
+      .stats { gap: 16px; }
+      .grid { grid-template-columns: 1fr; padding: 20px 16px; gap: 20px; }
+      .card { padding: 20px; }
+      .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .header > div { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="stats">
+      <span>Total: <span id="total">0</span></span>
+      <span>Active: <span id="active">0</span></span>
+    </div>
+    <div id="date"></div>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    const statusDisplay = {
+      'active': 'Active',
+      'paper-trading': 'Paper Trading',
+      'wip': 'WIP',
+      'done': 'Done'
+    };
+    const statusColors = {
+      'active': '#00ff88',
+      'paper-trading': '#ff9500',
+      'wip': '#4a9eff',
+      'done': '#888'
+    };
+
+    const defaultProjects = [
+      {"name":"zangetsu","status":"paper-trading","progress":85,"github":"M116cj/zangetsu","desc":"Quantitative crypto ML — genetic tournament","stack":"LightGBM · ELO · ATR · Kelly","todos":["實盤驗證 L2→L3→L4 pipeline","確認 Railway tier1-6 全部跑新版","L2 cold start 後驗收 Brier Score"],"lastUpdated":"2024-10-04"},
+      {"name":"amadeus","status":"paper-trading","progress":70,"github":"M116cj/amadeus","desc":"Polymarket LLM edge detector","stack":"Grok · CLOB API · Kelly · Gamma API","todos":["設定 POLY_PRIVATE_KEY 憑證","paper trading 跑 1 週驗收 win rate","DRY_RUN=false 進實盤"],"lastUpdated":"2024-10-03"},
+      {"name":"qbeyer-llm","status":"wip","progress":40,"github":"M116cj/qbeyer-llm","desc":"Crypto persona LLM fine-tune","stack":"Qwen2.5 · LoRA · llama.cpp · Railway","todos":["本機跑 01_prepare_data.py","下載 COIG-CQIA 公開資料集","02_finetune.py 訓練","匯出 GGUF 上傳 Railway Volume"],"lastUpdated":"2024-09-28"},
+      {"name":"claude-telegram-bot","status":"active","progress":90,"github":"M116cj/claude-telegram-bot","desc":"Telegram remote control for Claude","stack":"Bun · TypeScript · Grammy · Agent SDK","todos":["穩定性監控","MCP 擴充整合"],"lastUpdated":"2024-10-01"},
+      {"name":"babylon","status":"active","progress":100,"github":"M116cj/babylon","desc":"Modular skill treasury for Claude Code","stack":"Bash · gh-api · JSON","todos":["新增 amadeus skill"],"lastUpdated":"2024-10-02"},
+      {"name":"d-mail","status":"wip","progress":10,"github":"M116cj/d-mail","desc":"Early stage","stack":"TBD","todos":["定義 MVP scope"],"lastUpdated":"2024-09-30"}
+    ];
+
+    let projects = JSON.parse(localStorage.getItem('projects')) || [...defaultProjects];
+
+    function render(projects) {
+      const grid = document.getElementById('grid');
+      grid.innerHTML = projects.map(p => createCard(p)).join('');
+      updateTopbar(projects);
+    }
+
+    function createCard(p) {
+      const badgeText = statusDisplay[p.status] || p.status;
+      const badgeColor = statusColors[p.status] || '#888';
+      const githubUrl = `https://github.com/${p.github}`;
+      const progressStyle = `width: ${p.progress}%`;
+      const todosHtml = p.todos.map((todo, i) => 
+        `<li contenteditable="true" data-project="${p.name}" data-idx="${i}" onblur="saveTodo(this)">${todo}</li>`
+      ).join('');
+      return `
+        <div class="card" data-name="${p.name}" id="card-${p.name}">
+          <div class="header">
+            <h3>${p.name}</h3>
+            <div>
+              <span class="badge" style="background-color: ${badgeColor}; color: #111;">${badgeText}</span>
+              <a class="github-btn" href="${githubUrl}" target="_blank" rel="noopener">GitHub</a>
+            </div>
+          </div>
+          <p class="desc">${p.desc}</p>
+          <div class="stack">${p.stack}</div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="${progressStyle}"></div>
+          </div>
+          <div class="updated">Last updated: <span>${p.lastUpdated}</span></div>
+          <ul class="todos">${todosHtml}</ul>
+        </div>
+      `;
+    }
+
+    function updateTopbar(projects) {
+      document.getElementById('total').textContent = projects.length;
+      document.getElementById('active').textContent = projects.filter(p => p.status === 'active').length;
+      document.getElementById('date').textContent = new Date().toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    }
+
+    function saveTodo(el) {
+      const projectName = el.dataset.project;
+      const idx = parseInt(el.dataset.idx);
+      const text = el.textContent.trim();
+      const proj = projects.find(p => p.name === projectName);
+      if (proj) {
+        proj.todos[idx] = text;
+        proj.lastUpdated = new Date().toISOString().split('T')[0];
+        localStorage.setItem('projects', JSON.stringify(projects));
+        const card = document.getElementById(`card-${projectName}`);
+        if (card) {
+          const updatedSpan = card.querySelector('.updated span');
+          if (updatedSpan) {
+            updatedSpan.textContent = proj.lastUpdated;
+          }
+        }
+      }
+    }
+
+    // Init
+    render(projects);
+    window.saveTodo = saveTodo;
+  </script>
+</body>
+</html>
