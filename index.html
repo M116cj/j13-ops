@@ -223,13 +223,15 @@
       'active': 'Active',
       'paper-trading': 'Paper Trading',
       'wip': 'WIP',
-      'done': 'Done'
+      'done': 'Done',
+      'architecture': 'Architecture'
     };
     const statusColors = {
       'active': '#00ff88',
       'paper-trading': '#ff9500',
       'wip': '#4a9eff',
-      'done': '#888'
+      'done': '#888',
+      'architecture': '#cc44ff'
     };
 
     const defaultProjects = [
@@ -238,7 +240,11 @@
       {"name":"qbeyer-llm","category":"ai","status":"wip","progress":40,"github":"M116cj/qbeyer-llm","desc":"Crypto persona LLM fine-tune","stack":"Qwen2.5 · LoRA · llama.cpp · Railway","todos":["本機跑 01_prepare_data.py","下載 COIG-CQIA 公開資料集","02_finetune.py 訓練","匯出 GGUF 上傳 Railway Volume"],"lastUpdated":"2026-03-17"},
       {"name":"claude-telegram-bot","category":"tooling","status":"active","progress":90,"github":"M116cj/claude-telegram-bot","desc":"Telegram remote control for Claude","stack":"Bun · TypeScript · Grammy · Agent SDK","todos":["穩定性監控","MCP 擴充整合"],"lastUpdated":"2026-03-10"},
       {"name":"babylon","category":"tooling","status":"active","progress":100,"github":"M116cj/babylon","desc":"Modular skill treasury for Claude Code","stack":"Bash · gh-api · JSON","todos":["新增 amadeus skill"],"lastUpdated":"2026-03-11"},
-      {"name":"d-mail","category":"ai","status":"wip","progress":10,"github":"M116cj/d-mail","desc":"Early stage","stack":"TBD","todos":["定義 MVP scope"],"lastUpdated":"2026-03-16"}
+      {"name":"d-mail","category":"ai","status":"wip","progress":10,"github":"M116cj/d-mail","desc":"Early stage","stack":"TBD","todos":["定義 MVP scope"],"lastUpdated":"2026-03-16"},
+      {"name":"crimson-zangetsu-hybrid","category":"quant","status":"architecture","progress":5,"github":"M116cj/crimson-zangetsu-hybrid","desc":"King Crimson HFT 執行引擎 + zangetsu ML 信號，毫秒級 Binance 交易","stack":"TBD","todos":["建立 signal_publisher.py","King Crimson 執行引擎","Redis Stream 接口","風控閘門","Telegram 通知"],"lastUpdated":"2026-03-18"},
+      {"name":"quant-signals-sub","category":"quant","status":"architecture","progress":5,"github":"M116cj/quant-signals-sub","desc":"Telegram 付費信號訂閱頻道 — zangetsu + amadeus 信號，$10-50/月","stack":"TBD","todos":["Signal Formatter","Stripe Webhook","付費頻道 Bot","訂閱者 DB","APScheduler 推送"],"lastUpdated":"2026-03-18"},
+      {"name":"qbeyer-trader-persona","category":"ai","status":"architecture","progress":10,"github":"M116cj/qbeyer-trader-persona","desc":"Q.Beyer — LoRA fine-tune 量化交易 LLM 人格，Telegram 教練 Bot","stack":"TBD","todos":["JSONL 訓練數據 50條","LoRA fine-tune Qwen2.5-7B","Ollama 部署","Telegram Bot","付費限流"],"lastUpdated":"2026-03-18"},
+      {"name":"ai-chain-trader-dao","category":"quant","status":"architecture","progress":5,"github":"M116cj/ai-chain-trader-dao","desc":"BSC DAO 合約 + AI Agent，zangetsu 信號驅動鏈上 DeFi 金庫","stack":"TBD","todos":["SimpleVault.sol","執行器白名單","Agent signalHash","BSC Testnet","PancakeSwap 整合"],"lastUpdated":"2026-03-18"}
     ];
 
     let projects = JSON.parse(localStorage.getItem('projects')) || [...defaultProjects];
