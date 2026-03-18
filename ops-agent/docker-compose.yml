@@ -1,0 +1,26 @@
+services:
+  ops-agent:
+    build: .
+    container_name: ops-agent
+    restart: always
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OPS_MODEL=qwen2.5:7b
+      - CHECK_INTERVAL_MIN=5
+      - GPU_TEMP_THRESHOLD=85
+      - DISK_THRESHOLD_PCT=90
+      - RAM_THRESHOLD_PCT=90
+      - MAX_RESTART_ATTEMPTS=3
+      - RESTART_WINDOW_MIN=30
+      # Comma-separated list of container names to skip, e.g. "watchtower,cloudflared"
+      - SKIP_CONTAINERS=
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ops_data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  ops_data:
