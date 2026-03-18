@@ -686,6 +686,19 @@
         lastUpdated: "2026-03-13"
       },
       {
+        id: "magi",
+        name: "magi",
+        category: "tooling",
+        status: "wip",
+        progress: 8,
+        github: "M116cj/magi",
+        desc: "Alaya private AI agent orchestration platform — DAG dispatch, GitHub-integrated verification, j13 sole controller.",
+        fullDesc: "Platform Agent (Grok API) receives tasks from j13 via Telegram, decomposes into DAG, dispatches to local Sub-Agents (A/B/C) via Redis Streams, verifies results via GitHub PR review, merges and reports back. Security: OWNER_CHAT_ID=5252897787 is sole controller — all other messages silently dropped.",
+        stack: ["Grok API", "Redis Streams", "GitHub API", "Telegram Bot", "Docker", "LiteLLM", "Python"],
+        todos: ["閒置電腦伺服器化完成後啟動", "platform/agent.py — Grok API task parser + DAG builder", "platform/bot.py — Telegram control bot (auth gate)", "worker/sub_worker.py — local agent task runner", "Redis DAG schema + Lua atomic scripts", "GitHub PR verifier"],
+        lastUpdated: "2026-03-18"
+      },
+      {
         id: "babylon",
         name: "babylon",
         category: "tooling",
