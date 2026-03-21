@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Alerting rules for solo operator
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+alerting:
+  alertmanagers: []
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node'
+    static_configs:
+      - targets: ['obs-node-exporter:9100']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: alaya
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['obs-cadvisor:8080']
+    metric_relabel_configs:
+      - source_labels: [container_label_com_docker_compose_service]
+        target_label: service
+
+  # llama.cpp with --metrics flag would expose at /metrics
+  # Currently not enabled — enable with: add --metrics to local-llm.service ExecStart
+  # - job_name: 'local-llm'
+  #   metrics_path: '/metrics'
+  #   static_configs:
+  #     - targets: ['172.17.0.1:8001']
+
+  # zangetsu dashboard would need prometheus endpoint added
+  # - job_name: 'zangetsu-dashboard'
+  #   metrics_path: '/metrics'
+  #   static_configs:
+  #     - targets: ['172.17.0.1:8080']
