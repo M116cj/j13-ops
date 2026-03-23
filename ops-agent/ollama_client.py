@@ -2,30 +2,34 @@ import requests
 import json
 import os
 
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://host.docker.internal:11434")
-MODEL = os.environ.get("OPS_MODEL", "qwen2.5:7b")
+# Replaced Ollama → LiteLLM (OpenAI-compatible), model: local-qwen
+LITELLM_URL = os.environ.get("OLLAMA_URL", "http://host.docker.internal:4000")
+MODEL = os.environ.get("OPS_MODEL", "local-qwen")
 
 
 def analyze(prompt: str) -> dict:
-    """Ask Ollama to analyze an ops issue.
+    """Ask LiteLLM/Qwen to analyze an ops issue.
 
     Returns a dict with keys: action, reason, telegram_msg.
-    Falls back gracefully when the LLM is unavailable so the monitoring loop
-    can still execute rule-based repairs.
+    Falls back gracefully when the LLM is unavailable.
     """
     try:
         resp = requests.post(
-            f"{OLLAMA_URL}/api/generate",
+            f"{LITELLM_URL}/v1/chat/completions",
             json={
                 "model": MODEL,
-                "prompt": prompt,
-                "stream": False,
-                "format": "json",
+                "messages": [
+                    {"role": "system", "content": "You are an ops agent. Reply ONLY with valid JSON containing keys: action, reason, telegram_msg."},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 512,
+                "temperature": 0.1,
             },
             timeout=60,
         )
         resp.raise_for_status()
-        return json.loads(resp.json()["response"])
+        content = resp.json()["choices"][0]["message"]["content"]
+        return json.loads(content)
     except Exception as e:
         return {
             "action": "alert",

@@ -6,6 +6,7 @@ services:
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+      - ./rules:/etc/prometheus/rules:ro
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -15,6 +16,9 @@ services:
       - "127.0.0.1:9090:9090"
     networks:
       - obs
+      - nexus_nexus-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   node-exporter:
     image: prom/node-exporter:v1.9.0
@@ -61,6 +65,7 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:
@@ -91,9 +96,82 @@ services:
     networks:
       - obs
 
+
+  nvidia-smi-exporter:
+    build: ./nvidia-smi-exporter
+    container_name: obs-nvidia-smi-exporter
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9401:9401"
+    volumes:
+      - /usr/bin/nvidia-smi:/usr/bin/nvidia-smi:ro
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - obs
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: obs-redis-exporter
+    restart: unless-stopped
+    environment:
+      - REDIS_ADDR=host.docker.internal:6380
+      - REDIS_PASSWORD=7707ad83b3c387951aff715a629e7cff
+    ports:
+      - "127.0.0.1:9121:9121"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - obs
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: obs-postgres-exporter
+    restart: unless-stopped
+    environment:
+      - DATA_SOURCE_NAME=postgresql://nexus:nexus@nexus-postgres:5432/nexus?sslmode=disable
+    ports:
+      - "127.0.0.1:9187:9187"
+    networks:
+      - obs
+      - nexus_nexus-net
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: obs-alertmanager
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - obs
+
+  alert-relay:
+    build: ./alert-relay
+    container_name: obs-alert-relay
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9087:9087"
+    environment:
+      - TELEGRAM_BOT_TOKEN=8317177677:AAHT_SEIbrFtGZLR9FRBL3xZpPcg3Hn37Qg
+      - TELEGRAM_CHAT_ID=-1003601437444
+      - TELEGRAM_THREAD_ID=354
+    networks:
+      - obs
+
 networks:
   obs:
     name: obs
+  nexus_nexus-net:
+    external: true
 
 volumes:
   prometheus_data:

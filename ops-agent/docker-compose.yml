@@ -6,8 +6,8 @@ services:
     environment:
       - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
       - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - OLLAMA_URL=http://host.docker.internal:11434
-      - OPS_MODEL=qwen2.5:7b
+      - OLLAMA_URL=http://host.docker.internal:4000
+      - OPS_MODEL=local-qwen
       - CHECK_INTERVAL_MIN=5
       - GPU_TEMP_THRESHOLD=85
       - DISK_THRESHOLD_PCT=90

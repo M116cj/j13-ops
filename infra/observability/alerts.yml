@@ -27,7 +27,7 @@ groups:
           summary: "Alaya disk / > 80%"
 
       - alert: ContainerDown
-        expr: absent(container_last_seen{name=~"deploy-trader-1|deploy-ml_core-1|obs-prometheus|obs-grafana"})
+        expr: absent(container_last_seen{name=~"nexus-core|nexus-postgres|nexus-redis|magi-litellm-1|obs-prometheus|obs-grafana"})
         for: 2m
         labels:
           severity: critical
