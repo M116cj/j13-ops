@@ -1,0 +1,107 @@
+groups:
+  - name: alaya_system
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'High CPU usage on {{ $labels.instance }}'
+          description: 'CPU usage is {{ $value | humanize }}%'
+
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'High memory usage'
+          description: 'Memory usage {{ $value | humanize }}%'
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Disk space critically low'
+          description: 'Only {{ $value | humanize }}% disk space remaining'
+
+  - name: alaya_gpu
+    rules:
+      - alert: GPUHighTemperature
+        expr: gpu_temperature_celsius > 85
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'GPU temperature high'
+          description: 'GPU temp is {{ $value }}°C'
+
+      - alert: GPUMemoryFull
+        expr: gpu_memory_used_mib / gpu_memory_total_mib * 100 > 95
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'GPU memory nearly full'
+          description: '{{ $value | humanize }}% GPU memory used'
+
+  - name: alaya_nexus
+    rules:
+      - alert: NexusPipelineHighLatency
+        expr: histogram_quantile(0.95, rate(nexus_pipeline_duration_seconds_bucket[10m])) > 120
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Nexus pipeline p95 latency > 120s'
+          description: 'p95 = {{ $value | humanize }}s'
+
+      - alert: NexusPipelineErrors
+        expr: rate(nexus_pipeline_total{status="error"}[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Nexus pipeline error rate elevated'
+          description: '{{ $value | humanize }} errors/s'
+
+      - alert: NexusMacHeartbeatMissing
+        expr: absent(nexus_mac_worker_heartbeat_age_seconds) or nexus_mac_worker_heartbeat_age_seconds > 120
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Mac worker heartbeat missing'
+          description: 'dmail-claude-1 has not sent a heartbeat in > 2 minutes'
+
+  - name: alaya_redis
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'nexus-redis is down'
+
+      - alert: RedisStreamPELGrowing
+        expr: redis_stream_pending_entries_count > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Redis stream PEL growing'
+          description: '{{ $value }} unacknowledged messages in PEL'
+
+  - name: alaya_postgres
+    rules:
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'nexus-postgres is down'

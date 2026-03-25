@@ -1,0 +1,5 @@
+infra/magi/litellm_config.yaml
+*.env
+.env
+infra/.env
+infra/magi/*.env
