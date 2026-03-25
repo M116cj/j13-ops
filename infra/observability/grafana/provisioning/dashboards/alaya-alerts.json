@@ -1,0 +1,50 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "type": "alertlist",
+      "title": "Active Alerts",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"alertInstanceLabelFilter": "", "alertName": "", "dashboardAlerts": false, "groupBy": ["alertname", "severity"], "groupMode": "default", "maxItems": 50, "sortOrder": 1, "stateFilter": {"error": true, "firing": true, "noData": false, "normal": false, "pending": true}}
+    },
+    {
+      "type": "timeseries",
+      "title": "Redis nexus-redis Connected Clients",
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 12},
+      "id": 2,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "redis_connected_clients", "legendFormat": "clients"}]
+    },
+    {
+      "type": "timeseries",
+      "title": "Postgres pg_up",
+      "gridPos": {"h": 6, "w": 8, "x": 8, "y": 12},
+      "id": 3,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "pg_up", "legendFormat": "pg_up"}],
+      "fieldConfig": {"defaults": {"max": 1, "min": 0}}
+    },
+    {
+      "type": "timeseries",
+      "title": "nexus Pipeline Errors",
+      "gridPos": {"h": 6, "w": 8, "x": 16, "y": 12},
+      "id": 4,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "rate(nexus_stage_errors_total[5m])",
+        "legendFormat": "{{ stage }} {{ error_type }}"}],
+      "fieldConfig": {"defaults": {"unit": "cps"}}
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["alaya", "alerts"],
+  "templating": {"list": [{"name": "DS_PROMETHEUS", "type": "datasource", "pluginId": "prometheus", "current": {}, "hide": 2}]},
+  "time": {"from": "now-3h", "to": "now"},
+  "title": "Alaya Alerts & Infrastructure",
+  "uid": "alaya-alerts",
+  "version": 1
+}

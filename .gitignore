@@ -3,3 +3,4 @@ infra/magi/litellm_config.yaml
 .env
 infra/.env
 infra/magi/*.env
+*.bak*

@@ -1,0 +1,65 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['obs-alertmanager:9093']
+
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'node'
+    static_configs:
+      - targets: ['obs-node-exporter:9100']
+
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['obs-cadvisor:8080']
+
+  - job_name: 'gpu'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['obs-nvidia-smi-exporter:9401']
+        labels:
+          gpu_model: 'rtx3080-12gb'
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['obs-redis-exporter:9121']
+        labels:
+          redis_instance: 'nexus-redis-6380'
+
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['obs-postgres-exporter:9187']
+        labels:
+          pg_instance: 'nexus-postgres-5433'
+
+  - job_name: 'litellm'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['host.docker.internal:4000']
+        labels:
+          role: 'llm-router'
+
+  - job_name: 'nexus-engine'
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['host.docker.internal:8001']
+        labels:
+          model: 'qwen-14b-awq'
+
+  - job_name: 'nexus-core'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: ['nexus-core:8002']
+        labels:
+          role: 'pipeline-orchestrator'
