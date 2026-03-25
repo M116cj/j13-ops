@@ -1,0 +1,86 @@
+{
+  "annotations": {"list": []},
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "panels": [
+    {
+      "type": "gauge",
+      "title": "GPU Utilization %",
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0},
+      "id": 1,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "gpu_utilization_percent", "legendFormat": "GPU %"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 70}, {"color": "red", "value": 90}]}}}
+    },
+    {
+      "type": "gauge",
+      "title": "GPU VRAM Used / Total",
+      "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0},
+      "id": 2,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "gpu_memory_used_mib / gpu_memory_total_mib * 100", "legendFormat": "VRAM %"}],
+      "fieldConfig": {"defaults": {"unit": "percent", "max": 100, "min": 0, "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 80}, {"color": "red", "value": 95}]}}}
+    },
+    {
+      "type": "gauge",
+      "title": "GPU Temperature",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0},
+      "id": 3,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "gpu_temperature_celsius", "legendFormat": "°C"}],
+      "fieldConfig": {"defaults": {"unit": "celsius", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 75}, {"color": "red", "value": 85}]}}}
+    },
+    {
+      "type": "gauge",
+      "title": "GPU Power Draw",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0},
+      "id": 4,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "gpu_power_draw_watts", "legendFormat": "Watts"}],
+      "fieldConfig": {"defaults": {"unit": "watt", "max": 350}}
+    },
+    {
+      "type": "timeseries",
+      "title": "GPU Metrics History",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8},
+      "id": 5,
+      "targets": [
+        {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "expr": "gpu_utilization_percent", "legendFormat": "Util %"},
+        {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "expr": "gpu_memory_used_mib / gpu_memory_total_mib * 100", "legendFormat": "VRAM %"},
+        {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "expr": "gpu_temperature_celsius", "legendFormat": "Temp °C"}
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "nexus-engine Inference Requests",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "id": 6,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "rate(nexus_engine_requests_total[5m])",
+        "legendFormat": "{{ endpoint }}"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}}
+    },
+    {
+      "type": "timeseries",
+      "title": "nexus-engine Latency p95",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "id": 7,
+      "targets": [{"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        "expr": "histogram_quantile(0.95, rate(nexus_engine_request_duration_seconds_bucket[5m]))",
+        "legendFormat": "{{ endpoint }} p95"}],
+      "fieldConfig": {"defaults": {"unit": "s"}}
+    }
+  ],
+  "refresh": "15s",
+  "schemaVersion": 39,
+  "tags": ["alaya", "gpu"],
+  "templating": {"list": [{"name": "DS_PROMETHEUS", "type": "datasource", "pluginId": "prometheus", "current": {}, "hide": 2}]},
+  "time": {"from": "now-1h", "to": "now"},
+  "title": "Alaya GPU & System",
+  "uid": "gpu-system",
+  "version": 1
+}
