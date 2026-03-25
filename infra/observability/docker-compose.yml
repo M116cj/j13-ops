@@ -17,6 +17,7 @@ services:
     networks:
       - obs
       - nexus_nexus-net
+      - magi_default
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -29,11 +30,13 @@ services:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/rootfs:ro
+      - /home/j13/metrics-textfiles:/textfiles:ro
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'
       - '--path.rootfs=/rootfs'
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.textfile.directory=/textfiles'
     networks:
       - obs
 
@@ -120,14 +123,13 @@ services:
     container_name: obs-redis-exporter
     restart: unless-stopped
     environment:
-      - REDIS_ADDR=host.docker.internal:6380
+      - REDIS_ADDR=redis://nexus-redis:6379
       - REDIS_PASSWORD=7707ad83b3c387951aff715a629e7cff
     ports:
       - "127.0.0.1:9121:9121"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - obs
+      - nexus_nexus-net
 
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
@@ -171,6 +173,8 @@ networks:
   obs:
     name: obs
   nexus_nexus-net:
+    external: true
+  magi_default:
     external: true
 
 volumes:
