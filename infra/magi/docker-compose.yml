@@ -1,0 +1,84 @@
+# ~/j13-ops/infra/magi/docker-compose.yml
+# magi stack: LiteLLM proxy + Redis + claude-inbox
+# Usage: docker compose --env-file ~/j13-ops/infra/.env up -d
+
+services:
+  litellm:
+    # SECURITY PIN: TPCP-2026-0324-LITELLM — DO NOT upgrade without supply chain review
+    # Verified clean: litellm==1.82.4, image sha256:d6580beba82a69e4cfb6598c300b7c524d9ea6f67592226fdec7f6a9aba34eb2
+    # Pinned: 2026-03-25. To upgrade: verify new image digest, update sha256 above, re-run pth-monitor.sh
+    image: ghcr.io/berriai/litellm:main-v1.82.4
+    container_name: magi-litellm-1
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:4000:4000"
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    volumes:
+      - ./litellm_config.yaml:/app/config.yaml:ro
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - XAI_API_KEY=${XAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - magi_default
+    depends_on:
+      - redis
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  redis:
+    image: redis:7-alpine
+    container_name: magi-redis-1
+    restart: always
+    command: redis-server --appendonly yes
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - magi_redis-data:/data
+    networks:
+      - magi_default
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+
+  claude-inbox:
+    image: python:3.12-slim
+    container_name: claude-inbox
+    restart: unless-stopped
+    ports:
+      - "100.123.49.102:8765:8765"
+    volumes:
+      - /home/j13/claude-inbox:/data
+      - ./claude-inbox:/app:ro
+    working_dir: /app
+    command: >
+      bash -c 'pip install fastapi uvicorn python-multipart -q &&
+               uvicorn server:app --host 0.0.0.0 --port 8765'
+    environment:
+      - CLAUDE_INBOX_TOKEN=${CLAUDE_INBOX_TOKEN}
+    networks:
+      - magi_default
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+networks:
+  magi_default:
+    name: magi_default
+
+volumes:
+  magi_redis-data:
+    name: magi_redis-data
+    # 保留現有 named volume，不丟資料
+    external: true

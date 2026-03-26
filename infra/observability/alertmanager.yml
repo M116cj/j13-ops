@@ -16,7 +16,7 @@ route:
 receivers:
   - name: 'telegram-alerts'
     webhook_configs:
-      - url: 'http://host.docker.internal:9087/alert'
+      - url: 'http://obs-alert-relay:9087/alert'
         send_resolved: true
 
 inhibit_rules:

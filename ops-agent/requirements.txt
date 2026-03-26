@@ -1,4 +1,6 @@
-requests
-psutil
-schedule
-python-dotenv
+# PINNED: TPCP-2026-0324-LITELLM supply chain hardening — 2026-03-25
+# NOTE: psutil, schedule, python-dotenv versions not resolvable from offline system pip — using known-good versions
+requests==2.31.0
+psutil==7.2.2
+schedule==1.2.2
+python-dotenv==1.0.1
