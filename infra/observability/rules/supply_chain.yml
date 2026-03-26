@@ -1,0 +1,81 @@
+groups:
+  - name: supply_chain_security
+    interval: 60s
+    rules:
+      # Alert if any unexpected .pth file appears (checked via textfile collector)
+      - alert: UnexpectedPthFileDetected
+        expr: supply_chain_pth_unknown_total > 0
+        for: 0m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Unknown .pth file detected — possible supply chain attack"
+          description: "A .pth file not on the whitelist was found in site-packages. Immediate investigation required. See /home/j13/logs/pth-alerts.log"
+
+      # Alert on outbound connections to suspicious domains (proxy/firewall needed for this)
+      # This rule monitors for package version drift detected by textfile
+      - alert: PackageVersionDrift
+        expr: supply_chain_version_drift_total > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Package version drift detected"
+          description: "Installed package versions do not match requirements.txt lockfile. Possible tampering."
+
+      # Alert on any new systemd user service creation (via textfile collector)
+      - alert: NewSystemdUserServiceCreated
+        expr: supply_chain_new_systemd_service > 0
+        for: 0m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "New systemd user service detected"
+          description: "A new systemd user service was created. Verify it is authorized. Possible persistence mechanism."
+
+      # Resource exhaustion alert (fork bomb pattern — how original attack was discovered)
+      - alert: SuddenMemoryExhaustion
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: security
+        annotations:
+          summary: "Memory critically low — possible fork bomb / payload execution"
+          description: "Available memory dropped below 5%. This matches the fork-bomb bug that exposed the TPCP attack. Check for runaway Python processes."
+
+      # CPU spike detection
+      - alert: SuddenCPUSpikeAllCores
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[2m])) * 100) > 95
+        for: 3m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "All CPU cores saturated"
+          description: "CPU usage >95% sustained for 3 minutes. Possible payload execution or fork bomb."
+
+      # Redis AUTH failures (lateral movement indicator)
+      - alert: RedisAuthFailureSpike
+        expr: increase(redis_rejected_connections_total[5m]) > 10
+        for: 0m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Redis AUTH failures spike"
+          description: "Multiple Redis connection rejections in 5 minutes. Possible unauthorized access attempt."
+
+      # Outbound traffic spike (exfiltration indicator)
+      - alert: OutboundTrafficSpike
+        expr: rate(node_network_transmit_bytes_total{device!="lo"}[5m]) > 50000000
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High outbound network traffic"
+          description: "Outbound traffic >50MB/s for 5 minutes. Possible data exfiltration."
