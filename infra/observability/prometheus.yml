@@ -53,12 +53,12 @@ scrape_configs:
     metrics_path: '/metrics'
     scrape_interval: 30s
     static_configs:
-      - targets: ['172.18.0.1:8001']
+      - targets: ['nexus-engine:23333']
         labels:
           model: 'qwen-14b-awq'
     metric_relabel_configs:
       - source_labels: [__name__]
-        regex: 'nexus_engine_.*'
+        regex: 'nexus_engine_.*|lmdeploy_.*'
         action: keep
 
   - job_name: 'nexus-core'
