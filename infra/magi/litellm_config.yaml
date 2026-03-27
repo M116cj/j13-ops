@@ -1,0 +1,85 @@
+# ~/j13-ops/infra/magi/litellm_config.yaml
+# LiteLLM Proxy 完整 model routing
+# local-qwen 新增：讓 nexus-core 等服務也能透過統一入口呼叫 Qwen
+# bot.py 可繼續直連 :8001（低延遲），也可走 litellm（統一 logging）
+
+model_list:
+  # --- Anthropic ---
+  - model_name: claude-sonnet-4-6
+    litellm_params:
+      model: anthropic/claude-sonnet-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-opus-4-6
+    litellm_params:
+      model: anthropic/claude-opus-4-6
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: claude-haiku-4-5
+    litellm_params:
+      model: anthropic/claude-haiku-4-5-20251001
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  # --- xAI (Grok) ---
+  - model_name: grok-4-1-fast
+    litellm_params:
+      model: xai/grok-4-1-fast-reasoning
+      api_key: os.environ/XAI_API_KEY
+
+  # --- Google Gemini ---
+  - model_name: gemini-2.5-flash
+    litellm_params:
+      model: gemini/gemini-2.5-flash
+      api_key: os.environ/GOOGLE_API_KEY
+
+  # --- Local Qwen (新增) ---
+  - model_name: local-qwen
+    litellm_params:
+      model: openai/qwen2.5-coder-14b-awq
+      api_base: http://nexus-engine:23333/v1
+      api_key: "not-needed"
+      # nexus-engine 是 OpenAI-compatible API，用 openai/ prefix
+
+
+
+router_settings:
+  # Auto-degrade: opus -> sonnet -> haiku -> local-qwen on any provider error
+  fallbacks:
+    - claude-opus-4-6:
+        - claude-sonnet-4-6
+        - claude-haiku-4-5
+        - local-qwen
+    - claude-sonnet-4-6:
+        - claude-haiku-4-5
+        - local-qwen
+    - claude-haiku-4-5:
+        - local-qwen
+  num_retries: 1
+  retry_after: 2
+  cooldown_time: 30
+  routing_strategy: simple-shuffle
+
+litellm_settings:
+
+  # Redis exact-match cache (TTL 3600s)
+  cache: true
+  cache_params:
+    type: redis
+    host: magi-redis-1
+    port: 6379
+    password: os.environ/REDIS_PASSWORD
+    ttl: 3600
+    namespace: litellm:cache
+  drop_params: true
+  set_verbose: false
+  num_retries: 2
+  request_timeout: 120
+  # logging 相關
+  success_callback: ["prometheus"]
+  failure_callback: ["prometheus"]
+
+
+general_settings:
+  enable_prometheus: true
+  prometheus_port: 9010
+  master_key: os.environ/LITELLM_MASTER_KEY
