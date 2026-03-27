@@ -1,5 +1,7 @@
 {
-  "annotations": {"list": []},
+  "annotations": {
+    "list": []
+  },
   "editable": true,
   "graphTooltip": 1,
   "id": null,
@@ -7,101 +9,200 @@
     {
       "type": "timeseries",
       "title": "Pipeline Duration p50/p95/p99 (seconds)",
-      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "targets": [
-        {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "expr": "histogram_quantile(0.50, rate(nexus_task_duration_seconds_bucket[10m]))",
-          "legendFormat": "p50"},
-        {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "legendFormat": "p50"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "expr": "histogram_quantile(0.95, rate(nexus_task_duration_seconds_bucket[10m]))",
-          "legendFormat": "p95"},
-        {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "legendFormat": "p95"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "expr": "histogram_quantile(0.99, rate(nexus_task_duration_seconds_bucket[10m]))",
-          "legendFormat": "p99"}
+          "legendFormat": "p99"
+        }
       ],
-      "fieldConfig": {"defaults": {"unit": "s"}}
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
     },
     {
       "type": "timeseries",
       "title": "Stage Duration p95 by Stage",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
       "id": 2,
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-        "expr": "histogram_quantile(0.95, sum by(stage, le) (rate(nexus_stage_duration_seconds_bucket[10m])))",
-        "legendFormat": "{{ stage }}"
-      }],
-      "fieldConfig": {"defaults": {"unit": "s"}}
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "histogram_quantile(0.95, sum by(stage, le) (rate(nexus_stage_duration_seconds_bucket[10m])))",
+          "legendFormat": "{{ stage }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        }
+      }
     },
     {
       "type": "timeseries",
       "title": "Task Rate by Type",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "id": 3,
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-        "expr": "rate(nexus_tasks_total[5m])",
-        "legendFormat": "{{ task_type }}"
-      }],
-      "fieldConfig": {"defaults": {"unit": "ops"}}
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "rate(nexus_tasks_total[5m])",
+          "legendFormat": "{{ task_type }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ops"
+        }
+      }
     },
     {
       "type": "timeseries",
       "title": "LLM Cost (cumulative USD)",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
       "id": 4,
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-        "expr": "sum by(model) (nexus_cost_usd_total)",
-        "legendFormat": "{{ model }}"
-      }],
-      "fieldConfig": {"defaults": {"unit": "currencyUSD"}}
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sum by(model) (nexus_cost_usd_total)",
+          "legendFormat": "{{ model }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD"
+        }
+      }
     },
     {
       "type": "timeseries",
       "title": "Token Usage Rate",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
       "id": 5,
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-        "expr": "rate(nexus_api_tokens_total[5m])",
-        "legendFormat": "{{ model }} {{ direction }}"
-      }],
-      "fieldConfig": {"defaults": {"unit": "none"}}
-    },
-    {
-      "type": "stat",
-      "title": "Mac Worker Heartbeat Age (s)",
-      "gridPos": {"h": 4, "w": 12, "x": 0, "y": 24},
-      "id": 6,
-      "targets": [{
-        "datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
-        "expr": "nexus_mac_worker_heartbeat_age_seconds",
-        "legendFormat": "{{ consumer_id }}"
-      }],
-      "fieldConfig": {"defaults": {"unit": "s", "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 60}, {"color": "red", "value": 120}]}}}
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "rate(nexus_api_tokens_total[5m])",
+          "legendFormat": "{{ model }} {{ direction }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "none"
+        }
+      }
     },
     {
       "type": "timeseries",
       "title": "Stream Tasks Received vs Results Sent",
-      "gridPos": {"h": 4, "w": 12, "x": 12, "y": 24},
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
       "id": 7,
       "targets": [
-        {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "expr": "rate(nexus_stream_task_received_total[5m])",
-          "legendFormat": "received"},
-        {"datasource": {"type": "prometheus", "uid": "${DS_PROMETHEUS}"},
+          "legendFormat": "received"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
           "expr": "sum(rate(nexus_stream_result_sent_total[5m]))",
-          "legendFormat": "sent"}
+          "legendFormat": "sent"
+        }
       ]
     }
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["alaya", "nexus"],
-  "templating": {"list": [{"name": "DS_PROMETHEUS", "type": "datasource", "pluginId": "prometheus", "current": {}, "hide": 2}]},
-  "time": {"from": "now-1h", "to": "now"},
+  "tags": [
+    "alaya",
+    "nexus"
+  ],
+  "templating": {
+    "list": [
+      {
+        "name": "DS_PROMETHEUS",
+        "type": "datasource",
+        "pluginId": "prometheus",
+        "current": {},
+        "hide": 2
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "title": "Alaya nexus-core Pipeline",
   "uid": "nexus-pipeline",
   "version": 1

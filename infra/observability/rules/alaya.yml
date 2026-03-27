@@ -68,14 +68,6 @@ groups:
           summary: 'Nexus pipeline error rate elevated'
           description: '{{ $value | humanize }} errors/s'
 
-      - alert: NexusMacHeartbeatMissing
-        expr: absent(nexus_mac_worker_heartbeat_age_seconds) or nexus_mac_worker_heartbeat_age_seconds > 120
-        for: 3m
-        labels:
-          severity: warning
-        annotations:
-          summary: 'Mac worker heartbeat missing'
-          description: 'dmail-claude-1 has not sent a heartbeat in > 2 minutes'
 
   - name: alaya_redis
     rules:
