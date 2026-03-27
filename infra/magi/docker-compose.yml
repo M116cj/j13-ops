@@ -59,13 +59,13 @@ services:
     working_dir: /app
     command: >
       bash -c 'pip install fastapi uvicorn python-multipart -q &&
-               uvicorn server:app --host 0.0.0.0 --port 8765'
+               cd /tmp && uvicorn server:app --host 0.0.0.0 --port 8765 --app-dir /app'
     environment:
       - CLAUDE_INBOX_TOKEN=${CLAUDE_INBOX_TOKEN}
     networks:
       - magi_default
     healthcheck:
-      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8765/health')"]
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8765/health')\""]
       interval: 30s
       timeout: 5s
       retries: 3
