@@ -10,6 +10,19 @@ clients:
 
 scrape_configs:
   - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+    relabel_configs:
+      - source_labels: [__meta_docker_container_name]
+        regex: '/(.*)'
+        target_label: container
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: logstream
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+
+  - job_name: docker_static
     static_configs:
       - targets:
           - localhost
@@ -21,19 +34,17 @@ scrape_configs:
           expressions:
             output: log
             stream: stream
-            attrs:
-      - json:
-          source: attrs
-          expressions:
-            tag:
-      - regex:
-          source: tag
-          expression: '(?P<container_name>(?:[^|]*[^|]))'
+            time: time
       - timestamp:
           source: time
           format: RFC3339Nano
       - output:
           source: output
+      - regex:
+          expression: '/var/lib/docker/containers/(?P<container_id>[a-f0-9]{12})[a-f0-9]*/[a-f0-9]+-json.log'
+          source: filename
+      - labels:
+          container_id:
 
   - job_name: system
     static_configs:
