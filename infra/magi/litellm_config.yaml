@@ -36,7 +36,7 @@ model_list:
   - model_name: local-qwen
     litellm_params:
       model: openai/qwen2.5-coder-14b-awq
-      api_base: http://nexus-engine:23333/v1
+      api_base: http://host.docker.internal:8001/v1
       api_key: "not-needed"
       # nexus-engine 是 OpenAI-compatible API，用 openai/ prefix
 
