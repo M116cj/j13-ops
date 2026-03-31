@@ -13,7 +13,7 @@ services:
     volumes:
       - ./litellm_config.yaml:/app/config.yaml:ro
     environment:
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      # ANTHROPIC_API_KEY removed — Claude via Mac bridge
       - XAI_API_KEY=${XAI_API_KEY}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
