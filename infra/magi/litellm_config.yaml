@@ -4,21 +4,24 @@
 # bot.py 可繼續直連 :8001（低延遲），也可走 litellm（統一 logging）
 
 model_list:
-  # --- Anthropic ---
+  # --- Claude Bridge (Mac 100.115.215.69:8768 via Tailscale) ---
   - model_name: claude-sonnet-4-6
     litellm_params:
-      model: anthropic/claude-sonnet-4-6
-      api_key: os.environ/ANTHROPIC_API_KEY
+      model: openai/claude-sonnet-4-6
+      api_base: http://100.115.215.69:8768/v1
+      api_key: "not-needed"
 
   - model_name: claude-opus-4-6
     litellm_params:
-      model: anthropic/claude-opus-4-6
-      api_key: os.environ/ANTHROPIC_API_KEY
+      model: openai/claude-opus-4-6
+      api_base: http://100.115.215.69:8768/v1
+      api_key: "not-needed"
 
   - model_name: claude-haiku-4-5
     litellm_params:
-      model: anthropic/claude-haiku-4-5-20251001
-      api_key: os.environ/ANTHROPIC_API_KEY
+      model: openai/claude-haiku-4-5
+      api_base: http://100.115.215.69:8768/v1
+      api_key: "not-needed"
 
   # --- xAI (Grok) ---
   - model_name: grok-4-1-fast
