@@ -1,0 +1,107 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.21659094409762814,
+        "sharpe": 2.5880336812904146,
+        "total_return": 0.7469744703294536,
+        "trades_per_day": 63.66657279639538,
+        "win_rate": 0.31455927907631653
+      }
+    ]
+  },
+  "card_id": "v3-btcusdt-202604041114",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "resample_minutes": 60
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      15.108061262408347,
+      -48.98250134083186,
+      71.0710427131103,
+      39.04445041496709,
+      66.38898746892559,
+      57.68607358903944,
+      -43.696103614706715,
+      -10.634364996146362,
+      128.63236620405505,
+      -112.53410103874528,
+      -55.43350811644548,
+      -50.36538176592977,
+      -29.17255278923082,
+      -28.586822493176594,
+      -48.045439383243334
+    ]
+  },
+  "normalization": {
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 0.01,
+    "exit_thr": 5.0,
+    "hold_max": 25,
+    "pos_frac": 1.0,
+    "stop_mult": 10.0
+  },
+  "regime": {
+    "distribution": {
+      "1": 322,
+      "2": 1306,
+      "3": 1923
+    },
+    "n_states": 4,
+    "target_regime": 1
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      3,
+      2,
+      1
+    ],
+    "total_elites": 227
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "BTCUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 2.1005085933668156e-10,
+    "gate2_pass": false,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=-2.708<=0.5; max_dd=0.9985>=0.3249",
+    "holdout_max_dd": 0.9985142075964247,
+    "holdout_sharpe": -2.707605614336462
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

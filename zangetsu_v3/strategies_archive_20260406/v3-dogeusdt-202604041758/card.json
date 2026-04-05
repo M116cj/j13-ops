@@ -1,0 +1,141 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.002804980399243203,
+        "sharpe": 5.010149347099178,
+        "total_return": 0.017192047051545794,
+        "trades_per_day": 15.883603224805626,
+        "win_rate": 0.4769181890389198
+      }
+    ]
+  },
+  "card_id": "v3-dogeusdt-202604041758",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      -0.7036994629125429,
+      1.2437026815566807,
+      0.144893370622322,
+      2.952873349807668,
+      -2.076712925574214,
+      -1.1739692821440177,
+      0.8164344963549248,
+      1.4817739142002466,
+      -1.742668209496136,
+      0.10795998130495807,
+      -1.3307358935470182,
+      -0.8449613760233838,
+      0.617543201075046,
+      0.8623492142078758,
+      2.93062618449783
+    ]
+  },
+  "normalization": {
+    "factor_medians": {
+      "bar_range": 0.0016589516495866252,
+      "corr_cv_30": -0.036205126858476516,
+      "high_low_ma": 0.008194217326456915,
+      "mean_rev_20": 4.0911765909035225e-05,
+      "mean_rev_50": 8.940649635369446e-05,
+      "momentum_10": 9.999999999996123e-06,
+      "momentum_20": 1.0000000000010001e-05,
+      "momentum_5": 0.0,
+      "ret_skew_20": 0.01608908985903607,
+      "ts_rank_20": 0.55,
+      "vol_10": 0.0003606119798342851,
+      "vol_50": 0.0008122036444143799,
+      "vol_rank_20": 0.5,
+      "vol_ratio": 0.44664162795018647,
+      "vol_ratio_50": 0.7564697260688653
+    },
+    "factor_scales": {
+      "bar_range": 0.0010399461187945316,
+      "corr_cv_30": 0.45040925575302104,
+      "high_low_ma": 0.004615191349541397,
+      "mean_rev_20": 0.0027433995350921708,
+      "mean_rev_50": 0.004371037938196225,
+      "momentum_10": 0.000948864000000023,
+      "momentum_20": 0.0013343399999999352,
+      "momentum_5": 0.0006671700000000088,
+      "ret_skew_20": 0.5168484312576377,
+      "ts_rank_20": 0.51891,
+      "vol_10": 0.00027512478908082614,
+      "vol_50": 0.0006020707355573661,
+      "vol_rank_20": 0.37065,
+      "vol_ratio": 0.23378956311847637,
+      "vol_ratio_50": 0.46036694619163737
+    },
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 8.672298998063898,
+    "exit_thr": 0.2890766332687966,
+    "hold_max": 480,
+    "pos_frac": 0.01,
+    "stop_mult": 3.4900088554314346
+  },
+  "regime": {
+    "distribution": {
+      "1": 7132,
+      "2": 89609,
+      "3": 1268,
+      "4": 117942
+    },
+    "n_states": 5,
+    "target_regime": 4
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      4,
+      2
+    ],
+    "total_elites": 512
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "DOGEUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 1.0,
+    "gate2_pass": true,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=-0.746<=0.5; max_dd=0.0092>=0.0042",
+    "holdout_max_dd": 0.009241139441856767,
+    "holdout_sharpe": -0.7460351530933463
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

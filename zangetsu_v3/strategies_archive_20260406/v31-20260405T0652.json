@@ -1,0 +1,19 @@
+{
+  "0": {
+    "regime": "BULL_TREND",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 5,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 1.5338220641391702,
+      "exit_thr": 1.2270576513113363,
+      "stop_mult": 4.897095358391486,
+      "pos_frac": 0.24810457266286215,
+      "hold_max": 30
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 6.777483783000207
+  }
+}

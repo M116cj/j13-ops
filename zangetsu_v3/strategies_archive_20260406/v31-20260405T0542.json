@@ -1,0 +1,189 @@
+{
+  "0": {
+    "regime": "BULL_TREND",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 15,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 1.2124445885026645,
+      "exit_thr": 0.9699556708021316,
+      "stop_mult": 4.321166611998596,
+      "pos_frac": 0.01,
+      "hold_max": 92
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 6.355452987001627
+  },
+  "1": {
+    "regime": "BEAR_TREND",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 19,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 4.230429085709856,
+      "exit_thr": 0.6589013798991347,
+      "stop_mult": 5.0,
+      "pos_frac": 0.16142208209105935,
+      "hold_max": 112
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.7973753519981983
+  },
+  "2": {
+    "regime": "BULL_PULLBACK",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 20,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 1.8785836578883544,
+      "exit_thr": 0.3130972763147257,
+      "stop_mult": 3.63706109415737,
+      "pos_frac": 0.25,
+      "hold_max": 36
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.2598171299978276
+  },
+  "3": {
+    "regime": "BEAR_RALLY",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 20,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 2.5225301700833582,
+      "exit_thr": 0.6002439751970832,
+      "stop_mult": 3.524494535180973,
+      "pos_frac": 0.22722360359522914,
+      "hold_max": 120
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.2586552080028923
+  },
+  "9": {
+    "regime": "TOPPING",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 20,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 1.6376637953434268,
+      "exit_thr": 1.3101310362747416,
+      "stop_mult": 1.6340509982639728,
+      "pos_frac": 0.01,
+      "hold_max": 5
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.272178041996085
+  },
+  "10": {
+    "regime": "BOTTOMING",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 20,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 6.570265227233721,
+      "exit_thr": 1.3461880486052173,
+      "stop_mult": 0.5,
+      "pos_frac": 0.026611696022655874,
+      "hold_max": 72
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.4526502940061619
+  },
+  "6": {
+    "regime": "CONSOLIDATION",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 6,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 0.9507641044514914,
+      "exit_thr": 0.7606112835611931,
+      "stop_mult": 1.326537074194083,
+      "pos_frac": 0.08666455747964684,
+      "hold_max": 61
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 6.72193844600406
+  },
+  "8": {
+    "regime": "SQUEEZE",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 17,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 11.64877977767496,
+      "exit_thr": 3.7160846213488696,
+      "stop_mult": 3.7784978856708236,
+      "pos_frac": 0.01,
+      "hold_max": 51
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.2640641100006178
+  },
+  "7": {
+    "regime": "CHOPPY_VOLATILE",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 8,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 3.568533479281682,
+      "exit_thr": 2.0025174791688625,
+      "stop_mult": 1.4293945982942173,
+      "pos_frac": 0.24943830360361002,
+      "hold_max": 95
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.265029066002171
+  },
+  "4": {
+    "regime": "DISTRIBUTION",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 1,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 3.2434932160442598,
+      "exit_thr": 2.1533321811260366,
+      "stop_mult": 2.187889645129795,
+      "pos_frac": 0.25,
+      "hold_max": 120
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.2592925959979766
+  },
+  "5": {
+    "regime": "ACCUMULATION",
+    "status": "FAILED_HOLDOUT",
+    "n_elites": 19,
+    "best_fitness": -999.0,
+    "params": {
+      "entry_thr": 1.305410792841958,
+      "exit_thr": 1.0443286342735665,
+      "stop_mult": 5.0,
+      "pos_frac": 0.09493641588527385,
+      "hold_max": 5
+    },
+    "gate1": false,
+    "gate2": false,
+    "gate3": false,
+    "search_seconds": 1.2688558039953932
+  }
+}

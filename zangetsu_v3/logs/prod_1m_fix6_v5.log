@@ -1,0 +1,196 @@
+15:29:11 [INFO] Zangetsu V3 — Production Pipeline
+15:29:11 [INFO] Symbols: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT']
+15:29:11 [INFO] Training: 18mo, Embargo: 90d, Holdout: 10mo
+15:29:11 [INFO] Search: 1000 gen, 8 threads
+15:29:11 [INFO] Timeframe: 1m (raw)
+15:29:11 [INFO] 
+15:29:11 [INFO] ============================================================
+15:29:11 [INFO] SYMBOL: BTCUSDT
+15:29:11 [INFO] ============================================================
+15:29:12 [INFO]   BTCUSDT: 777601 1m bars (2024-10-05 00:00:00 to 2026-03-29 00:00:00)
+15:29:12 [INFO]   S01 features: (777601, 10) cols=['open', 'high', 'low', 'close', 'volume', 'timestamp', 'rolling_return', 'realized_vol', 'volume_zscore', 'range_zscore']
+15:29:12 [INFO]   S02 split: train=216000 embargo=129600 holdout=432001
+15:29:12 [INFO]   S03 normalizer fit on 216000 rows
+15:29:19 [WARNING] Model is not converging.  Current: 2654138.313448292 is not greater than 3476162.363737477. Delta is -822024.0502891848
+15:29:25 [WARNING] Model is not converging.  Current: 2682166.5298929713 is not greater than 4568128.431714805. Delta is -1885961.9018218336
+15:29:28 [WARNING] Model is not converging.  Current: 2683431.175296768 is not greater than 3347054.859470714. Delta is -663623.6841739458
+15:29:29 [INFO]   S04 regime: 5 states (BIC selected)
+15:29:29 [INFO]   S05 predictor: active_regime=3 conf=0.580
+15:29:51 [INFO]   S06 factors: (215951, 15) (after NaN warmup drop)
+15:29:51 [INFO]   Regime distribution: {1: 9316, 2: 72244, 3: 132963, 4: 1428}
+15:29:51 [INFO]   Viable regimes (>10797 bars): [3, 2]
+15:29:56 [INFO]   Fix2: median_signal_std=168.394720, entry_range=[84.197360, 505.184160], exit_range=[16.839472, 252.592080]
+15:29:56 [INFO]   Fix2 verify: midpoint tpd=28.26, active_bars=39731, sharpe=-8.95
+15:29:56 [INFO]   S07 search: regime 3 (61.6% of train), 1000 gen...
+15:33:06 [INFO]     regime 3: 119 elites, best_fitness=2.0029, time=190.5s, qd_final=-314.46
+15:33:06 [INFO]   S07 search: regime 2 (33.5% of train), 1000 gen...
+15:35:58 [INFO]     regime 2: 116 elites, best_fitness=2.4255, time=171.4s, qd_final=-308.02
+15:35:58 [INFO]   Best regime: 2, fitness=2.4255
+15:35:58 [INFO]   Params: {'entry_thr': 377.79665382111034, 'exit_thr': 207.36092991305347, 'stop_mult': 5.0, 'pos_frac': 0.25, 'hold_max': 480}
+15:35:58 [INFO]   S08 Gate1: FAIL (trimmed_min=0.0002, sos=0.0001)
+15:35:58 [INFO]   S08 Gate2 (DSR): FAIL (sharpe=2.4255, dsr=0.0012, trials=235, active_bars=238)
+15:36:42 [INFO]   S08 Gate3 (holdout): FAIL (sharpe=-0.7080, dd=0.0131) reason=FAILED: sharpe=-0.708<=0.5; max_dd=0.0131>=0.0046
+15:36:42 [INFO]   GATES: FAILED_HOLDOUT
+15:36:42 [INFO]   S09 card exported: strategies/v3-btcusdt-202604041529
+15:36:42 [INFO]   S10 SKIP live replay: gates did not pass
+15:36:42 [INFO] ============================================================
+15:36:42 [INFO] SYMBOL: ETHUSDT
+15:36:42 [INFO] ============================================================
+15:36:43 [INFO]   ETHUSDT: 777601 1m bars (2024-10-05 00:00:00 to 2026-03-29 00:00:00)
+15:36:43 [INFO]   S01 features: (777601, 10) cols=['open', 'high', 'low', 'close', 'volume', 'timestamp', 'rolling_return', 'realized_vol', 'volume_zscore', 'range_zscore']
+15:36:43 [INFO]   S02 split: train=216000 embargo=129600 holdout=432001
+15:36:43 [INFO]   S03 normalizer fit on 216000 rows
+15:36:47 [WARNING] Model is not converging.  Current: 2555685.0360165257 is not greater than 3418842.748130018. Delta is -863157.7121134922
+15:36:51 [WARNING] Model is not converging.  Current: 2574800.6772619467 is not greater than 4434984.113267704. Delta is -1860183.4360057572
+15:36:55 [WARNING] Model is not converging.  Current: 2607978.4033401227 is not greater than 4464467.368508445. Delta is -1856488.9651683224
+15:36:55 [INFO]   S04 regime: 5 states (BIC selected)
+15:36:55 [INFO]   S05 predictor: active_regime=3 conf=0.883
+15:37:17 [INFO]   S06 factors: (215951, 15) (after NaN warmup drop)
+15:37:17 [INFO]   Regime distribution: {1: 7274, 2: 80033, 3: 127305, 4: 1339}
+15:37:17 [INFO]   Viable regimes (>10797 bars): [3, 2]
+15:37:20 [INFO]   Fix2: median_signal_std=7.806927, entry_range=[3.903464, 23.420782], exit_range=[0.780693, 11.710391]
+15:37:20 [INFO]   Fix2 verify: midpoint tpd=30.95, active_bars=43248, sharpe=-5.99
+15:37:20 [INFO]   S07 search: regime 3 (59.0% of train), 1000 gen...
+15:40:19 [INFO]     regime 3: 139 elites, best_fitness=2.3756, time=179.6s, qd_final=-1338.51
+15:40:19 [INFO]   S07 search: regime 2 (37.1% of train), 1000 gen...
+15:43:35 [INFO]     regime 2: 159 elites, best_fitness=2.0912, time=196.0s, qd_final=-416.80
+15:43:35 [INFO]   Best regime: 3, fitness=2.3756
+15:43:35 [INFO]   Params: {'entry_thr': 23.420781539549175, 'exit_thr': 0.7806927179849726, 'stop_mult': 2.5715603213464515, 'pos_frac': 0.25, 'hold_max': 480}
+15:43:35 [INFO]   S08 Gate1: FAIL (trimmed_min=0.0004, sos=0.0005)
+15:43:35 [INFO]   S08 Gate2 (DSR): FAIL (sharpe=2.3756, dsr=0.0000, trials=298, active_bars=921)
+15:44:19 [INFO]   S08 Gate3 (holdout): FAIL (sharpe=0.1914, dd=0.0373) reason=FAILED: sharpe=0.191<=0.5; max_dd=0.0373>=0.0150
+15:44:19 [INFO]   GATES: FAILED_HOLDOUT
+15:44:19 [INFO]   S09 card exported: strategies/v3-ethusdt-202604041536
+15:44:19 [INFO]   S10 SKIP live replay: gates did not pass
+15:44:19 [INFO] ============================================================
+15:44:19 [INFO] SYMBOL: BNBUSDT
+15:44:19 [INFO] ============================================================
+15:44:20 [INFO]   BNBUSDT: 777601 1m bars (2024-10-05 00:00:00 to 2026-03-29 00:00:00)
+15:44:20 [INFO]   S01 features: (777601, 10) cols=['open', 'high', 'low', 'close', 'volume', 'timestamp', 'rolling_return', 'realized_vol', 'volume_zscore', 'range_zscore']
+15:44:20 [INFO]   S02 split: train=216000 embargo=129600 holdout=432001
+15:44:20 [INFO]   S03 normalizer fit on 216000 rows
+15:44:24 [WARNING] Model is not converging.  Current: 2609507.7898296597 is not greater than 3116942.4221852254. Delta is -507434.63235556567
+15:44:29 [WARNING] Model is not converging.  Current: 2649021.4272456197 is not greater than 3553097.674646782. Delta is -904076.2474011625
+15:44:33 [WARNING] Model is not converging.  Current: 2646606.18747156 is not greater than 4461073.490498315. Delta is -1814467.3030267544
+15:44:33 [INFO]   S04 regime: 5 states (BIC selected)
+15:44:33 [INFO]   S05 predictor: active_regime=3 conf=0.837
+15:44:55 [INFO]   S06 factors: (215951, 15) (after NaN warmup drop)
+15:44:55 [INFO]   Regime distribution: {1: 9551, 2: 72062, 3: 132819, 4: 1519}
+15:44:55 [INFO]   Viable regimes (>10797 bars): [3, 2]
+15:44:59 [INFO]   Fix2: median_signal_std=1.622874, entry_range=[0.811437, 4.868623], exit_range=[0.162287, 2.434311]
+15:44:59 [INFO]   Fix2 verify: midpoint tpd=41.08, active_bars=43526, sharpe=-10.89
+15:44:59 [INFO]   S07 search: regime 3 (61.5% of train), 1000 gen...
+15:48:00 [INFO]     regime 3: 111 elites, best_fitness=2.7392, time=181.2s, qd_final=-310.63
+15:48:00 [INFO]   S07 search: regime 2 (33.4% of train), 1000 gen...
+15:50:53 [INFO]     regime 2: 115 elites, best_fitness=3.9866, time=172.5s, qd_final=-299.74
+15:50:53 [INFO]   Best regime: 2, fitness=3.9866
+15:50:53 [INFO]   Params: {'entry_thr': 4.868622554847748, 'exit_thr': 0.16228741849492492, 'stop_mult': 5.0, 'pos_frac': 0.25, 'hold_max': 480}
+15:50:53 [INFO]   S08 Gate1: FAIL (trimmed_min=0.0032, sos=0.0015)
+15:50:53 [INFO]   S08 Gate2 (DSR): PASS (sharpe=3.9866, dsr=1.0000, trials=226, active_bars=9011)
+15:51:36 [INFO]   S08 Gate3 (holdout): FAIL (sharpe=-0.9301, dd=0.1217) reason=FAILED: sharpe=-0.930<=0.5; max_dd=0.1217>=0.0330
+15:51:36 [INFO]   GATES: FAILED_HOLDOUT
+15:51:36 [INFO]   S09 card exported: strategies/v3-bnbusdt-202604041544
+15:51:36 [INFO]   S10 SKIP live replay: gates did not pass
+15:51:36 [INFO] ============================================================
+15:51:36 [INFO] SYMBOL: SOLUSDT
+15:51:36 [INFO] ============================================================
+15:51:37 [INFO]   SOLUSDT: 777601 1m bars (2024-10-05 00:00:00 to 2026-03-29 00:00:00)
+15:51:37 [INFO]   S01 features: (777601, 10) cols=['open', 'high', 'low', 'close', 'volume', 'timestamp', 'rolling_return', 'realized_vol', 'volume_zscore', 'range_zscore']
+15:51:37 [INFO]   S02 split: train=216000 embargo=129600 holdout=432001
+15:51:37 [INFO]   S03 normalizer fit on 216000 rows
+15:51:41 [WARNING] Model is not converging.  Current: 2499999.892022677 is not greater than 3673094.4910714063. Delta is -1173094.599048729
+15:51:46 [WARNING] Model is not converging.  Current: 4391060.107267001 is not greater than 4428871.235687957. Delta is -37811.12842095643
+15:51:50 [WARNING] Model is not converging.  Current: 2531606.5965545587 is not greater than 3001016.4994698963. Delta is -469409.9029153376
+15:51:50 [INFO]   S04 regime: 5 states (BIC selected)
+15:51:50 [INFO]   S05 predictor: active_regime=0 conf=1.000
+15:52:12 [INFO]   S06 factors: (215951, 15) (after NaN warmup drop)
+15:52:12 [INFO]   Regime distribution: {1: 8907, 2: 92414, 3: 112287, 4: 2343}
+15:52:12 [INFO]   Viable regimes (>10797 bars): [3, 2]
+15:52:16 [INFO]   Fix2: median_signal_std=0.963058, entry_range=[0.481529, 2.889174], exit_range=[0.096306, 1.444587]
+15:52:16 [INFO]   Fix2 verify: midpoint tpd=46.10, active_bars=41307, sharpe=-7.93
+15:52:16 [INFO]   S07 search: regime 3 (52.0% of train), 1000 gen...
+15:55:17 [INFO]     regime 3: 178 elites, best_fitness=2.3551, time=181.3s, qd_final=-410.79
+15:55:17 [INFO]   S07 search: regime 2 (42.8% of train), 1000 gen...
+15:58:09 [INFO]     regime 2: 184 elites, best_fitness=3.7571, time=171.7s, qd_final=-347.31
+15:58:09 [INFO]   Best regime: 2, fitness=3.7571
+15:58:09 [INFO]   Params: {'entry_thr': 2.8891739282470805, 'exit_thr': 0.7142918429272359, 'stop_mult': 1.6726790113183825, 'pos_frac': 0.16414993484173795, 'hold_max': 34}
+15:58:09 [INFO]   S08 Gate1: FAIL (trimmed_min=0.0004, sos=0.0004)
+15:58:09 [INFO]   S08 Gate2 (DSR): PASS (sharpe=3.7571, dsr=1.0000, trials=362, active_bars=957)
+15:58:53 [INFO]   S08 Gate3 (holdout): FAIL (sharpe=-1.6332, dd=0.0216) reason=FAILED: sharpe=-1.633<=0.5
+15:58:53 [INFO]   GATES: FAILED_HOLDOUT
+15:58:53 [INFO]   S09 card exported: strategies/v3-solusdt-202604041551
+15:58:53 [INFO]   S10 SKIP live replay: gates did not pass
+15:58:53 [INFO] ============================================================
+15:58:53 [INFO] SYMBOL: XRPUSDT
+15:58:53 [INFO] ============================================================
+15:58:54 [INFO]   XRPUSDT: 777601 1m bars (2024-10-05 00:00:00 to 2026-03-29 00:00:00)
+15:58:54 [INFO]   S01 features: (777601, 10) cols=['open', 'high', 'low', 'close', 'volume', 'timestamp', 'rolling_return', 'realized_vol', 'volume_zscore', 'range_zscore']
+15:58:54 [INFO]   S02 split: train=216000 embargo=129600 holdout=432001
+15:58:54 [INFO]   S03 normalizer fit on 216000 rows
+15:58:58 [WARNING] Model is not converging.  Current: 2430823.9959236104 is not greater than 2852917.8544277367. Delta is -422093.8585041263
+15:59:04 [WARNING] Model is not converging.  Current: 2479297.099964148 is not greater than 3554111.2936439756. Delta is -1074814.1936798277
+15:59:08 [WARNING] Model is not converging.  Current: 2461273.363376152 is not greater than 2807027.4956458462. Delta is -345754.13226969447
+15:59:08 [INFO]   S04 regime: 5 states (BIC selected)
+15:59:08 [INFO]   S05 predictor: active_regime=2 conf=0.650
+15:59:30 [INFO]   S06 factors: (215951, 15) (after NaN warmup drop)
+15:59:30 [INFO]   Regime distribution: {1: 30881, 2: 80081, 3: 103563, 4: 1426}
+15:59:30 [INFO]   Viable regimes (>10797 bars): [3, 2, 1]
+15:59:34 [INFO]   Fix2: median_signal_std=0.568133, entry_range=[0.284066, 1.704398], exit_range=[0.056813, 0.852199]
+15:59:34 [INFO]   Fix2 verify: midpoint tpd=46.47, active_bars=18509, sharpe=-11.09
+15:59:34 [INFO]   S07 search: regime 3 (48.0% of train), 1000 gen...
+16:02:37 [INFO]     regime 3: 268 elites, best_fitness=3.8676, time=183.2s, qd_final=-405.68
+16:02:37 [INFO]   S07 search: regime 2 (37.1% of train), 1000 gen...
+16:05:54 [INFO]     regime 2: 243 elites, best_fitness=2.8627, time=196.7s, qd_final=-1435.32
+16:05:54 [INFO]   S07 search: regime 1 (14.3% of train), 1000 gen...
+16:09:05 [INFO]     regime 1: 273 elites, best_fitness=5.9683, time=191.6s, qd_final=-1367.79
+16:09:05 [INFO]   Best regime: 1, fitness=5.9683
+16:09:05 [INFO]   Params: {'entry_thr': 1.2819143602531464, 'exit_thr': 0.5642704588968567, 'stop_mult': 2.029154035060219, 'pos_frac': 0.15807206460960635, 'hold_max': 310}
+16:09:05 [INFO]   S08 Gate1: FAIL (trimmed_min=0.0111, sos=0.0004)
+16:09:05 [INFO]   S08 Gate2 (DSR): PASS (sharpe=5.9683, dsr=1.0000, trials=784, active_bars=1601)
+16:09:50 [INFO]   S08 Gate3 (holdout): FAIL (sharpe=-0.3391, dd=0.0642) reason=FAILED: sharpe=-0.339<=0.5; max_dd=0.0642>=0.0111
+16:09:50 [INFO]   GATES: FAILED_HOLDOUT
+16:09:50 [INFO]   S09 card exported: strategies/v3-xrpusdt-202604041558
+16:09:50 [INFO]   S10 SKIP live replay: gates did not pass
+16:09:50 [INFO] ============================================================
+16:09:50 [INFO] SYMBOL: DOGEUSDT
+16:09:50 [INFO] ============================================================
+16:09:51 [INFO]   DOGEUSDT: 777601 1m bars (2024-10-05 00:00:00 to 2026-03-29 00:00:00)
+16:09:51 [INFO]   S01 features: (777601, 10) cols=['open', 'high', 'low', 'close', 'volume', 'timestamp', 'rolling_return', 'realized_vol', 'volume_zscore', 'range_zscore']
+16:09:51 [INFO]   S02 split: train=216000 embargo=129600 holdout=432001
+16:09:51 [INFO]   S03 normalizer fit on 216000 rows
+16:09:55 [WARNING] Model is not converging.  Current: 2433139.6484320387 is not greater than 2977358.6632176293. Delta is -544219.0147855906
+16:10:01 [WARNING] Model is not converging.  Current: 2475208.039381637 is not greater than 4319922.535223504. Delta is -1844714.4958418668
+16:10:09 [WARNING] Model is not converging.  Current: 2480167.430887422 is not greater than 2968595.104506204. Delta is -488427.67361878185
+16:10:09 [INFO]   S04 regime: 5 states (BIC selected)
+16:10:09 [INFO]   S05 predictor: active_regime=4 conf=0.883
+16:10:31 [INFO]   S06 factors: (215951, 15) (after NaN warmup drop)
+16:10:31 [INFO]   Regime distribution: {1: 7132, 2: 89609, 3: 1268, 4: 117942}
+16:10:31 [INFO]   Viable regimes (>10797 bars): [4, 2]
+16:10:36 [INFO]   Fix2: median_signal_std=0.558924, entry_range=[0.279462, 1.676771], exit_range=[0.055892, 0.838386]
+16:10:36 [INFO]   Fix2 verify: midpoint tpd=44.82, active_bars=19191, sharpe=-10.04
+16:10:36 [INFO]   S07 search: regime 4 (54.6% of train), 1000 gen...
+16:13:46 [INFO]     regime 4: 232 elites, best_fitness=1.9066, time=190.4s, qd_final=-514.93
+16:13:46 [INFO]   S07 search: regime 2 (41.5% of train), 1000 gen...
+16:16:54 [INFO]     regime 2: 251 elites, best_fitness=2.2258, time=187.1s, qd_final=-456.72
+16:16:54 [INFO]   Best regime: 2, fitness=2.2258
+16:16:54 [INFO]   Params: {'entry_thr': 1.6767714917870533, 'exit_thr': 0.2519010932271171, 'stop_mult': 5.0, 'pos_frac': 0.10809194900516939, 'hold_max': 452}
+16:16:54 [INFO]   S08 Gate1: FAIL (trimmed_min=0.0002, sos=0.0002)
+16:16:54 [INFO]   S08 Gate2 (DSR): FAIL (sharpe=2.2258, dsr=0.0000, trials=483, active_bars=4470)
+16:17:37 [INFO]   S08 Gate3 (holdout): FAIL (sharpe=-2.2267, dd=0.0410) reason=FAILED: sharpe=-2.227<=0.5; max_dd=0.0410>=0.0212
+16:17:37 [INFO]   GATES: FAILED_HOLDOUT
+16:17:37 [INFO]   S09 card exported: strategies/v3-dogeusdt-202604041609
+16:17:37 [INFO]   S10 SKIP live replay: gates did not pass
+16:17:37 [INFO] 
+16:17:37 [INFO] ======================================================================
+16:17:37 [INFO] PRODUCTION PIPELINE SUMMARY
+16:17:37 [INFO] ======================================================================
+16:17:37 [INFO]   BTCUSDT      FAILED_HOLDOUT     train_sharpe=2.4255 holdout_sharpe=-0.7080 regimes=5 best=2 time=451s
+16:17:37 [INFO]   ETHUSDT      FAILED_HOLDOUT     train_sharpe=2.3756 holdout_sharpe=0.1914 regimes=5 best=3 time=457s
+16:17:37 [INFO]   BNBUSDT      FAILED_HOLDOUT     train_sharpe=3.9866 holdout_sharpe=-0.9301 regimes=5 best=2 time=437s
+16:17:37 [INFO]   SOLUSDT      FAILED_HOLDOUT     train_sharpe=3.7571 holdout_sharpe=-1.6332 regimes=5 best=2 time=437s
+16:17:37 [INFO]   XRPUSDT      FAILED_HOLDOUT     train_sharpe=5.9683 holdout_sharpe=-0.3391 regimes=5 best=1 time=657s
+16:17:37 [INFO]   DOGEUSDT     FAILED_HOLDOUT     train_sharpe=2.2258 holdout_sharpe=-2.2267 regimes=5 best=2 time=468s
+16:17:37 [INFO] 
+Summary saved: strategies/run-20260404T1617.json
+16:17:37 [INFO] 
+0/6 strategies passed all gates

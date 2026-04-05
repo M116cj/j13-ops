@@ -1,0 +1,68 @@
+[
+  {
+    "symbol": "BTCUSDT",
+    "card_id": "v3-btcusdt-202604041529",
+    "status": "FAILED_HOLDOUT",
+    "train_sharpe": 2.4255231722657853,
+    "holdout_sharpe": -0.7079553787754089,
+    "n_regimes": 5,
+    "best_regime": 2,
+    "elapsed_s": 451.3165019070002,
+    "live_replay": "skipped"
+  },
+  {
+    "symbol": "ETHUSDT",
+    "card_id": "v3-ethusdt-202604041536",
+    "status": "FAILED_HOLDOUT",
+    "train_sharpe": 2.375628300699275,
+    "holdout_sharpe": 0.1914139778911178,
+    "n_regimes": 5,
+    "best_regime": 3,
+    "elapsed_s": 456.8548527640005,
+    "live_replay": "skipped"
+  },
+  {
+    "symbol": "BNBUSDT",
+    "card_id": "v3-bnbusdt-202604041544",
+    "status": "FAILED_HOLDOUT",
+    "train_sharpe": 3.9866210923335843,
+    "holdout_sharpe": -0.9301176010763531,
+    "n_regimes": 5,
+    "best_regime": 2,
+    "elapsed_s": 437.24994580600014,
+    "live_replay": "skipped"
+  },
+  {
+    "symbol": "SOLUSDT",
+    "card_id": "v3-solusdt-202604041551",
+    "status": "FAILED_HOLDOUT",
+    "train_sharpe": 3.75706594498872,
+    "holdout_sharpe": -1.6331827273042046,
+    "n_regimes": 5,
+    "best_regime": 2,
+    "elapsed_s": 437.10247832500136,
+    "live_replay": "skipped"
+  },
+  {
+    "symbol": "XRPUSDT",
+    "card_id": "v3-xrpusdt-202604041558",
+    "status": "FAILED_HOLDOUT",
+    "train_sharpe": 5.9682874452546635,
+    "holdout_sharpe": -0.33911774082606305,
+    "n_regimes": 5,
+    "best_regime": 1,
+    "elapsed_s": 656.5913223059997,
+    "live_replay": "skipped"
+  },
+  {
+    "symbol": "DOGEUSDT",
+    "card_id": "v3-dogeusdt-202604041609",
+    "status": "FAILED_HOLDOUT",
+    "train_sharpe": 2.2257995691889745,
+    "holdout_sharpe": -2.2267140805747556,
+    "n_regimes": 5,
+    "best_regime": 2,
+    "elapsed_s": 467.6413635829995,
+    "live_replay": "skipped"
+  }
+]

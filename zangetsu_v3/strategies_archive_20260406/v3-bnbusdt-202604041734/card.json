@@ -1,0 +1,141 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.00253585346448368,
+        "sharpe": 5.366837048293521,
+        "total_return": 0.026102594174962607,
+        "trades_per_day": 0.21338173937606214,
+        "win_rate": 0.5752688172043011
+      }
+    ]
+  },
+  "card_id": "v3-bnbusdt-202604041734",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      0.0016626238701531564,
+      0.23529001824666276,
+      0.04252816096697938,
+      -2.6996328841092705,
+      0.08120154224776308,
+      -0.7556972598988136,
+      -0.5321773765400674,
+      -0.20577880031357518,
+      0.49094797379431276,
+      0.10990773874681939,
+      -0.5099882562898792,
+      0.34163256075683357,
+      0.41160398666973286,
+      -0.4781215189256454,
+      0.7783594803752338
+    ]
+  },
+  "normalization": {
+    "factor_medians": {
+      "bar_range": 0.0007527399735035529,
+      "corr_cv_30": -0.03705865498600995,
+      "high_low_ma": 0.004010923974273042,
+      "mean_rev_20": 3.948823250676803e-05,
+      "mean_rev_50": 8.857308755971793e-05,
+      "momentum_10": 0.01999999999998181,
+      "momentum_20": 0.029999999999972715,
+      "momentum_5": 0.009999999999990905,
+      "ret_skew_20": -0.007986410017736912,
+      "ts_rank_20": 0.55,
+      "vol_10": 0.41920877853402533,
+      "vol_50": 0.9593820719609044,
+      "vol_rank_20": 0.5,
+      "vol_ratio": 0.4424770617469965,
+      "vol_ratio_50": 0.7095170565632446
+    },
+    "factor_scales": {
+      "bar_range": 0.000528790299462595,
+      "corr_cv_30": 0.37857959695189214,
+      "high_low_ma": 0.0023768995834945665,
+      "mean_rev_20": 0.001402367139546854,
+      "mean_rev_50": 0.0022374699146381865,
+      "momentum_10": 1.1564279999999594,
+      "momentum_20": 1.6456859999998517,
+      "momentum_5": 0.8154299999999325,
+      "ret_skew_20": 0.5434520387315184,
+      "ts_rank_20": 0.51891,
+      "vol_10": 0.2755422250023403,
+      "vol_50": 0.608191390801402,
+      "vol_rank_20": 0.37065,
+      "vol_ratio": 0.23925384592062965,
+      "vol_ratio_50": 0.4688703708625608
+    },
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 8.163157165348162,
+    "exit_thr": 0.2721052388449387,
+    "hold_max": 10,
+    "pos_frac": 0.25,
+    "stop_mult": 5.0
+  },
+  "regime": {
+    "distribution": {
+      "1": 9551,
+      "2": 72062,
+      "3": 132819,
+      "4": 1519
+    },
+    "n_states": 5,
+    "target_regime": 3
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      3,
+      2
+    ],
+    "total_elites": 235
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "BNBUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 1.0,
+    "gate2_pass": true,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: max_dd=0.0255>=0.0038; tpd_dev=3.53>=1.0",
+    "holdout_max_dd": 0.02552953553974743,
+    "holdout_sharpe": 1.0270071823240678
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

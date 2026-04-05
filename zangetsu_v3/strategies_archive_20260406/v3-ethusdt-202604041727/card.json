@@ -1,0 +1,141 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.011572725368646265,
+        "sharpe": 3.3134390110451415,
+        "total_return": 0.03466014181595292,
+        "trades_per_day": 1.6537084801644817,
+        "win_rate": 0.4597315436241611
+      }
+    ]
+  },
+  "card_id": "v3-ethusdt-202604041727",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      -0.6656742548331671,
+      -0.31650956827071786,
+      1.1272484099558135,
+      0.13896736067341342,
+      1.2360486753393753,
+      -0.38181877633851463,
+      -1.8174836130604641,
+      -0.4149304739648699,
+      -0.22185212782208236,
+      0.3362393793666927,
+      -0.027039184507843497,
+      -0.31858087638553434,
+      -0.3674429010880286,
+      0.19418759757902862,
+      -0.9687652001823107
+    ]
+  },
+  "normalization": {
+    "factor_medians": {
+      "bar_range": 0.0009578113047447073,
+      "corr_cv_30": -0.04069788661863277,
+      "high_low_ma": 0.004890213102508537,
+      "mean_rev_20": 2.0905670314652625e-05,
+      "mean_rev_50": 6.272428464404456e-05,
+      "momentum_10": 0.05999999999994543,
+      "momentum_20": 0.07999999999992724,
+      "momentum_5": 0.01999999999998181,
+      "ret_skew_20": 0.011322721084442966,
+      "ts_rank_20": 0.55,
+      "vol_10": 2.383855910075094,
+      "vol_50": 5.336665011034507,
+      "vol_rank_20": 0.5,
+      "vol_ratio": 0.4495709851910945,
+      "vol_ratio_50": 0.716021550894463
+    },
+    "factor_scales": {
+      "bar_range": 0.0006254748502491468,
+      "corr_cv_30": 0.46215605794274217,
+      "high_low_ma": 0.0027541991966396444,
+      "mean_rev_20": 0.0016410652696771943,
+      "mean_rev_50": 0.002551779520394171,
+      "momentum_10": 6.493788000000161,
+      "momentum_20": 9.014207999999892,
+      "momentum_5": 4.596059999999865,
+      "ret_skew_20": 0.524753216133695,
+      "ts_rank_20": 0.51891,
+      "vol_10": 1.5208488173771069,
+      "vol_50": 3.3464476299154726,
+      "vol_rank_20": 0.37065,
+      "vol_ratio": 0.23460006067338862,
+      "vol_ratio_50": 0.46549466884072566
+    },
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 8.20439897662072,
+    "exit_thr": 4.062667712428668,
+    "hold_max": 480,
+    "pos_frac": 0.25,
+    "stop_mult": 5.0
+  },
+  "regime": {
+    "distribution": {
+      "1": 7274,
+      "2": 80033,
+      "3": 127305,
+      "4": 1339
+    },
+    "n_states": 5,
+    "target_regime": 2
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      3,
+      2
+    ],
+    "total_elites": 265
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "ETHUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 0.9999999590630175,
+    "gate2_pass": true,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=-1.922<=0.5; max_dd=0.0780>=0.0174",
+    "holdout_max_dd": 0.07798281774627583,
+    "holdout_sharpe": -1.9220791856809196
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}
