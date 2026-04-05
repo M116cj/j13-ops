@@ -1,0 +1,48 @@
+12:16:22 [INFO] Zangetsu V3 — Production Pipeline
+12:16:22 [INFO] Symbols: ['BTCUSDT']
+12:16:22 [INFO] Training: 18mo, Embargo: 90d, Holdout: 10mo
+12:16:22 [INFO] Search: 1000 gen, 20 threads
+12:16:22 [INFO] Timeframe: 1m (raw)
+12:16:22 [INFO] 
+12:16:22 [INFO] ============================================================
+12:16:22 [INFO] SYMBOL: BTCUSDT
+12:16:22 [INFO] ============================================================
+12:16:24 [INFO]   BTCUSDT: 777601 1m bars (2024-10-05 00:00:00 to 2026-03-29 00:00:00)
+12:16:24 [INFO]   S01 features: (777601, 10) cols=['open', 'high', 'low', 'close', 'volume', 'timestamp', 'rolling_return', 'realized_vol', 'volume_zscore', 'range_zscore']
+12:16:24 [INFO]   S02 split: train=216000 embargo=129600 holdout=432001
+12:16:24 [INFO]   S03 normalizer fit on 216000 rows
+12:16:30 [WARNING] Model is not converging.  Current: 2654138.3134299996 is not greater than 3476161.8326370623. Delta is -822023.5192070627
+12:16:36 [WARNING] Model is not converging.  Current: 2682166.5298929713 is not greater than 4568128.431714805. Delta is -1885961.9018218336
+12:16:39 [WARNING] Model is not converging.  Current: 4532012.409664899 is not greater than 4569619.008420102. Delta is -37606.59875520319
+12:16:45 [WARNING] Model is not converging.  Current: 2681556.659510191 is not greater than 4471290.525691168. Delta is -1789733.8661809773
+12:16:51 [WARNING] Model is not converging.  Current: 2655354.8231142582 is not greater than 4529595.791276526. Delta is -1874240.9681622675
+12:16:57 [WARNING] Model is not converging.  Current: 2666213.7361297454 is not greater than 3810405.556263631. Delta is -1144191.8201338858
+12:16:57 [INFO]   S04 regime: 8 states (BIC selected)
+12:16:57 [INFO]   S05 predictor: active_regime=6 conf=0.323
+12:17:19 [INFO]   S06 factors: (215951, 15) (after NaN warmup drop)
+12:17:19 [INFO]   Regime distribution: {1: 49797, 2: 6171, 3: 2371, 4: 68470, 5: 25, 6: 88356, 7: 761}
+12:17:19 [INFO]   S07 search: regime 6 (40.9% of train), 1000 gen...
+12:20:35 [INFO]     regime 6: 77 elites, best_fitness=1.2113, time=196.3s, qd_final=-2517.00
+12:20:35 [INFO]   S07 search: regime 4 (31.7% of train), 1000 gen...
+12:23:47 [INFO]     regime 4: 123 elites, best_fitness=0.1839, time=191.3s, qd_final=-2299.22
+12:23:47 [INFO]   S07 search: regime 1 (23.1% of train), 1000 gen...
+12:26:59 [INFO]     regime 1: 90 elites, best_fitness=0.5575, time=191.9s, qd_final=-655.12
+12:26:59 [INFO]   S07 search: regime 2 (2.9% of train), 1000 gen...
+12:30:06 [INFO]     regime 2: 140 elites, best_fitness=-1.5032, time=187.5s, qd_final=-460.46
+12:30:06 [INFO]   Best regime: 6, fitness=1.2113
+12:30:06 [INFO]   Params: {'entry_thr': 10.0, 'exit_thr': 0.001, 'stop_mult': 10.0, 'pos_frac': 1.0, 'hold_max': 482}
+12:30:06 [INFO]   S08 Gate1: FAIL (trimmed_min=0.1016, sos=0.1189)
+12:30:06 [INFO]   S08 Gate2 (DSR): FAIL (sharpe=1.2113, dsr=0.0000, trials=430)
+12:30:51 [INFO]   S08 Gate3 (holdout): FAIL (sharpe=-3.6261, dd=1.6302) reason=FAILED: sharpe=-3.626<=0.5; max_dd=1.6302>=0.3231; tpd_dev=0.88>=0.5
+12:30:51 [INFO]   GATES: FAILED_HOLDOUT
+12:30:51 [INFO]   S09 card exported: strategies/v3-btcusdt-202604041216
+12:30:51 [INFO]   S10 SKIP live replay: gates did not pass
+12:30:51 [INFO] 
+12:30:51 [INFO] ======================================================================
+12:30:51 [INFO] PRODUCTION PIPELINE SUMMARY
+12:30:51 [INFO] ======================================================================
+12:30:51 [INFO]   BTCUSDT      FAILED_HOLDOUT     train_sharpe=1.2113 holdout_sharpe=-3.6261 regimes=8 best=6 time=868s
+12:30:51 [INFO] 
+Summary saved: strategies/run-20260404T1230.json
+12:30:51 [INFO] 
+0/1 strategies passed all gates

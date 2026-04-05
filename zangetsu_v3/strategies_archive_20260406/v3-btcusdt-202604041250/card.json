@@ -1,0 +1,112 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.0024085333407690953,
+        "sharpe": 0.8320623668824426,
+        "total_return": 0.002417281250162661,
+        "trades_per_day": 34.147746479525445,
+        "win_rate": 0.38706465818634783
+      }
+    ]
+  },
+  "card_id": "v3-btcusdt-202604041250",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      1.7132355535592534,
+      -1.2069071639055167,
+      0.5929167693977198,
+      -3.5639347737541613,
+      -0.16511123736034783,
+      2.8357169242525724,
+      -0.9544886310680581,
+      -3.986187151073509,
+      -0.9704845934776481,
+      -0.6869516486350559,
+      1.7406317584114173,
+      0.04415286315747957,
+      -2.1789608535438982,
+      -1.8027334497765621,
+      -1.4233323142756644
+    ]
+  },
+  "normalization": {
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 1.3639888303102703,
+    "exit_thr": 0.05,
+    "hold_max": 403,
+    "pos_frac": 0.01,
+    "stop_mult": 5.0
+  },
+  "regime": {
+    "distribution": {
+      "1": 49797,
+      "2": 6171,
+      "3": 2371,
+      "4": 68470,
+      "5": 25,
+      "6": 88356,
+      "7": 761
+    },
+    "n_states": 8,
+    "target_regime": 2
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 200,
+    "regimes_searched": [
+      6,
+      4,
+      1,
+      2
+    ],
+    "total_elites": 560
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "BTCUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 0.0,
+    "gate2_pass": false,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=-5.955<=0.5; max_dd=0.0219>=0.0036; tpd_dev=0.77>=0.5",
+    "holdout_max_dd": 0.02194631054399796,
+    "holdout_sharpe": -5.95466492831529
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

@@ -1,0 +1,624 @@
+=== Arena 1: PySR Signal Pool (11 regimes × 5 targets) ===
+Started: Sun Apr  5 07:06:40 AM UTC 2026
+07:06:44 [INFO] Arena 1 — Full PySR Signal Pool (11 regimes × 5 targets)
+07:06:44 [INFO] Targets: next_[1, 3, 5, 10, 30]_bar_return
+07:06:44 [INFO] Loading all OHLCV + labeling...
+07:06:47 [INFO]   BTCUSDT: 777601 bars
+07:06:49 [INFO]   ETHUSDT: 777601 bars
+07:06:51 [INFO]   BNBUSDT: 777601 bars
+07:06:53 [INFO]   SOLUSDT: 777601 bars
+07:06:54 [INFO]   XRPUSDT: 777601 bars
+07:06:56 [INFO]   DOGEUSDT: 777601 bars
+07:06:56 [INFO] 
+============================================================
+07:06:56 [INFO] REGIME: BULL_TREND (227 segments)
+07:06:56 [INFO] 
+  [1/55] target=next_1_bar_return
+07:07:23 [INFO]     X=(579063, 29), y_std=0.001066
+/home/j13/j13-ops/zangetsu_v3/.venv/lib/python3.12/site-packages/pysr/sr.py:2265: UserWarning: Note: you are running with more than 10,000 datapoints. You should consider turning on batching (https://ai.damtp.cam.ac.uk/pysr/options/#batching). You should also reconsider if you need that many datapoints. Unless you have a large amount of noise (in which case you should smooth your dataset first), generally < 10,000 datapoints is enough to find a functional form with symbolic regression. More datapoints will lower the search speed.
+  warnings.warn(
+
+[981911] signal 15: Terminated
+in expression starting at none:0
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+jl_parallel_gc_threadfun at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:148
+unknown function (ip: 0x7f6c5089caa3)
+unknown function (ip: 0x7f6c50929c6b)
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+#wait#733 at ./condition.jl:130
+wait at ./condition.jl:125 [inlined]
+#146 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:281 [inlined]
+lock at ./lock.jl:232
+lock at ./condition.jl:78 [inlined]
+#145 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:279
+unknown function (ip: 0x7f6b90114321)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1204
+unknown function (ip: (nil))
+unknown function (ip: 0x7f6c50898d6f)
+pthread_cond_wait at /lib/x86_64-linux-gnu/libc.so.6 (unknown line)
+uv_cond_wait at /workspace/srcdir/libuv/src/unix/thread.c:822
+ijl_task_get_next at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/scheduler.c:584
+poptask at ./task.jl:1012
+wait at ./task.jl:1021
+task_done_hook at ./task.jl:694
+jfptr_task_done_hook_66653.1 at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/sys.so (unknown line)
+jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+jl_finish_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:315
+start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1215
+unknown function (ip: (nil))
+_ZNSt6vectorISt4pairIPKvPN4llvm4PassEESaIS6_EE17_M_realloc_insertIJRKS6_EEEvN9__gnu_cxx17__normal_iteratorIPS6_S8_EEDpOT_ at /home/j13/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/lib/julia/libLLVM-16jl.so (unknown line)
+unknown function (ip: (nil))
+Allocations: 252574464 (Pool: 252523552; Big: 50912); GC: 750
+      From worker 3:	
+      From worker 3:	[982794] signal 15: Terminated
+      From worker 3:	in expression starting at none:0
+      From worker 3:	* at ./float.jl:493 [inlined]
+      From worker 3:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:583 [inlined]
+      From worker 3:	macro expansion at ./simdloop.jl:77 [inlined]
+      From worker 3:	deg2_l0_r0_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:582
+      From worker 3:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:348 [inlined]
+      From worker 3:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 3:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 3:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:350 [inlined]
+      From worker 3:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 3:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 3:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:350 [inlined]
+      From worker 3:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 3:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 3:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:350 [inlined]
+      From worker 3:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 3:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 3:	#eval_tree_array#2 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:227
+      From worker 3:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:200 [inlined]
+      From worker 3:	#eval_tree_array#16 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:436
+      From worker 3:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:429
+      From worker 3:	unknown function (ip: 0x7dc937b602cb)
+      From worker 3:	#eval_tree_array#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:81
+      From worker 3:	eval_tree_array at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:61 [inlined]
+      From worker 3:	eval_tree_dispatch at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:68 [inlined]
+      From worker 3:	_eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:96
+      From worker 3:	#eval_loss#3 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:155
+      From worker 3:	eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:139 [inlined]
+      From worker 3:	#eval_cost#4 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:199 [inlined]
+      From worker 3:	eval_cost at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:193 [inlined]
+      From worker 3:	#next_generation#5 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:257
+      From worker 3:	next_generation at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:161 [inlined]
+      From worker 3:	reg_evol_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/RegularizedEvolution.jl:29
+      From worker 3:	#s_r_cycle#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:43
+      From worker 3:	s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:19 [inlined]
+      From worker 3:	#_dispatch_s_r_cycle#69 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1115
+      From worker 3:	_dispatch_s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1098 [inlined]
+      From worker 3:	macro expansion at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:959 [inlined]
+      From worker 3:	#61 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/macros.jl:83
+      From worker 3:	unknown function (ip: 0x7dc937b73d5a)
+      From worker 3:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 3:	jl_f__call_latest at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:875
+      From worker 3:	#invokelatest#2 at ./essentials.jl:1055 [inlined]
+      From worker 3:	invokelatest at ./essentials.jl:1052
+      From worker 3:	unknown function (ip: 0x7dc937b43ce2)
+      From worker 3:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 3:	do_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:831
+      From worker 3:	#115 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:283
+      From worker 3:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:70
+      From worker 3:	unknown function (ip: 0x7dc937b47f4b)
+      From worker 3:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:79
+      From worker 3:	#108 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:88
+      From worker 3:	unknown function (ip: 0x7dc937b47a8f)
+      From worker 3:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 3:	start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1204
+      From worker 3:	unknown function (ip: (nil))
+      From worker 3:	Allocations: 278112209 (Pool: 278105912; Big: 6297); GC: 44143
+      From worker 4:	
+      From worker 4:	[982795] signal 15: Terminated
+      From worker 4:	in expression starting at none:0
+      From worker 4:	setindex! at ./array.jl:987 [inlined]
+      From worker 4:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:565 [inlined]
+      From worker 4:	macro expansion at ./simdloop.jl:77 [inlined]
+      From worker 4:	deg2_l0_r0_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:563
+      From worker 4:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:348 [inlined]
+      From worker 4:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 4:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 4:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:365 [inlined]
+      From worker 4:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 4:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 4:	#eval_tree_array#2 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:227
+      From worker 4:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:200 [inlined]
+      From worker 4:	#eval_tree_array#16 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:436
+      From worker 4:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:429
+      From worker 4:	unknown function (ip: 0x796c0715e2cb)
+      From worker 4:	#eval_tree_array#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:81
+      From worker 4:	eval_tree_array at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:61 [inlined]
+      From worker 4:	eval_tree_dispatch at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:68 [inlined]
+      From worker 4:	_eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:96
+      From worker 4:	#eval_loss#3 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:155
+      From worker 4:	eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:139 [inlined]
+      From worker 4:	#eval_cost#4 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:199 [inlined]
+      From worker 4:	eval_cost at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:193 [inlined]
+      From worker 4:	#next_generation#5 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:257
+      From worker 4:	next_generation at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:161 [inlined]
+      From worker 4:	reg_evol_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/RegularizedEvolution.jl:29
+      From worker 4:	#s_r_cycle#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:43
+      From worker 4:	s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:19 [inlined]
+      From worker 4:	#_dispatch_s_r_cycle#69 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1115
+      From worker 4:	_dispatch_s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1098 [inlined]
+      From worker 4:	macro expansion at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:959 [inlined]
+      From worker 4:	#61 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/macros.jl:83
+      From worker 4:	unknown function (ip: 0x796c071744ca)
+      From worker 4:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 4:	jl_f__call_latest at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:875
+      From worker 4:	#invokelatest#2 at ./essentials.jl:1055 [inlined]
+      From worker 4:	invokelatest at ./essentials.jl:1052
+      From worker 4:	unknown function (ip: 0x796c07141ce2)
+      From worker 4:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 4:	do_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:831
+      From worker 4:	#115 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:283
+      From worker 4:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:70
+      From worker 4:	unknown function (ip: 0x796c07145f4b)
+      From worker 4:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:79
+      From worker 4:	#108 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:88
+      From worker 4:	unknown function (ip: 0x796c07145a8f)
+      From worker 4:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 4:	start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1204
+      From worker 4:	unknown function (ip: (nil))
+      From worker 4:	Allocations: 274450646 (Pool: 274444419; Big: 6227); GC: 43741
+      From worker 9:	
+      From worker 9:	[982802] signal 15: Terminated
+      From worker 9:	in expression starting at none:0
+      From worker 9:	- at ./float.jl:492 [inlined]
+      From worker 9:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:574 [inlined]
+      From worker 9:	macro expansion at ./simdloop.jl:77 [inlined]
+      From worker 9:	deg2_l0_r0_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:573
+      From worker 9:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:348 [inlined]
+      From worker 9:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 9:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 9:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:350 [inlined]
+      From worker 9:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 9:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 9:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:350 [inlined]
+      From worker 9:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 9:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 9:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:356 [inlined]
+      From worker 9:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 9:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 9:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:362 [inlined]
+      From worker 9:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 9:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 9:	#eval_tree_array#2 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:227
+      From worker 9:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:200 [inlined]
+      From worker 9:	#eval_tree_array#16 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:436
+      From worker 9:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:429
+      From worker 9:	unknown function (ip: 0x7d7ba755e23b)
+      From worker 9:	#eval_tree_array#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:81
+      From worker 9:	eval_tree_array at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:61 [inlined]
+      From worker 9:	eval_tree_dispatch at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:68 [inlined]
+      From worker 9:	_eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:96
+      From worker 9:	#eval_loss#3 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:155
+      From worker 9:	eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:139 [inlined]
+      From worker 9:	#eval_cost#4 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:199 [inlined]
+      From worker 9:	eval_cost at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:193 [inlined]
+      From worker 9:	#next_generation#5 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:257
+      From worker 9:	next_generation at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:161 [inlined]
+      From worker 9:	reg_evol_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/RegularizedEvolution.jl:29
+      From worker 9:	#s_r_cycle#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:43
+      From worker 9:	s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:19 [inlined]
+      From worker 9:	#_dispatch_s_r_cycle#69 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1115
+      From worker 9:	_dispatch_s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1098 [inlined]
+      From worker 9:	macro expansion at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:959 [inlined]
+      From worker 9:	#61 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/macros.jl:83
+      From worker 9:	unknown function (ip: 0x7d7ba7571cca)
+      From worker 9:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 9:	jl_f__call_latest at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:875
+      From worker 9:	#invokelatest#2 at ./essentials.jl:1055 [inlined]
+      From worker 9:	invokelatest at ./essentials.jl:1052
+      From worker 9:	unknown function (ip: 0x7d7ba7541c42)
+      From worker 9:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 9:	do_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:831
+      From worker 9:	#115 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:283
+      From worker 9:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:70
+      From worker 9:	unknown function (ip: 0x7d7ba7545eab)
+      From worker 9:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:79
+      From worker 9:	#108 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:88
+      From worker 9:	unknown function (ip: 0x7d7ba75459ef)
+      From worker 9:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 9:	start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1204
+      From worker 9:	unknown function (ip: (nil))
+      From worker 9:	Allocations: 271507421 (Pool: 271501300; Big: 6121); GC: 44122
+      From worker 8:	
+      From worker 8:	[982801] signal 15: Terminated
+      From worker 8:	in expression starting at none:0
+      From worker 8:	setindex! at ./array.jl:987 [inlined]
+      From worker 8:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:584 [inlined]
+      From worker 8:	macro expansion at ./simdloop.jl:77 [inlined]
+      From worker 8:	deg2_l0_r0_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:582
+      From worker 8:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:348 [inlined]
+      From worker 8:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 8:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 8:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:362 [inlined]
+      From worker 8:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 8:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 8:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:362 [inlined]
+      From worker 8:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 8:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 8:	#eval_tree_array#2 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:227
+      From worker 8:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:200 [inlined]
+      From worker 8:	#eval_tree_array#16 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:436
+      From worker 8:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:429
+      From worker 8:	unknown function (ip: 0x7126e25602cb)
+      From worker 8:	#eval_tree_array#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:81
+      From worker 8:	eval_tree_array at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:61 [inlined]
+      From worker 8:	eval_tree_dispatch at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:68 [inlined]
+      From worker 8:	_eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:96
+      From worker 8:	#eval_loss#3 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:155
+      From worker 8:	eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:139 [inlined]
+      From worker 8:	#eval_cost#4 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:199 [inlined]
+      From worker 8:	eval_cost at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:193 [inlined]
+      From worker 8:	#next_generation#5 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:257
+      From worker 8:	next_generation at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:161 [inlined]
+      From worker 8:	reg_evol_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/RegularizedEvolution.jl:29
+      From worker 8:	#s_r_cycle#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:43
+      From worker 8:	s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:19 [inlined]
+      From worker 8:	#_dispatch_s_r_cycle#69 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1115
+      From worker 8:	_dispatch_s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1098 [inlined]
+      From worker 8:	macro expansion at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:959 [inlined]
+      From worker 8:	#61 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/macros.jl:83
+      From worker 8:	unknown function (ip: 0x7126e2573d5a)
+      From worker 8:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 8:	jl_f__call_latest at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:875
+      From worker 8:	#invokelatest#2 at ./essentials.jl:1055 [inlined]
+      From worker 8:	invokelatest at ./essentials.jl:1052
+      From worker 8:	unknown function (ip: 0x7126e2543ce2)
+      From worker 8:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 8:	do_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:831
+      From worker 8:	#115 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:283
+      From worker 8:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:70
+      From worker 8:	unknown function (ip: 0x7126e2547f4b)
+      From worker 8:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:79
+      From worker 8:	#108 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:88
+      From worker 8:	unknown function (ip: 0x7126e2547a8f)
+      From worker 8:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 8:	start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1204
+      From worker 8:	unknown function (ip: (nil))
+      From worker 8:	Allocations: 274900401 (Pool: 274894217; Big: 6184); GC: 44107
+      From worker 2:	
+      From worker 2:	[982790] signal 15: Terminated
+      From worker 2:	in expression starting at none:0
+      From worker 2:	setindex! at ./array.jl:987 [inlined]
+      From worker 2:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:565 [inlined]
+      From worker 2:	macro expansion at ./simdloop.jl:77 [inlined]
+      From worker 2:	deg2_l0_r0_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:563
+      From worker 2:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:348 [inlined]
+      From worker 2:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 2:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 2:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:356 [inlined]
+      From worker 2:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 2:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 2:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:362 [inlined]
+      From worker 2:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 2:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 2:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:365 [inlined]
+      From worker 2:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 2:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 2:	#eval_tree_array#2 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:227
+      From worker 2:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:200 [inlined]
+      From worker 2:	#eval_tree_array#16 at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:436
+      From worker 2:	eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Expression.jl:429
+      From worker 2:	unknown function (ip: 0x78c34f756abb)
+      From worker 2:	#eval_tree_array#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:81
+      From worker 2:	eval_tree_array at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/InterfaceDynamicExpressions.jl:61 [inlined]
+      From worker 2:	eval_tree_dispatch at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:68 [inlined]
+      From worker 2:	_eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:96
+      From worker 2:	#eval_loss#3 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:155
+      From worker 2:	eval_loss at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:139 [inlined]
+      From worker 2:	#eval_cost#4 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:199 [inlined]
+      From worker 2:	eval_cost at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/LossFunctions.jl:193 [inlined]
+      From worker 2:	#next_generation#5 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:257
+      From worker 2:	next_generation at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/Mutate.jl:161 [inlined]
+      From worker 2:	reg_evol_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/RegularizedEvolution.jl:29
+      From worker 2:	#s_r_cycle#1 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:43
+      From worker 2:	s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SingleIteration.jl:19 [inlined]
+      From worker 2:	#_dispatch_s_r_cycle#69 at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1115
+      From worker 2:	_dispatch_s_r_cycle at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:1098 [inlined]
+      From worker 2:	macro expansion at /home/j13/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:959 [inlined]
+      From worker 2:	#61 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/macros.jl:83
+      From worker 2:	unknown function (ip: 0x78c34f76a50a)
+      From worker 2:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 2:	jl_f__call_latest at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:875
+      From worker 2:	#invokelatest#2 at ./essentials.jl:1055 [inlined]
+      From worker 2:	invokelatest at ./essentials.jl:1052
+      From worker 2:	unknown function (ip: 0x78c34f73a4d2)
+      From worker 2:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 2:	do_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/builtins.c:831
+      From worker 2:	#115 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:283
+      From worker 2:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:70
+      From worker 2:	unknown function (ip: 0x78c34f73e73b)
+      From worker 2:	run_work_thunk at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:79
+      From worker 2:	#108 at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/usr/share/julia/stdlib/v1.11/Distributed/src/process_messages.jl:88
+      From worker 2:	unknown function (ip: 0x78c34f73e27f)
+      From worker 2:	jl_apply at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/julia.h:2157 [inlined]
+      From worker 2:	start_task at /cache/build/builder-amdci4-7/julialang/julia-release-1-dot-11/src/task.c:1204
+      From worker 2:	unknown function (ip: (nil))
+      From worker 2:	Allocations: 270770530 (Pool: 270764390; Big: 6140); GC: 44785
+      From worker 5:	
+      From worker 5:	[982796] signal 15: Terminated
+      From worker 5:	in expression starting at none:0
+      From worker 5:	setindex! at ./array.jl:987 [inlined]
+      From worker 5:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:575 [inlined]
+      From worker 5:	macro expansion at ./simdloop.jl:77 [inlined]
+      From worker 5:	deg2_l0_r0_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:573
+      From worker 5:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:348 [inlined]
+      From worker 5:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 5:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 5:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:350 [inlined]
+      From worker 5:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321
+      From worker 5:	_eval_tree_array at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:282
+      From worker 5:	macro expansion at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:362 [inlined]
+      From worker 5:	dispatch_deg2_eval at /home/j13/.julia/packages/DynamicExpressions/gNHdy/src/Evaluate.jl:321

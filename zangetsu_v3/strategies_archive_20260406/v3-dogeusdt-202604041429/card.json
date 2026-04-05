@@ -1,0 +1,107 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.043772425240347995,
+        "sharpe": 3.463031677527343,
+        "total_return": 0.20908550286274963,
+        "trades_per_day": 9.908914522275886,
+        "win_rate": 0.05011322012864029
+      }
+    ]
+  },
+  "card_id": "v3-dogeusdt-202604041429",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      -5.538391124419705,
+      7.999120638203058,
+      3.3158665508494845,
+      -1.5243148347404476,
+      -2.1529687342015,
+      -5.330601767180934,
+      -1.8617193073809482,
+      -6.078589740443096,
+      6.782610503060685,
+      -0.698398324817709,
+      -2.0946450347041634,
+      2.4727917153854224,
+      0.5439381234062237,
+      0.8135598634176605,
+      7.162662103994276
+    ]
+  },
+  "normalization": {
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 5.0,
+    "exit_thr": 0.05,
+    "hold_max": 261,
+    "pos_frac": 0.22492387121760968,
+    "stop_mult": 5.0
+  },
+  "regime": {
+    "distribution": {
+      "1": 7132,
+      "2": 89609,
+      "3": 1268,
+      "4": 117942
+    },
+    "n_states": 5,
+    "target_regime": 2
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      4,
+      2
+    ],
+    "total_elites": 506
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "DOGEUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 1.0,
+    "gate2_pass": true,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=-1.183<=0.5; tpd_dev=0.84>=0.5",
+    "holdout_max_dd": 0.055931497235174876,
+    "holdout_sharpe": -1.1829590638899408
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

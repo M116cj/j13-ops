@@ -1,0 +1,107 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.009968824417202975,
+        "sharpe": 2.375628300699275,
+        "total_return": 0.035409683139593334,
+        "trades_per_day": 0.5867997832841709,
+        "win_rate": 0.48968512486427795
+      }
+    ]
+  },
+  "card_id": "v3-ethusdt-202604041536",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      -0.19469238975010233,
+      -0.011141421767231652,
+      -0.028334340716438124,
+      0.9057534451549635,
+      0.9168284489540851,
+      0.028349238760166956,
+      1.6037593240769872,
+      1.714762902089459,
+      -1.7319846654316713,
+      -1.7932632653172207,
+      1.255049142308951,
+      -0.8307340298648204,
+      -0.2930271079964874,
+      1.7375530328434097,
+      2.054346529865325
+    ]
+  },
+  "normalization": {
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 23.420781539549175,
+    "exit_thr": 0.7806927179849726,
+    "hold_max": 480,
+    "pos_frac": 0.25,
+    "stop_mult": 2.5715603213464515
+  },
+  "regime": {
+    "distribution": {
+      "1": 7274,
+      "2": 80033,
+      "3": 127305,
+      "4": 1339
+    },
+    "n_states": 5,
+    "target_regime": 3
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      3,
+      2
+    ],
+    "total_elites": 298
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "ETHUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 4.743007339036661e-16,
+    "gate2_pass": false,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=0.191<=0.5; max_dd=0.0373>=0.0150",
+    "holdout_max_dd": 0.03727327098705803,
+    "holdout_sharpe": 0.1914139778911178
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

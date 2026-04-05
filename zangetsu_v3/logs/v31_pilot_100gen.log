@@ -1,0 +1,81 @@
+03:48:58 [INFO] Zangetsu V3.1 — HFT Per-Regime Cross-Symbol Pipeline
+03:48:58 [INFO] Symbols: ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'], Generations: 100
+03:48:58 [INFO] Step 1: Loading OHLCV + Rule-based 13-state labeling (4h)
+03:49:00 [INFO]   BTCUSDT: 777601 bars, regimes: {'BULL_TREND': 148560, 'BEAR_TREND': 145681, 'BULL_PULLBACK': 47760, 'BEAR_RALLY': 50400, 'DISTRIBUTION': 19200, 'ACCUMULATION': 8640, 'CONSOLIDATION': 99600, 'CHOPPY_VOLATILE': 40560, 'SQUEEZE': 77520, 'TOPPING': 73680, 'BOTTOMING': 66000}
+03:49:02 [INFO]   ETHUSDT: 777601 bars, regimes: {'BULL_TREND': 152160, 'BEAR_TREND': 149281, 'BULL_PULLBACK': 57840, 'BEAR_RALLY': 57360, 'DISTRIBUTION': 11280, 'ACCUMULATION': 11520, 'CONSOLIDATION': 76800, 'CHOPPY_VOLATILE': 35280, 'SQUEEZE': 71280, 'TOPPING': 83280, 'BOTTOMING': 67680, 'LIQUIDITY_CRISIS': 1680, 'PARABOLIC': 2160}
+03:49:04 [INFO]   BNBUSDT: 777601 bars, regimes: {'BULL_TREND': 147120, 'BEAR_TREND': 126961, 'BULL_PULLBACK': 63120, 'BEAR_RALLY': 57360, 'DISTRIBUTION': 21840, 'ACCUMULATION': 11280, 'CONSOLIDATION': 101040, 'CHOPPY_VOLATILE': 39360, 'SQUEEZE': 82080, 'TOPPING': 71760, 'BOTTOMING': 55680}
+03:49:06 [INFO]   SOLUSDT: 777601 bars, regimes: {'BULL_TREND': 139440, 'BEAR_TREND': 157201, 'BULL_PULLBACK': 60240, 'BEAR_RALLY': 65040, 'DISTRIBUTION': 6720, 'ACCUMULATION': 8880, 'CONSOLIDATION': 84000, 'CHOPPY_VOLATILE': 41760, 'SQUEEZE': 63360, 'TOPPING': 80160, 'BOTTOMING': 67200, 'LIQUIDITY_CRISIS': 3120, 'PARABOLIC': 480}
+03:49:08 [INFO]   XRPUSDT: 777601 bars, regimes: {'BULL_TREND': 132720, 'BEAR_TREND': 152641, 'BULL_PULLBACK': 51600, 'BEAR_RALLY': 74400, 'DISTRIBUTION': 6960, 'ACCUMULATION': 13440, 'CONSOLIDATION': 90000, 'CHOPPY_VOLATILE': 33120, 'SQUEEZE': 76800, 'TOPPING': 63840, 'BOTTOMING': 63360, 'LIQUIDITY_CRISIS': 2640, 'PARABOLIC': 16080}
+03:49:10 [INFO]   DOGEUSDT: 777601 bars, regimes: {'BULL_TREND': 124560, 'BEAR_TREND': 161761, 'BULL_PULLBACK': 49920, 'BEAR_RALLY': 70560, 'DISTRIBUTION': 5520, 'ACCUMULATION': 14160, 'CONSOLIDATION': 63600, 'CHOPPY_VOLATILE': 33120, 'SQUEEZE': 90000, 'TOPPING': 83040, 'BOTTOMING': 69600, 'LIQUIDITY_CRISIS': 3600, 'PARABOLIC': 8160}
+03:49:10 [INFO] Step 2: Extracting segments (min 1 day)
+03:49:10 [INFO]   BULL_TREND               :  227 segs,   410.2 days, 6/6 symbols
+03:49:10 [INFO]   BEAR_TREND               :  251 segs,   401.7 days, 6/6 symbols
+03:49:10 [INFO]   BULL_PULLBACK            :   42 segs,    48.3 days, 6/6 symbols
+03:49:10 [INFO]   BEAR_RALLY               :   43 segs,    50.7 days, 6/6 symbols
+03:49:10 [INFO]   DISTRIBUTION             :   13 segs,    20.0 days, 5/6 symbols
+03:49:10 [INFO]   ACCUMULATION             :   14 segs,    17.8 days, 6/6 symbols
+03:49:10 [INFO]   CONSOLIDATION            :  124 segs,   222.3 days, 6/6 symbols
+03:49:10 [INFO]   CHOPPY_VOLATILE          :   69 segs,   107.3 days, 6/6 symbols
+03:49:10 [INFO]   SQUEEZE                  :  134 segs,   261.0 days, 6/6 symbols
+03:49:10 [INFO]   TOPPING                  :  190 segs,   281.3 days, 6/6 symbols
+03:49:10 [INFO]   BOTTOMING                :  160 segs,   232.0 days, 6/6 symbols
+03:49:10 [INFO]   LIQUIDITY_CRISIS         :    1 segs,     1.0 days, 1/6 symbols
+03:49:10 [INFO]   PARABOLIC                :    7 segs,    15.3 days, 2/6 symbols
+03:49:10 [INFO] 
+============================================================
+03:49:10 [INFO] REGIME: BULL_TREND (227 segments)
+03:49:10 [INFO] ============================================================
+03:49:10 [INFO]   TRAIN: 158 segs, HOLDOUT: 20 segs
+03:49:56 [INFO]   Factors: (390658, 15), signal_std=12.0659
+03:49:56 [INFO]   Entry range: [3.6198, 18.0989]
+03:49:56 [INFO]   Hold range: [3, 30] (HFT)
+03:52:05 [INFO]   Search: 1 elites, best_fitness=-999.0000, time=129s
+03:52:05 [INFO]   Params: {'entry_thr': 3.6197703212676617, 'exit_thr': 2.8958162570141295, 'stop_mult': 1.3616065286121768, 'pos_frac': 0.25, 'hold_max': 10}
+03:52:05 [INFO]   QD final: -999.00
+03:52:05 [INFO]   Gate1: FAIL (sos=0.0000)
+03:52:05 [INFO]   Gate2: FAIL (dsr=0.0000, trials=1)
+03:52:12 [INFO]   Gate3: FAIL — FAILED: hft_fitness=-999.000<=0; win_rate=0.424<0.52; tpd=3.3<100
+03:52:12 [INFO]     Holdout: 20 segs, best_fitness=-999.0000, wr=0.424, tpd=3.3
+03:52:12 [INFO]   RESULT: FAILED_HOLDOUT
+03:52:12 [INFO] 
+============================================================
+03:52:12 [INFO] REGIME: BEAR_TREND (251 segments)
+03:52:12 [INFO] ============================================================
+03:52:12 [INFO]   TRAIN: 175 segs, HOLDOUT: 19 segs
+03:52:58 [INFO]   Factors: (386948, 15), signal_std=48.2299
+03:52:58 [INFO]   Entry range: [14.4690, 72.3448]
+03:52:58 [INFO]   Hold range: [3, 30] (HFT)
+03:54:49 [INFO]   Search: 1 elites, best_fitness=-999.0000, time=111s
+03:54:49 [INFO]   Params: {'entry_thr': 39.86051758455926, 'exit_thr': 2.4114925346944958, 'stop_mult': 5.0, 'pos_frac': 0.1147677811894646, 'hold_max': 17}
+03:54:49 [INFO]   QD final: -999.00
+03:54:49 [INFO]   Gate1: FAIL (sos=0.0000)
+03:54:49 [INFO]   Gate2: FAIL (dsr=0.0000, trials=1)
+03:54:54 [INFO]   Gate3: FAIL — FAILED: hft_fitness=-999.000<=0; win_rate=0.443<0.52; tpd=5.0<100
+03:54:54 [INFO]     Holdout: 19 segs, best_fitness=-999.0000, wr=0.443, tpd=5.0
+03:54:54 [INFO]   RESULT: FAILED_HOLDOUT
+03:54:54 [INFO] 
+============================================================
+03:54:54 [INFO] REGIME: CONSOLIDATION (124 segments)
+03:54:54 [INFO] ============================================================
+03:54:54 [INFO]   TRAIN: 86 segs, HOLDOUT: 0 segs
+03:55:22 [INFO]   Factors: (230266, 15), signal_std=8.6338
+03:55:22 [INFO]   Entry range: [2.5901, 12.9507]
+03:55:22 [INFO]   Hold range: [3, 30] (HFT)
+03:56:32 [INFO]   Search: 1 elites, best_fitness=-999.0000, time=69s
+03:56:32 [INFO]   Params: {'entry_thr': 12.950696468216705, 'exit_thr': 6.907038116382243, 'stop_mult': 5.0, 'pos_frac': 0.010514410171301041, 'hold_max': 10}
+03:56:32 [INFO]   QD final: -999.00
+03:56:32 [INFO]   Gate1: FAIL (sos=0.0000)
+03:56:32 [INFO]   Gate2: FAIL (dsr=0.0000, trials=1)
+03:56:32 [WARNING]   Gate3: FAIL — no holdout segments
+03:56:32 [INFO]   RESULT: FAILED_HOLDOUT
+03:56:32 [INFO] 
+======================================================================
+03:56:32 [INFO] ZANGETSU V3.1 — PRODUCTION SUMMARY
+03:56:32 [INFO] ======================================================================
+03:56:32 [INFO]   BULL_TREND                FAILED_HOLDOUT     G1:✗ G2:✗ G3:✗ fitness=-999.0000 time=129s
+03:56:32 [INFO]   BEAR_TREND                FAILED_HOLDOUT     G1:✗ G2:✗ G3:✗ fitness=-999.0000 time=111s
+03:56:32 [INFO]   CONSOLIDATION             FAILED_HOLDOUT     G1:✗ G2:✗ G3:✗ fitness=-999.0000 time=69s
+03:56:32 [INFO] 
+0/3 experts passed all gates
+03:56:32 [INFO] Total time: 454s (7.6min)
+03:56:32 [INFO] Summary: strategies/v31-20260405T0356.json

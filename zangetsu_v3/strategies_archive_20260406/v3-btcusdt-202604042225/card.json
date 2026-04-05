@@ -1,0 +1,141 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.0022780736933679328,
+        "sharpe": 4.376379866269763,
+        "total_return": 0.02663382026304675,
+        "trades_per_day": 0.2533908155090738,
+        "win_rate": 0.5163043478260869
+      }
+    ]
+  },
+  "card_id": "v3-btcusdt-202604042225",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      -0.7083997863097479,
+      -0.8196839969638887,
+      -0.6625418273732497,
+      -0.6981741704658204,
+      0.19169729864132382,
+      -0.23512466894162554,
+      0.10781032065529646,
+      0.2997720126980753,
+      0.3409412511355947,
+      -0.14590778530344148,
+      2.15008761073209,
+      -0.3603610846164199,
+      -0.6817647457330687,
+      -0.24524919873399645,
+      -0.001705263501416001
+    ]
+  },
+  "normalization": {
+    "factor_medians": {
+      "bar_range": 0.0006252575195714574,
+      "corr_cv_30": -0.014594956157995491,
+      "high_low_ma": 0.0033822098083311366,
+      "mean_rev_20": 8.658222139468208e-06,
+      "mean_rev_50": 3.370365116550644e-05,
+      "momentum_10": 0.10000000000582077,
+      "momentum_20": 1.2000000000116415,
+      "momentum_5": -0.19999999999708962,
+      "ret_skew_20": 0.024924035588500572,
+      "ts_rank_20": 0.55,
+      "vol_10": 49.560154358111824,
+      "vol_50": 109.15228327433175,
+      "vol_rank_20": 0.5,
+      "vol_ratio": 0.45050618297385137,
+      "vol_ratio_50": 0.7271663297046965
+    },
+    "factor_scales": {
+      "bar_range": 0.0004758426737305192,
+      "corr_cv_30": 0.4448336242170758,
+      "high_low_ma": 0.002025983486780184,
+      "mean_rev_20": 0.0011660176712022883,
+      "mean_rev_50": 0.0018340758082093188,
+      "momentum_10": 133.1374800000043,
+      "momentum_20": 184.73195999998705,
+      "momentum_5": 94.29336000000862,
+      "ret_skew_20": 0.5398407992244728,
+      "ts_rank_20": 0.51891,
+      "vol_10": 33.75260068426282,
+      "vol_50": 70.68021474820848,
+      "vol_rank_20": 0.37065,
+      "vol_ratio": 0.23225002345099832,
+      "vol_ratio_50": 0.4656931812227008
+    },
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 8.134788633246508,
+    "exit_thr": 0.27115962110821695,
+    "hold_max": 10,
+    "pos_frac": 0.25,
+    "stop_mult": 5.0
+  },
+  "regime": {
+    "distribution": {
+      "1": 8708,
+      "2": 72218,
+      "3": 133682,
+      "4": 1343
+    },
+    "n_states": 5,
+    "target_regime": 2
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      3,
+      2
+    ],
+    "total_elites": 233
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "BTCUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 0.9999999999583445,
+    "gate2_pass": true,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=-2.067<=0.5; max_dd=0.0326>=0.0034",
+    "holdout_max_dd": 0.03255979564245149,
+    "holdout_sharpe": -2.06704470489553
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

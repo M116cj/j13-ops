@@ -1,0 +1,186 @@
+{
+  "applicable_symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "backtest": {
+    "best_fitness": -999.0,
+    "best_hold_avg": 3.8153846153846156,
+    "best_sharpe": -115.49397316135625,
+    "best_tpd": 57.38810545677498,
+    "best_win_rate": 0.3137254901960784,
+    "train_segments": 175,
+    "train_symbols": [
+      "BNBUSDT",
+      "DOGEUSDT",
+      "ETHUSDT",
+      "XRPUSDT",
+      "SOLUSDT"
+    ]
+  },
+  "card_id": "BEAR_TREND_expert",
+  "cost_model": {
+    "funding_rate_avg": 0.0001,
+    "trading_bps_per_symbol": {
+      "BNBUSDT": 7,
+      "BTCUSDT": 4,
+      "DOGEUSDT": 8,
+      "ETHUSDT": 4,
+      "SOLUSDT": 7,
+      "XRPUSDT": 8
+    }
+  },
+  "created_at": "2026-04-05T05:39:38.579382+00:00",
+  "deployment_hints": {
+    "max_concurrent_positions": 3
+  },
+  "factors": [
+    {
+      "index": 0,
+      "name": "momentum_5",
+      "weight": 0.5604623627258875
+    },
+    {
+      "index": 1,
+      "name": "momentum_10",
+      "weight": 0.2545279577280945
+    },
+    {
+      "index": 2,
+      "name": "momentum_20",
+      "weight": -1.0977375718378983
+    },
+    {
+      "index": 3,
+      "name": "ts_rank_20",
+      "weight": -0.5815101138599466
+    },
+    {
+      "index": 4,
+      "name": "vol_10",
+      "weight": -0.12933920703212778
+    },
+    {
+      "index": 5,
+      "name": "vol_50",
+      "weight": -0.4760974346800195
+    },
+    {
+      "index": 6,
+      "name": "vol_ratio",
+      "weight": -0.20522635857293373
+    },
+    {
+      "index": 7,
+      "name": "bar_range",
+      "weight": 0.46805204036721854
+    },
+    {
+      "index": 8,
+      "name": "vol_rank_20",
+      "weight": 0.5372710148217871
+    },
+    {
+      "index": 9,
+      "name": "vol_ratio_50",
+      "weight": 0.6561894302351362
+    },
+    {
+      "index": 10,
+      "name": "mean_rev_20",
+      "weight": 0.4500925200675531
+    },
+    {
+      "index": 11,
+      "name": "mean_rev_50",
+      "weight": -0.23375029414942353
+    },
+    {
+      "index": 12,
+      "name": "corr_cv_30",
+      "weight": -0.012914743696788055
+    },
+    {
+      "index": 13,
+      "name": "ret_skew_20",
+      "weight": 0.7005901191474896
+    },
+    {
+      "index": 14,
+      "name": "high_low_ma",
+      "weight": -0.6273632553576842
+    }
+  ],
+  "normalization": {
+    "medians": {
+      "bar_range": 0.001082192375298108,
+      "corr_cv_30": -0.09706607157142078,
+      "high_low_ma": 0.005624648316854046,
+      "mean_rev_20": -0.00012704067814667264,
+      "mean_rev_50": -0.0003083079232947261,
+      "momentum_10": -9.999999999998899e-05,
+      "momentum_20": -0.00019999999999997797,
+      "momentum_5": -3.999999999999837e-05,
+      "ret_skew_20": -0.015700778032708376,
+      "ts_rank_20": 0.5,
+      "vol_10": 0.037094473981980916,
+      "vol_50": 0.09298225632650531,
+      "vol_rank_20": 0.5,
+      "vol_ratio": 0.4406123815827921,
+      "vol_ratio_50": 0.73105761363081
+    },
+    "method": "robust_zscore_per_regime",
+    "stds": {
+      "bar_range": 0.000774135989822904,
+      "corr_cv_30": 0.40343614978540626,
+      "high_low_ma": 0.0035264971436563177,
+      "mean_rev_20": 0.0018665649579886852,
+      "mean_rev_50": 0.00297722012486479,
+      "momentum_10": 0.029800259999973013,
+      "momentum_20": 0.044181480000001716,
+      "momentum_5": 0.01977788400000013,
+      "ret_skew_20": 0.5752561207313162,
+      "ts_rank_20": 0.51891,
+      "vol_10": 0.054902628288071235,
+      "vol_50": 0.13761922195182066,
+      "vol_rank_20": 0.37065,
+      "vol_ratio": 0.2418828680102141,
+      "vol_ratio_50": 0.46568938960338696
+    }
+  },
+  "params": {
+    "entry_thr": 4.230429085709856,
+    "exit_thr": 0.6589013798991347,
+    "hold_max": 112,
+    "pos_frac": 0.16142208209105935,
+    "stop_mult": 5.0
+  },
+  "regime": "BEAR_TREND",
+  "regime_includes": [
+    "BEAR_TREND",
+    "BEAR_RALLY",
+    "TOPPING"
+  ],
+  "regime_labeler": {
+    "method": "rule_based_4h",
+    "resample": "4h"
+  },
+  "status": "FAILED_HOLDOUT",
+  "style": "HFT",
+  "validation": {
+    "deflated_sharpe_ratio": 2.6210064223545048e-139,
+    "gate1_pass": false,
+    "gate1_sos": 7.594088833582955e-06,
+    "gate2_dsr": 2.6210064223545048e-139,
+    "gate2_pass": false,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: hft_fitness=-999.000<=0; win_rate=0.485<0.52; tpd=3.9<100",
+    "n_elites": 19
+  },
+  "version": "3.1",
+  "warmup_bars": 200
+}

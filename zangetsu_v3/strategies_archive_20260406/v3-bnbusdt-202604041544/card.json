@@ -1,0 +1,107 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.02196844053675187,
+        "sharpe": 3.9866210923335843,
+        "total_return": 0.09798950232933548,
+        "trades_per_day": 1.8937629369625515,
+        "win_rate": 0.5073798690489402
+      }
+    ]
+  },
+  "card_id": "v3-bnbusdt-202604041544",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      -0.023801609501868534,
+      -0.25727461507380467,
+      0.2321159749073179,
+      0.30914941718106337,
+      1.5010887850911123,
+      0.04059958259283952,
+      -0.07909719006493154,
+      1.3132705731222993,
+      1.3570705749880108,
+      -0.28661048921896737,
+      -0.2424082369463545,
+      -0.08619712415409327,
+      -0.36928632492047514,
+      0.0018891164653903614,
+      2.4471685645274253
+    ]
+  },
+  "normalization": {
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 4.868622554847748,
+    "exit_thr": 0.16228741849492492,
+    "hold_max": 480,
+    "pos_frac": 0.25,
+    "stop_mult": 5.0
+  },
+  "regime": {
+    "distribution": {
+      "1": 9551,
+      "2": 72062,
+      "3": 132819,
+      "4": 1519
+    },
+    "n_states": 5,
+    "target_regime": 2
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      3,
+      2
+    ],
+    "total_elites": 226
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "BNBUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 1.0,
+    "gate2_pass": true,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=-0.930<=0.5; max_dd=0.1217>=0.0330",
+    "holdout_max_dd": 0.12168527719246941,
+    "holdout_sharpe": -0.9301176010763531
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

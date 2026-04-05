@@ -1,0 +1,184 @@
+{
+  "applicable_symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "BNBUSDT",
+    "SOLUSDT",
+    "XRPUSDT",
+    "DOGEUSDT"
+  ],
+  "backtest": {
+    "best_fitness": -999.0,
+    "best_hold_avg": 2.008403361344538,
+    "best_sharpe": -210.40320976864794,
+    "best_tpd": 81.1747986736144,
+    "best_win_rate": 0.22821576763485477,
+    "train_segments": 133,
+    "train_symbols": [
+      "BNBUSDT",
+      "DOGEUSDT",
+      "ETHUSDT",
+      "XRPUSDT",
+      "SOLUSDT"
+    ]
+  },
+  "card_id": "TOPPING_expert",
+  "cost_model": {
+    "funding_rate_avg": 0.0001,
+    "trading_bps_per_symbol": {
+      "BNBUSDT": 7,
+      "BTCUSDT": 4,
+      "DOGEUSDT": 8,
+      "ETHUSDT": 4,
+      "SOLUSDT": 7,
+      "XRPUSDT": 8
+    }
+  },
+  "created_at": "2026-04-05T05:40:31.820322+00:00",
+  "deployment_hints": {
+    "max_concurrent_positions": 3
+  },
+  "factors": [
+    {
+      "index": 0,
+      "name": "momentum_5",
+      "weight": -0.7468819967285871
+    },
+    {
+      "index": 1,
+      "name": "momentum_10",
+      "weight": -0.17092540094533035
+    },
+    {
+      "index": 2,
+      "name": "momentum_20",
+      "weight": -0.4896461579681335
+    },
+    {
+      "index": 3,
+      "name": "ts_rank_20",
+      "weight": 0.021275964421533244
+    },
+    {
+      "index": 4,
+      "name": "vol_10",
+      "weight": -0.7616703990899218
+    },
+    {
+      "index": 5,
+      "name": "vol_50",
+      "weight": 0.5910009297283462
+    },
+    {
+      "index": 6,
+      "name": "vol_ratio",
+      "weight": -0.45365308125745496
+    },
+    {
+      "index": 7,
+      "name": "bar_range",
+      "weight": 0.029255283776853883
+    },
+    {
+      "index": 8,
+      "name": "vol_rank_20",
+      "weight": 0.8172838359582452
+    },
+    {
+      "index": 9,
+      "name": "vol_ratio_50",
+      "weight": -0.08094594720689366
+    },
+    {
+      "index": 10,
+      "name": "mean_rev_20",
+      "weight": 0.32358300157581715
+    },
+    {
+      "index": 11,
+      "name": "mean_rev_50",
+      "weight": 0.20622656170399903
+    },
+    {
+      "index": 12,
+      "name": "corr_cv_30",
+      "weight": 0.1347188915187607
+    },
+    {
+      "index": 13,
+      "name": "ret_skew_20",
+      "weight": 0.5859463428230253
+    },
+    {
+      "index": 14,
+      "name": "high_low_ma",
+      "weight": 0.5324374621530318
+    }
+  ],
+  "normalization": {
+    "medians": {
+      "bar_range": 0.001030264005151298,
+      "corr_cv_30": -0.07536141585019802,
+      "high_low_ma": 0.005357855545653795,
+      "mean_rev_20": -6.309745401755773e-05,
+      "mean_rev_50": -0.00017527415163476334,
+      "momentum_10": -4.999999999999449e-05,
+      "momentum_20": -0.00010999999999999899,
+      "momentum_5": -1.0000000000010001e-05,
+      "ret_skew_20": -0.02637353510690641,
+      "ts_rank_20": 0.5,
+      "vol_10": 0.05919459434779164,
+      "vol_50": 0.1436573701555202,
+      "vol_rank_20": 0.5,
+      "vol_ratio": 0.443610561537894,
+      "vol_ratio_50": 0.7269609126920705
+    },
+    "method": "robust_zscore_per_regime",
+    "stds": {
+      "bar_range": 0.0006811962846074221,
+      "corr_cv_30": 0.41602908073290695,
+      "high_low_ma": 0.003027955026848764,
+      "mean_rev_20": 0.001782014443691222,
+      "mean_rev_50": 0.002844400224708821,
+      "momentum_10": 0.044552130000001675,
+      "momentum_20": 0.07055693399999978,
+      "momentum_5": 0.029666826000015183,
+      "ret_skew_20": 0.5656155676978329,
+      "ts_rank_20": 0.51891,
+      "vol_10": 0.08759817390545531,
+      "vol_50": 0.21258346071336134,
+      "vol_rank_20": 0.37065,
+      "vol_ratio": 0.2410462232472066,
+      "vol_ratio_50": 0.4632268851516289
+    }
+  },
+  "params": {
+    "entry_thr": 1.6376637953434268,
+    "exit_thr": 1.3101310362747416,
+    "hold_max": 5,
+    "pos_frac": 0.01,
+    "stop_mult": 1.6340509982639728
+  },
+  "regime": "TOPPING",
+  "regime_includes": [
+    "TOPPING"
+  ],
+  "regime_labeler": {
+    "method": "rule_based_4h",
+    "resample": "4h"
+  },
+  "status": "FAILED_HOLDOUT",
+  "style": "HFT",
+  "validation": {
+    "deflated_sharpe_ratio": 2.677449545913083e-215,
+    "gate1_pass": false,
+    "gate1_sos": 4.651847057364854e-08,
+    "gate2_dsr": 2.677449545913083e-215,
+    "gate2_pass": false,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: hft_fitness=-999.000<=0; win_rate=0.356<0.52; tpd=17.6<100",
+    "n_elites": 20
+  },
+  "version": "3.1",
+  "warmup_bars": 200
+}

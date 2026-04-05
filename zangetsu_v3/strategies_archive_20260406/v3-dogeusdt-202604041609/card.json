@@ -1,0 +1,107 @@
+{
+  "backtest": {
+    "windows": [
+      {
+        "max_drawdown": 0.014166183790374669,
+        "sharpe": 2.2257995691889745,
+        "total_return": 0.021551216023879768,
+        "trades_per_day": 3.4141078300169942,
+        "win_rate": 0.46442953020134226
+      }
+    ]
+  },
+  "card_id": "v3-dogeusdt-202604041609",
+  "cost_model": {
+    "cost_bps": 3.0,
+    "funding_rate": 0.0001
+  },
+  "deployment_hints": {
+    "lookback": 60,
+    "max_stale_seconds": 120,
+    "timeframe": "1m"
+  },
+  "factors": {
+    "names": [
+      "momentum_5",
+      "momentum_10",
+      "momentum_20",
+      "ts_rank_20",
+      "vol_10",
+      "vol_50",
+      "vol_ratio",
+      "bar_range",
+      "vol_rank_20",
+      "vol_ratio_50",
+      "mean_rev_20",
+      "mean_rev_50",
+      "corr_cv_30",
+      "ret_skew_20",
+      "high_low_ma"
+    ],
+    "weights": [
+      -0.9085244276793636,
+      -1.1615028596095913,
+      -1.317942050805562,
+      -0.09475010186306689,
+      1.3889596831091646,
+      -0.6993132776882461,
+      -0.0439878169473069,
+      -1.7732977993973154,
+      0.8976362536098417,
+      -0.2039302704824288,
+      -0.07733996385848788,
+      -0.7952456354180429,
+      1.189904853054241,
+      0.37282611326827075,
+      0.7411710631100827
+    ]
+  },
+  "normalization": {
+    "feature_cols": [
+      "rolling_return",
+      "realized_vol",
+      "volume_zscore",
+      "range_zscore"
+    ],
+    "method": "robust"
+  },
+  "params": {
+    "entry_thr": 1.6767714917870533,
+    "exit_thr": 0.2519010932271171,
+    "hold_max": 452,
+    "pos_frac": 0.10809194900516939,
+    "stop_mult": 5.0
+  },
+  "regime": {
+    "distribution": {
+      "1": 7132,
+      "2": 89609,
+      "3": 1268,
+      "4": 117942
+    },
+    "n_states": 5,
+    "target_regime": 2
+  },
+  "regime_labeler": "hmm_bic",
+  "search_meta": {
+    "generations": 1000,
+    "regimes_searched": [
+      4,
+      2
+    ],
+    "total_elites": 483
+  },
+  "status": "FAILED_HOLDOUT",
+  "symbol": "DOGEUSDT",
+  "validation": {
+    "gate1_pass": false,
+    "gate2_dsr": 1.4305845530086879e-188,
+    "gate2_pass": false,
+    "gate3_pass": false,
+    "gate3_reason": "FAILED: sharpe=-2.227<=0.5; max_dd=0.0410>=0.0212",
+    "holdout_max_dd": 0.04102083693191675,
+    "holdout_sharpe": -2.2267140805747556
+  },
+  "version": "3.0",
+  "warmup_bars": 60
+}

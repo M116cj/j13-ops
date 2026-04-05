@@ -1,0 +1,13 @@
+[
+  {
+    "symbol": "BTCUSDT",
+    "card_id": "v3-btcusdt-202604041216",
+    "status": "FAILED_HOLDOUT",
+    "train_sharpe": 1.2113427612268868,
+    "holdout_sharpe": -3.626131608875334,
+    "n_regimes": 8,
+    "best_regime": 6,
+    "elapsed_s": 868.414445757051,
+    "live_replay": "skipped"
+  }
+]
