@@ -49,10 +49,7 @@ def _make_bar_df(close=50000.0, ts="2026-01-01T00:00:00"):
 
 
 def _make_live_state(tmp_path, lookback=2):
-    """Minimal LiveState with mocked labeler returning regime 0."""
-    labeler = MagicMock()
-    labeler.label.return_value = np.array([0] * lookback)
-
+    """Minimal LiveState for regime 0."""
     from zangetsu_v3.factors.normalizer import RobustNormalizer
     normalizer = RobustNormalizer()
 
@@ -73,7 +70,6 @@ def _make_live_state(tmp_path, lookback=2):
         card=card,
         weights=weights,
         normalizer=normalizer,
-        labeler=labeler,
         predictor=predictor,
         risk_manager=RiskManager(limits=RiskLimits()),
         stale_breaker=StaleBreaker(max_stale_seconds=60),
@@ -300,6 +296,13 @@ class TestLiveMonitor:
 # ================================================================== #
 
 class TestOnNewBar:
+    @pytest.fixture(autouse=True)
+    def _mock_label_symbol(self):
+        """Patch rule_labeler.label_symbol so on_new_bar doesn't need real 4h data."""
+        mock_labels = np.array([0])
+        with patch("zangetsu_v3.live.main_loop.label_symbol", return_value=(None, mock_labels, None)):
+            yield
+
     def _setup(self, tmp_path, lookback=2):
         state = _make_live_state(tmp_path, lookback=lookback)
         journal = LiveJournal(tmp_path / "journal.parquet")
@@ -363,9 +366,7 @@ class TestOnNewBar:
 
     def test_exit_on_regime_change(self, tmp_path, capsys):
         state, journal, monitor = self._setup(tmp_path, lookback=2)
-        # Position in regime 0, but labeler now returns regime 1 (after debounce)
-        state.labeler.label.return_value = np.array([1, 1])
-        # Force predictor to be in regime 1 after 5 steps (debounce=5)
+        # Position in regime 0, but predictor now returns regime 1 (after debounce)
         for _ in range(6):
             state.predictor.step(1)
         assert state.predictor.active_regime == 1
@@ -402,6 +403,87 @@ class TestOnNewBar:
         time.sleep(0.01)
         open_positions, result = on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
         assert result.action == "stale"
+
+    def test_db_writes_scheduled_after_bar(self, tmp_path, capsys):
+        """After processing bars past warmup, DB writes are scheduled (fire-and-forget).
+        V3.2: status.json replaced with DB writes. Without a real DB connection,
+        the writes fail silently (fire-and-forget) and don't crash the hot path."""
+        state, journal, monitor = self._setup(tmp_path, lookback=2)
+
+        open_positions = {}
+        bar = _make_bar_df()
+        factor_row = self._factor_row(1.0)  # strong signal -> entry_long
+
+        # Bar 1: fills buffer
+        on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        # Bar 2: buffer full -> real processing + DB write attempt
+        open_positions, result = on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+
+        # Main assertion: bar processing completes without error even without DB
+        assert result.action == "entry_long"
+        assert "BTC" in open_positions
+        # No status.json written (V3.2 removed filesystem writes)
+        assert not (tmp_path / "runtime" / "status.json").exists()
+
+    def test_no_crash_without_db(self, tmp_path, capsys):
+        """Without a DB connection, on_new_bar completes without error (fire-and-forget writes)."""
+        state, journal, monitor = self._setup(tmp_path, lookback=2)
+
+        open_positions = {}
+        bar = _make_bar_df()
+        factor_row = self._factor_row(0.0)
+        on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        open_positions, result = on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        assert result.action == "hold"
+
+    def test_overlay_choppy_volatile_halves_position(self, tmp_path, capsys):
+        """CHOPPY_VOLATILE (regime 7) should reduce position by 50%."""
+        state, journal, monitor = self._setup(tmp_path, lookback=2)
+        # Set predictor to regime 7 (CHOPPY_VOLATILE) via debounce
+        for _ in range(6):
+            state.predictor.step(7)
+        assert state.predictor.active_regime == 7
+
+        open_positions = {}
+        bar = _make_bar_df()
+        factor_row = self._factor_row(1.0)
+        on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        open_positions, result = on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        assert result.action == "entry_long"
+        pos = open_positions["BTC"]
+        # base=0.1, sw_conf~1.0, damper=0.5 → ~0.05
+        assert pos.quantity < state.position_frac, "CHOPPY_VOLATILE should reduce position"
+        assert pos.quantity == pytest.approx(state.position_frac * state.predictor.switch_confidence * 0.5, rel=0.01)
+
+    def test_overlay_liquidity_crisis_blocks_position(self, tmp_path, capsys):
+        """LIQUIDITY_CRISIS (regime 11) should result in zero position (hold)."""
+        state, journal, monitor = self._setup(tmp_path, lookback=2)
+        # Set predictor to regime 11 (LIQUIDITY_CRISIS) via debounce
+        for _ in range(6):
+            state.predictor.step(11)
+        assert state.predictor.active_regime == 11
+
+        open_positions = {}
+        bar = _make_bar_df()
+        factor_row = self._factor_row(1.0)
+        on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        open_positions, result = on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        assert result.action == "hold", "LIQUIDITY_CRISIS should block all entries"
+        assert "BTC" not in open_positions
+
+    def test_overlay_bull_trend_no_damping(self, tmp_path, capsys):
+        """BULL_TREND (regime 0) is not in OVERLAY_DAMPERS → no reduction."""
+        state, journal, monitor = self._setup(tmp_path, lookback=2)
+        open_positions = {}
+        bar = _make_bar_df()
+        factor_row = self._factor_row(1.0)
+        on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        open_positions, result = on_new_bar("BTC", bar, factor_row, state, open_positions, journal, monitor)
+        assert result.action == "entry_long"
+        pos = open_positions["BTC"]
+        # base=0.1, sw_conf~1.0, damper=1.0 → ~0.1
+        expected = state.position_frac * state.predictor.switch_confidence * 1.0
+        assert pos.quantity == pytest.approx(expected, rel=0.01)
 
     def test_latency_under_50ms(self, tmp_path, capsys):
         state, journal, monitor = self._setup(tmp_path, lookback=2)
