@@ -22,9 +22,10 @@ from scripts.arena2_compress import (
     DEDUP_THRESHOLD_TIGHT, DEDUP_THRESHOLD_RELAXED,
     MAX_FACTORS,
     MIN_FACTORS,
-    compress,
-    deduplicate,
+    compress_regime as compress,
     format_output,
+    deduplicate,
+
     remove_weak_candidates,
     _pearson_corr,
 )
@@ -189,7 +190,7 @@ class TestArena2Compression:
     def test_compression_output_count(self):
         """Compression should produce between 10 and 20 factors."""
         dfs = {"BTCUSDT": self.df}
-        result = compress(self.candidates, dfs, self.evaluator)
+        result = compress(self.candidates, dfs, self.evaluator, regime="TEST")
         assert MIN_FACTORS <= len(result) <= MAX_FACTORS, (
             f"Expected {MIN_FACTORS}-{MAX_FACTORS} factors, got {len(result)}"
         )
@@ -197,7 +198,7 @@ class TestArena2Compression:
     def test_no_high_correlation_pairs(self):
         """No pair in output should have abs(corr) > 0.7."""
         dfs = {"BTCUSDT": self.df}
-        result = compress(self.candidates, dfs, self.evaluator)
+        result = compress(self.candidates, dfs, self.evaluator, regime="TEST")
 
         # Evaluate all result expressions
         series = []
@@ -218,11 +219,12 @@ class TestArena2Compression:
     def test_output_json_schema(self):
         """Output JSON should have all required fields."""
         dfs = {"BTCUSDT": self.df}
-        result = compress(self.candidates, dfs, self.evaluator)
+        result = compress(self.candidates, dfs, self.evaluator, regime="TEST")
         output = format_output(result)
 
         required_keys = {
             "index", "name", "expression", "raw_expression",
+            "loss", "target", "regime",
             "pysr_loss", "pysr_score", "lookback",
             "source_regime", "source_target",
         }
@@ -240,7 +242,7 @@ class TestArena2Compression:
     def test_output_json_serializable(self):
         """Output must be JSON-serializable."""
         dfs = {"BTCUSDT": self.df}
-        result = compress(self.candidates, dfs, self.evaluator)
+        result = compress(self.candidates, dfs, self.evaluator, regime="TEST")
         output = format_output(result)
         serialized = json.dumps(output)
         parsed = json.loads(serialized)
@@ -249,7 +251,7 @@ class TestArena2Compression:
     def test_output_written_to_file(self):
         """Verify file write round-trip."""
         dfs = {"BTCUSDT": self.df}
-        result = compress(self.candidates, dfs, self.evaluator)
+        result = compress(self.candidates, dfs, self.evaluator, regime="TEST")
         output = format_output(result)
 
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -283,7 +285,7 @@ class TestArena2Compression:
             ts = self.evaluator.eval(c["expression"], self.df)
             series_map[i] = ts
 
-        deduped = deduplicate(same_expr, series_map, DEDUP_THRESHOLD_TIGHT)
+        deduped, _pairwise_map = deduplicate(same_expr, series_map, DEDUP_THRESHOLD_TIGHT)
         # All identical → only 1 should survive
         assert len(deduped) == 1
         # Should keep the one with lowest loss (index 0, loss=0.0)
@@ -305,7 +307,7 @@ class TestArena2Compression:
     def test_empty_candidates(self):
         """Empty input should produce empty output."""
         dfs = {"BTCUSDT": self.df}
-        result = compress([], dfs, self.evaluator)
+        result = compress([], dfs, self.evaluator, regime="TEST")
         assert result == []
 
     def test_format_output_indices(self):
@@ -315,6 +317,88 @@ class TestArena2Compression:
         for i, entry in enumerate(output):
             assert entry["index"] == i
             assert entry["name"] == f"factor_{i + 1:03d}"
+
+    def test_format_output_spec_fields(self):
+        """Output must include spec-required fields: name, expression, loss, target, regime."""
+        factors = self.candidates[:5]
+        output = format_output(factors)
+        for entry in output:
+            assert "name" in entry
+            assert "expression" in entry
+            assert "loss" in entry and isinstance(entry["loss"], float)
+            assert "target" in entry and isinstance(entry["target"], str)
+            assert "regime" in entry and isinstance(entry["regime"], str)
+
+    def test_fewer_than_20_candidates(self):
+        """When input has fewer than 20 candidates, all valid ones should appear."""
+        # Use only 8 candidates with distinct expressions
+        few = _make_candidates(8, n_correlated_groups=0, group_size=0)
+        dfs = {"BTCUSDT": self.df}
+        result = compress(few, dfs, self.evaluator, regime="TEST")
+        # Should not exceed input count
+        assert len(result) <= 8
+        # Should have at least 1 (all expressions are valid HFT factors)
+        assert len(result) >= 1
+
+    def test_fewer_than_min_relaxes_threshold(self):
+        """When tight dedup yields < MIN_FACTORS, relaxed threshold should be tried."""
+        # Create many candidates all based on same 3 expressions → tight dedup yields ~3
+        correlated_heavy = []
+        base_exprs = ["ret_5", "ret_3", "range_3"]
+        for expr in base_exprs:
+            for j in range(20):
+                correlated_heavy.append({
+                    "expression": expr,
+                    "raw_expression": expr,
+                    "complexity": 3,
+                    "loss": float(j * 0.001 + base_exprs.index(expr) * 0.01),
+                    "score": 0.05,
+                    "regime": "BULL_TREND",
+                    "horizon": 5,
+                })
+        dfs = {"BTCUSDT": self.df}
+        result = compress(correlated_heavy, dfs, self.evaluator, regime="TEST")
+        # With only 3 distinct expressions, we should get <= 3 regardless of relaxation
+        # but the code path for relaxation is exercised
+        assert len(result) <= MAX_FACTORS
+        assert len(result) >= 1
+
+    def test_remove_weak_candidates_filters_noise(self):
+        """Weak candidates with zero target correlation should be removed."""
+        # Create a factor series that is pure noise (uncorrelated with any target)
+        n = len(self.df)
+        noise = RNG.randn(n)
+        # Create a factor series that is correlated with target
+        target_5 = self.df["next_5_bar_return"].to_numpy().astype(np.float64)
+        # Make a signal that correlates with target
+        signal = target_5.copy()
+        signal[np.isnan(signal)] = 0.0
+
+        candidates = [
+            {"expression": "noise", "horizon": 5, "loss": 0.001},
+            {"expression": "signal", "horizon": 5, "loss": 0.002},
+        ]
+        series_map = {0: noise, 1: signal}
+        target_series = {5: target_5}
+
+        kept, _avg_corr_map = remove_weak_candidates(candidates, series_map, target_series, threshold=0.01)
+        # Signal should be kept; noise might or might not pass depending on random seed
+        # but signal should definitely be in the kept list
+        kept_exprs = [c["expression"] for c in kept]
+        assert "signal" in kept_exprs
+
+    def test_pearson_corr_with_nans(self):
+        """Correlation should handle NaN values gracefully."""
+        a = np.array([1.0, 2.0, np.nan, 4.0, 5.0] * 20, dtype=np.float64)
+        b = np.array([2.0, 4.0, np.nan, 8.0, 10.0] * 20, dtype=np.float64)
+        corr = _pearson_corr(a, b)
+        assert abs(corr - 1.0) < 1e-6
+
+    def test_pearson_corr_too_few_points(self):
+        """Correlation with < 30 valid points should return 0.0."""
+        a = np.array([1.0, 2.0, 3.0])
+        b = np.array([4.0, 5.0, 6.0])
+        assert _pearson_corr(a, b) == 0.0
 
 
 if __name__ == "__main__":

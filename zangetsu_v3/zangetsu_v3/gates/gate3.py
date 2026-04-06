@@ -10,6 +10,8 @@ from zangetsu_v3.search.backtest import BacktestResult
 @dataclass
 class HoldoutGate:
     """One-shot holdout gate. Once failed, permanently returns False (C07)."""
+    min_win_rate: float = 0.52
+    min_trades_per_day: float = 100
     _failed: bool = field(default=False, init=False, repr=False)
 
     def gate(
@@ -24,10 +26,10 @@ class HoldoutGate:
         reasons = []
         if holdout_result.hft_fitness <= 0:
             reasons.append(f"hft_fitness={holdout_result.hft_fitness:.3f}<=0")
-        if holdout_result.win_rate < 0.52:
-            reasons.append(f"win_rate={holdout_result.win_rate:.3f}<0.52")
-        if holdout_result.trades_per_day < 100:
-            reasons.append(f"tpd={holdout_result.trades_per_day:.1f}<100")
+        if holdout_result.win_rate < self.min_win_rate:
+            reasons.append(f"win_rate={holdout_result.win_rate:.3f}<{self.min_win_rate}")
+        if holdout_result.trades_per_day < self.min_trades_per_day:
+            reasons.append(f"tpd={holdout_result.trades_per_day:.1f}<{self.min_trades_per_day}")
 
         if reasons:
             self._failed = True

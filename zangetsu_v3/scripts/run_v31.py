@@ -8,6 +8,7 @@ Usage (on Alaya):
 from __future__ import annotations
 
 import json
+import os
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -36,7 +37,11 @@ from zangetsu_v3.cards.exporter import CardExporter
 
 # ── config ───────────────────────────────────────────────────────
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]
-DB_DSN = "dbname=zangetsu user=zangetsu password=REDACTED host=127.0.0.1 port=5432"
+
+_env_end = os.environ.get("ZV3_TRAINING_END")
+TRAINING_END = datetime.fromisoformat(_env_end) if _env_end else datetime.now(timezone.utc) - timedelta(hours=1)
+
+DB_DSN = os.environ.get("ZV3_DB_DSN", "dbname=zangetsu user=zangetsu host=127.0.0.1 port=5432")
 TRAINING_MONTHS = 18
 EMBARGO_DAYS = 90
 MIN_SEGMENT_BARS = 1440       # 1 day
@@ -66,8 +71,8 @@ log = logging.getLogger("v31")
 
 # ── data loading ─────────────────────────────────────────────────
 def load_ohlcv(symbol: str, months: int) -> pl.DataFrame:
-    end_ms = int(datetime(2026, 3, 29, tzinfo=timezone.utc).timestamp() * 1000)
-    start_ms = int((datetime(2026, 3, 29, tzinfo=timezone.utc) - timedelta(days=30 * months)).timestamp() * 1000)
+    end_ms = int(TRAINING_END.timestamp() * 1000)
+    start_ms = int((TRAINING_END - timedelta(days=30 * months)).timestamp() * 1000)
     conn = psycopg2.connect(DB_DSN)
     try:
         with conn.cursor() as cur:

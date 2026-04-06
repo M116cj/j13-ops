@@ -1,0 +1,173 @@
+[
+  {
+    "expression": "(square((-0.52425086 + (ret_5 * 49.15935)) * ((ret_2 - range_1) * vratio_10)) / (-0.09846169 + (((40.396084 * ret_2) + vratio_5) + ret_30))) / 0.93052524",
+    "raw_expression": "(square((-0.52425086 + (ret_5 * 49.15935)) * ((ret_2 - range_1) * vratio_10)) / (-0.09846169 + (((40.396084 * ret_2) + vratio_5) + ret_30))) / 0.93052524",
+    "complexity": 24,
+    "loss": 1.5412045e-06,
+    "score": 5.981976092596887e-05,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(vratio_10 * ((ret_2 - range_1) * ((ret_5 * 49.15935) + -0.55100924))) / (((ret_30 + vratio_5) + -0.09846169) + (ret_2 * 40.396084))",
+    "raw_expression": "square(vratio_10 * ((ret_2 - range_1) * ((ret_5 * 49.15935) + -0.55100924))) / (((ret_30 + vratio_5) + -0.09846169) + (ret_2 * 40.396084))",
+    "complexity": 22,
+    "loss": 1.5413889e-06,
+    "score": 0.0029072350018758747,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square((vratio_10 * ret_2) * square((range_20 + 0.8963165) + (-47.59821 * ret_5))) / ((vratio_5 + (ret_10 + -0.49507508)) - ret_5)",
+    "raw_expression": "square((vratio_10 * ret_2) * square((range_20 + 0.8963165) + (-47.59821 * ret_5))) / ((vratio_5 + (ret_10 + -0.49507508)) - ret_5)",
+    "complexity": 21,
+    "loss": 1.5458766e-06,
+    "score": 8.01746158923676e-05,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(square((-49.093643 * ret_5) + 0.9070729) * (vratio_10 * ret_2)) / (vratio_5 + ((ret_10 + -0.49504158) - ret_5))",
+    "raw_expression": "square(square((-49.093643 * ret_5) + 0.9070729) * (vratio_10 * ret_2)) / (vratio_5 + ((ret_10 + -0.49504158) - ret_5))",
+    "complexity": 19,
+    "loss": 1.5461245e-06,
+    "score": 0.0014101210670908898,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(square((-47.59821 * ret_5) + 0.98040384) * (ret_2 * vratio_10)) / ((-0.5084745 + vratio_5) + range_3)",
+    "raw_expression": "(vratio_10**2*(-range_1 + ret_2)**2*(ret_5*49.15935 - 0.55100924)**2)/(ret_2*40.396084 + ret_30 + vratio_5 - 0.09846169)",
+    "complexity": 17,
+    "loss": 1.5504911e-06,
+    "score": 0.0036293194392879847,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(square((ret_5 * -49.223976) + 0.92216367) * (vratio_10 * ret_2)) / (vratio_5 + -0.4956004)",
+    "raw_expression": "(ret_2**2*vratio_10**2*(0.9070729 - 49.093643*ret_5)**4)/(ret_10 - ret_5 + vratio_5 - 0.49504158)",
+    "complexity": 15,
+    "loss": 1.5617865e-06,
+    "score": 0.000461608279965929,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(vratio_20 * (ret_2 - range_1)) / ((ret_2 * 47.130905) + (vratio_5 + -0.04395629))",
+    "raw_expression": "(ret_2**2*vratio_10**2*(0.98040384 - 47.59821*ret_5)**4)/(range_3 + vratio_5 - 0.5084745)",
+    "complexity": 14,
+    "loss": 1.5625076e-06,
+    "score": 0.008326858615240683,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "(((ret_2 / ((vratio_5 + -0.4983203) * 0.23780069)) - vratio_20) * ret_2) * range_50",
+    "raw_expression": "(ret_2**2*vratio_10**2*(0.92216367 + ret_5*(-49.223976))**4)/(vratio_5 - 0.4956004)",
+    "complexity": 13,
+    "loss": 1.5755727e-06,
+    "score": 0.004965839619189699,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square((range_1 - ret_2) * vratio_20) / ((ret_2 * 51.51203) + vratio_5)",
+    "raw_expression": "(vratio_20**2*(-range_1 + ret_2)**2)/(ret_2*47.130905 + vratio_5 - 0.04395629)",
+    "complexity": 12,
+    "loss": 1.5834162e-06,
+    "score": 0.004319211167965456,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "((ret_2 / (9.489879 * (-0.4983203 + vratio_5))) - range_50) * ret_2",
+    "raw_expression": "range_50*ret_2*(ret_2/(((vratio_5 - 0.4983203)*0.23780069)) - vratio_20)",
+    "complexity": 11,
+    "loss": 1.5902701e-06,
+    "score": 0.005209169274561421,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "(range_3 * (square(ret_2) / (vratio_5 + -0.49829456))) * 9.060015",
+    "raw_expression": "(vratio_20**2*(range_1 - ret_2)**2)/(ret_2*51.51203 + vratio_5)",
+    "complexity": 10,
+    "loss": 1.5985757e-06,
+    "score": 0.00039338303164871487,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(ret_2) / ((vratio_5 + -0.49831542) * 9.20311)",
+    "raw_expression": "range_3*ret_2**2*9.060015/(vratio_5 - 0.49829456)",
+    "complexity": 8,
+    "loss": 1.5998339e-06,
+    "score": 0.011195761705420288,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(ret_2) / abs(vratio_5 + -0.501868)",
+    "raw_expression": "ret_2**2/(((vratio_5 - 0.49831542)*9.20311))",
+    "complexity": 7,
+    "loss": 1.6178459e-06,
+    "score": 0.016166946235935904,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(ret_2) / (vratio_5 + -0.49357402)",
+    "raw_expression": "ret_2**2/Abs(vratio_5 - 0.501868)",
+    "complexity": 6,
+    "loss": 1.6442141e-06,
+    "score": 0.017398340538803354,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "range_1 * (ret_2 / -0.08045333)",
+    "raw_expression": "ret_2**2/(vratio_5 - 0.49357402)",
+    "complexity": 5,
+    "loss": 1.673071e-06,
+    "score": 0.0024992188403001134,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(ret_2 - range_5)",
+    "raw_expression": "range_1*ret_2/(-0.08045333)",
+    "complexity": 4,
+    "loss": 1.6772576e-06,
+    "score": 0.006534839342834493,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "ret_2 * -0.042029254",
+    "raw_expression": "(-range_5 + ret_2)**2",
+    "complexity": 3,
+    "loss": 1.6882541e-06,
+    "score": 0.0005647436172987665,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "square(range_5)",
+    "raw_expression": "ret_2*(-0.042029254)",
+    "complexity": 2,
+    "loss": 1.6892078e-06,
+    "score": 0.00276309744312393,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  },
+  {
+    "expression": "1.834055e-5",
+    "raw_expression": "range_5**2",
+    "complexity": 1,
+    "loss": 1.6938817e-06,
+    "score": 0.0,
+    "regime": "BEAR_RALLY",
+    "horizon": 1
+  }
+]

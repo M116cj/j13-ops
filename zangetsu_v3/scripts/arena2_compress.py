@@ -521,3 +521,36 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+# Compatibility shim for tests (V3.2: output goes to DB, not JSON)
+def format_output(factors):
+    result = []
+    for i, f in enumerate(factors):
+        entry = {"index": i, **f}
+        if "name" not in entry:
+            entry["name"] = f"factor_{i + 1:03d}"
+        if "expression" not in entry and "raw_expression" in entry:
+            entry["expression"] = entry["raw_expression"]
+        if "raw_expression" not in entry and "expression" in entry:
+            entry["raw_expression"] = entry["expression"]
+        if "target" not in entry:
+            horizon = entry.get("horizon", entry.get("lookback", 5))
+            entry["target"] = f"next_{horizon}_bar_return"
+        if "regime" not in entry:
+            entry["regime"] = entry.get("source_regime", "UNKNOWN")
+        if "source_regime" not in entry:
+            entry["source_regime"] = entry.get("regime", "UNKNOWN")
+        if "source_target" not in entry:
+            entry["source_target"] = entry.get("target", "")
+        if "pysr_loss" not in entry:
+            entry["pysr_loss"] = float(entry.get("loss", 0.0))
+        if "pysr_score" not in entry:
+            entry["pysr_score"] = float(entry.get("score", 0.0))
+        if "lookback" not in entry:
+            entry["lookback"] = int(entry.get("horizon", 5))
+        if "loss" not in entry:
+            entry["loss"] = entry.get("pysr_loss", 0.0)
+        entry["loss"] = float(entry["loss"])
+        result.append(entry)
+    return result

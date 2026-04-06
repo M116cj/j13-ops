@@ -14,6 +14,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import json
+import os
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -29,7 +30,11 @@ from zangetsu_v3.regime.rule_labeler import label_symbol, Regime, REGIME_NAMES
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s", datefmt="%H:%M:%S")
 log = logging.getLogger("arena1")
 
-DB_DSN = "dbname=zangetsu user=zangetsu password=REDACTED host=127.0.0.1 port=5432"
+
+_env_end = os.environ.get("ZV3_TRAINING_END")
+TRAINING_END = datetime.fromisoformat(_env_end) if _env_end else datetime.now(timezone.utc) - timedelta(hours=1)
+
+DB_DSN = os.environ.get("ZV3_DB_DSN", "dbname=zangetsu user=zangetsu host=127.0.0.1 port=5432")
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]
 TRAINING_MONTHS = 18
 MIN_SEGMENT_BARS = 1440
@@ -37,8 +42,8 @@ OUTPUT_DIR = Path("arena1_results")
 
 
 def load_ohlcv(symbol: str) -> pl.DataFrame:
-    end_ms = int(datetime(2026, 3, 29, tzinfo=timezone.utc).timestamp() * 1000)
-    start_ms = int((datetime(2026, 3, 29, tzinfo=timezone.utc) - timedelta(days=30 * TRAINING_MONTHS)).timestamp() * 1000)
+    end_ms = int(TRAINING_END.timestamp() * 1000)
+    start_ms = int((TRAINING_END - timedelta(days=30 * TRAINING_MONTHS)).timestamp() * 1000)
     conn = psycopg2.connect(DB_DSN)
     try:
         with conn.cursor() as cur:
