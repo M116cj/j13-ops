@@ -1,0 +1,910 @@
+07:01:24 [INFO] Arena 1 — Full PySR Signal Pool (11 regimes × 5 targets)
+07:01:24 [INFO] Targets: next_[1, 3, 5, 10, 30]_bar_return
+07:01:24 [INFO] Loading all OHLCV + labeling...
+07:01:26 [INFO]   BTCUSDT: 766483 bars
+07:01:28 [INFO]   ETHUSDT: 766495 bars
+07:01:30 [INFO]   BNBUSDT: 766508 bars
+07:01:32 [INFO]   SOLUSDT: 766457 bars
+07:01:34 [INFO]   XRPUSDT: 766466 bars
+07:01:35 [INFO]   DOGEUSDT: 766479 bars
+07:01:35 [INFO] 
+============================================================
+07:01:35 [INFO] REGIME: BULL_TREND (213 segments)
+07:01:35 [INFO]   SKIP BULL_TREND_h1 — already complete
+07:01:35 [INFO]   SKIP BULL_TREND_h3 — already complete
+07:01:35 [INFO]   SKIP BULL_TREND_h5 — already complete
+07:01:35 [INFO]   SKIP BULL_TREND_h10 — already complete
+07:01:35 [INFO]   SKIP BULL_TREND_h30 — already complete
+07:01:36 [INFO] 
+============================================================
+07:01:36 [INFO] REGIME: BEAR_TREND (252 segments)
+07:01:36 [INFO]   SKIP BEAR_TREND_h1 — already complete
+07:01:36 [INFO]   SKIP BEAR_TREND_h3 — already complete
+07:01:36 [INFO]   SKIP BEAR_TREND_h5 — already complete
+07:01:36 [INFO]   SKIP BEAR_TREND_h10 — already complete
+07:01:36 [INFO]   SKIP BEAR_TREND_h30 — already complete
+07:01:36 [INFO] 
+============================================================
+07:01:36 [INFO] REGIME: BULL_PULLBACK (41 segments)
+07:01:36 [INFO]   SKIP BULL_PULLBACK_h1 — already complete
+07:01:36 [INFO]   SKIP BULL_PULLBACK_h3 — already complete
+07:01:36 [INFO]   SKIP BULL_PULLBACK_h5 — already complete
+07:01:36 [INFO]   SKIP BULL_PULLBACK_h10 — already complete
+07:01:36 [INFO]   SKIP BULL_PULLBACK_h30 — already complete
+07:01:36 [INFO] 
+============================================================
+07:01:36 [INFO] REGIME: BEAR_RALLY (43 segments)
+07:01:36 [INFO]   SKIP BEAR_RALLY_h1 — already complete
+07:01:36 [INFO]   SKIP BEAR_RALLY_h3 — already complete
+07:01:36 [INFO] 
+  [18/55] target=next_5_bar_return
+07:01:39 [INFO]     X=(70595, 29), y_std=0.002845
+/home/j13/j13-ops/zangetsu_v3/.venv/lib/python3.12/site-packages/pysr/sr.py:2265: UserWarning: Note: you are running with more than 10,000 datapoints. You should consider turning on batching (https://ai.damtp.cam.ac.uk/pysr/options/#batching). You should also reconsider if you need that many datapoints. Unless you have a large amount of noise (in which case you should smooth your dataset first), generally < 10,000 datapoints is enough to find a functional form with symbolic regression. More datapoints will lower the search speed.
+  warnings.warn(
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] wait()
+    @ Base ./task.jl:1022
+  [2] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [3] wait
+    @ ./condition.jl:125 [inlined]
+  [4] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [5] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [6] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [7] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+  [9] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [10] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [11] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [12] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] wait()
+    @ Base ./task.jl:1022
+  [2] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [3] wait
+    @ ./condition.jl:125 [inlined]
+  [4] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [5] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [6] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [7] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+  [9] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [10] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [11] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [12] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] wait()
+    @ Base ./task.jl:1022
+  [2] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [3] wait
+    @ ./condition.jl:125 [inlined]
+  [4] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [5] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [6] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [7] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+  [9] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [10] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [11] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [12] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] wait()
+    @ Base ./task.jl:1022
+  [2] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [3] wait
+    @ ./condition.jl:125 [inlined]
+  [4] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [5] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [6] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [7] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+  [9] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [10] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [11] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [12] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(2)
+Stacktrace:
+  [1] wait()
+    @ Base ./task.jl:1022
+  [2] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [3] wait
+    @ ./condition.jl:125 [inlined]
+  [4] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [5] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [6] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [7] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+  [9] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [10] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [11] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [12] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(4)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+UNHANDLED TASK ERROR: Distributed.ProcessExitedException(3)
+Stacktrace:
+  [1] try_yieldto(undo::typeof(Base.ensure_rescheduled))
+    @ Base ./task.jl:958
+  [2] wait()
+    @ Base ./task.jl:1022
+  [3] wait(c::Base.GenericCondition{ReentrantLock}; first::Bool)
+    @ Base ./condition.jl:130
+  [4] wait
+    @ ./condition.jl:125 [inlined]
+  [5] take_buffered(c::Channel{Any})
+    @ Base ./channels.jl:493
+  [6] take!(c::Channel{Any})
+    @ Base ./channels.jl:487
+  [7] take!(::Distributed.RemoteValue)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:726
+  [8] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID; kwargs::@Kwargs{})
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:461
+  [9] remotecall_fetch(f::Function, w::Distributed.Worker, args::Distributed.RRID)
+    @ Distributed ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:454
+ [10] remotecall_fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:492 [inlined]
+ [11] call_on_owner
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:565 [inlined]
+ [12] fetch
+    @ ~/j13-ops/zangetsu_v3/.venv/julia_env/pyjuliapkg/install/share/julia/stdlib/v1.11/Distributed/src/remotecall.jl:619
+ [13] (::SymbolicRegression.var"#63#68"{SymbolicRegression.SearchUtilsModule.SearchState{Float32, Float32, Expression{Float32, Node{Float32}, @NamedTuple{operators::Nothing, variable_names::Nothing}}, Distributed.Future, Distributed.RemoteChannel}, Int64, Int64})()
+    @ SymbolicRegression ~/.julia/packages/SymbolicRegression/L5TJa/src/SymbolicRegression.jl:976
+07:23:18 [INFO]     PySR done in 1299s, 16 expressions
+07:23:18 [INFO]       #1: loss=0.00000764 score=0.000083 | (((range_1 * 4.2129793) * ret_10) / vol_20) * ((ret_2 - range_50) + (((range_20 + (ret_10 - ret_5)) + abs(ret_5 + ret_20)) / square(vratio_20)))
+07:23:18 [INFO]       #2: loss=0.00000765 score=0.000931 | (((range_1 * 292.7486) * ((0.09564563 / square(vratio_20)) + ((ret_2 / 0.18596664) - abs(ret_50)))) - 0.065651044) * ret_10
+07:23:18 [INFO]       #3: loss=0.00000765 score=0.001647 | ret_10 * (((range_1 * 292.7486) * ((0.097291686 / square(vratio_20)) + ((ret_2 / 0.18596664) - range_50))) - 0.065651044)
+07:23:18 [INFO] 
+  [19/55] target=next_10_bar_return
+07:23:21 [INFO]     X=(70380, 29), y_std=0.003995
+/home/j13/j13-ops/zangetsu_v3/.venv/lib/python3.12/site-packages/pysr/sr.py:2265: UserWarning: Note: you are running with more than 10,000 datapoints. You should consider turning on batching (https://ai.damtp.cam.ac.uk/pysr/options/#batching). You should also reconsider if you need that many datapoints. Unless you have a large amount of noise (in which case you should smooth your dataset first), generally < 10,000 datapoints is enough to find a functional form with symbolic regression. More datapoints will lower the search speed.
+  warnings.warn(

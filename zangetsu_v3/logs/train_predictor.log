@@ -1,0 +1,43 @@
+2026-04-06 07:23:20,355 [INFO] Training Online Regime Predictor (LightGBM) -- V3.2
+2026-04-06 07:23:20,355 [INFO]   Loading BTCUSDT...
+2026-04-06 07:23:29,244 [INFO]     BTCUSDT: 11600 4h bars, 12 unique regimes
+2026-04-06 07:23:29,244 [INFO]   Loading ETHUSDT...
+2026-04-06 07:23:38,426 [INFO]     ETHUSDT: 11600 4h bars, 13 unique regimes
+2026-04-06 07:23:38,426 [INFO]   Loading BNBUSDT...
+2026-04-06 07:23:47,558 [INFO]     BNBUSDT: 11600 4h bars, 13 unique regimes
+2026-04-06 07:23:47,558 [INFO]   Loading SOLUSDT...
+2026-04-06 07:23:56,812 [INFO]     SOLUSDT: 11600 4h bars, 13 unique regimes
+2026-04-06 07:23:56,812 [INFO]   Loading XRPUSDT...
+2026-04-06 07:24:06,292 [INFO]     XRPUSDT: 11600 4h bars, 13 unique regimes
+2026-04-06 07:24:06,292 [INFO]   Loading DOGEUSDT...
+2026-04-06 07:24:15,393 [INFO]     DOGEUSDT: 11600 4h bars, 13 unique regimes
+2026-04-06 07:24:15,397 [INFO]   Total: 69600 samples, 13 classes
+2026-04-06 07:24:15,398 [INFO]   Train: 55680 | Test: 13920 (temporal 80/20)
+/home/j13/j13-ops/zangetsu_v3/.venv/lib/python3.12/site-packages/sklearn/utils/validation.py:2691: UserWarning: X does not have valid feature names, but LGBMClassifier was fitted with feature names
+2026-04-06 07:24:22,932 [INFO]   Fine accuracy (13 states): 0.5861 (58.6%)
+2026-04-06 07:24:22,934 [INFO]   Coarse accuracy (11 regimes): 0.5917 (59.2%)
+2026-04-06 07:24:22,934 [WARNING]   WARNING: Fine accuracy 58.6% below 70% target!
+2026-04-06 07:24:22,934 [WARNING]   WARNING: Coarse accuracy 59.2% below 70% target!
+2026-04-06 07:24:22,941 [INFO] 
+                  precision    recall  f1-score   support
+
+      BULL_TREND       0.74      0.51      0.60      2367
+      BEAR_TREND       0.70      0.51      0.59      2823
+   BULL_PULLBACK       0.40      0.58      0.48      1028
+      BEAR_RALLY       0.42      0.52      0.47      1200
+    DISTRIBUTION       0.17      0.46      0.25       104
+    ACCUMULATION       0.24      0.44      0.31       197
+   CONSOLIDATION       0.51      0.52      0.51      1048
+ CHOPPY_VOLATILE       0.86      0.93      0.90       561
+         SQUEEZE       0.91      0.92      0.92      1767
+         TOPPING       0.45      0.48      0.47      1185
+       BOTTOMING       0.41      0.47      0.44      1305
+LIQUIDITY_CRISIS       0.59      0.55      0.57       105
+       PARABOLIC       0.75      0.90      0.82       230
+
+        accuracy                           0.59     13920
+       macro avg       0.55      0.60      0.56     13920
+    weighted avg       0.62      0.59      0.59     13920
+
+2026-04-06 07:24:23,018 [INFO]   Saved: strategies/regime_model.pkl
+2026-04-06 07:24:23,018 [INFO]   Time: 63s

@@ -45,6 +45,15 @@ def backtest_hft(
     entry_px = 0.0
     hold = 0
 
+    # Precompute ATR: 14-period EMA of abs(close[i]-close[i-1])
+    atr_arr = np.zeros(n)
+    if n > 1:
+        atr_arr[1] = abs(close[1] - close[0])
+    alpha = 2.0 / (14 + 1)
+    for i in range(2, n):
+        tr = abs(close[i] - close[i - 1])
+        atr_arr[i] = alpha * tr + (1 - alpha) * atr_arr[i - 1]
+
     for i in range(1, n):
         p = pos[i - 1]
         if p != 0:
@@ -57,7 +66,7 @@ def backtest_hft(
             holds[i] = hold
 
             # Exit conditions
-            atr = abs(close[i] - close[i - 1]) * 14
+            atr = atr_arr[i]
             stop = (
                 (close[i] < entry_px - stop_mult * atr)
                 if p > 0

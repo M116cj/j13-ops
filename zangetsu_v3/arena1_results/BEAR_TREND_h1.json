@@ -1,0 +1,146 @@
+[
+  {
+    "expression": "(((square(range_5) * (range_5 / (upper_wick - 4.675764e-5))) - square((range_20 * 1.6874741) / square(vratio_5))) * 0.004226283) * square(vratio_20 - (range_1 * 376.7349))",
+    "raw_expression": "(((square(range_5) * (range_5 / (upper_wick - 4.675764e-5))) - square((range_20 * 1.6874741) / square(vratio_5))) * 0.004226283) * square(vratio_20 - (range_1 * 376.7349))",
+    "complexity": 25,
+    "loss": 1.3872341e-06,
+    "score": 0.0025639256641738664,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "(((square(range_5) / (upper_wick - 9.2483446e-5)) * range_5) - square(range_20 * ((lower_wick + 1.3656632) / square(vratio_5)))) * (503.59363 * square(range_1))",
+    "raw_expression": "(((square(range_5) / (upper_wick - 9.2483446e-5)) * range_5) - square(range_20 * ((lower_wick + 1.3656632) / square(vratio_5)))) * (503.59363 * square(range_1))",
+    "complexity": 23,
+    "loss": 1.3943659e-06,
+    "score": 0.0014053653157229489,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "(((square(range_5) / (upper_wick - 9.2483446e-5)) * range_5) - square((range_20 * 1.6229566) / square(vratio_5))) * (503.59363 * square(range_1))",
+    "raw_expression": "(((square(range_5) / (upper_wick - 9.2483446e-5)) * range_5) - square((range_20 * 1.6229566) / square(vratio_5))) * (503.59363 * square(range_1))",
+    "complexity": 21,
+    "loss": 1.3982906e-06,
+    "score": 0.0046791195609410625,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(range_5 * range_1) / ((((upper_wick * (ret_7 - range_1)) * (-0.44506866 - ret_30)) - 6.845081e-6) * (vratio_3 - ret_50))",
+    "raw_expression": "square(range_5 * range_1) / ((((upper_wick * (ret_7 - range_1)) * (-0.44506866 - ret_30)) - 6.845081e-6) * (vratio_3 - ret_50))",
+    "complexity": 20,
+    "loss": 1.4048487e-06,
+    "score": 0.00015874634293489487,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(range_5 * range_1) / (vratio_3 * ((((vol_20 + -0.4450687) * upper_wick) * (ret_7 - range_1)) - 6.7571873e-6))",
+    "raw_expression": "square(range_5 * range_1) / (vratio_3 * ((((vol_20 + -0.4450687) * upper_wick) * (ret_7 - range_1)) - 6.7571873e-6))",
+    "complexity": 18,
+    "loss": 1.4052948e-06,
+    "score": 0.00022676930331520215,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(range_5 * range_1) / ((((upper_wick * (ret_7 - range_1)) * -0.45107645) - 6.8804725e-6) * vratio_3)",
+    "raw_expression": "square(range_5 * range_1) / ((((upper_wick * (ret_7 - range_1)) * -0.45107645) - 6.8804725e-6) * vratio_3)",
+    "complexity": 16,
+    "loss": 1.4059323e-06,
+    "score": 0.004334249994584954,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(range_5 * range_1) / ((((ret_7 - range_1) * upper_wick) * -0.43542466) - 6.944236e-6)",
+    "raw_expression": "(-range_20**2*(lower_wick + 1.3656632)**2/vratio_5**4 + range_5*range_5**2/(upper_wick - 1*9.2483446e-5))*503.59363*range_1**2",
+    "complexity": 14,
+    "loss": 1.4181726e-06,
+    "score": 0.004497462565777012,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(range_1 * range_5) / ((upper_wick * (range_1 - ret_7)) - 7.0571978e-6)",
+    "raw_expression": "(range_1**2*range_5**2)/(((-ret_50 + vratio_3)*(upper_wick*(-range_1 + ret_7)*(-ret_30 - 0.44506866) - 1*6.845081e-6)))",
+    "complexity": 12,
+    "loss": 1.4309865e-06,
+    "score": 0.014061049650174148,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(range_1 * range_5) / ((square(upper_wick) - 3.7187676e-6) * vratio_20)",
+    "raw_expression": "(range_1**2*range_5**2)/((vratio_3*(upper_wick*(-range_1 + ret_7)*(vol_20 - 0.4450687) - 1*6.7571873e-6)))",
+    "complexity": 11,
+    "loss": 1.4512498e-06,
+    "score": 0.0012970053875047426,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(range_5 * range_1) / ((upper_wick * range_pos_20) - 7.432752e-6)",
+    "raw_expression": "(range_1**2*range_5**2)/((vratio_3*(upper_wick*(-range_1 + ret_7)*(-0.45107645) - 1*6.8804725e-6)))",
+    "complexity": 10,
+    "loss": 1.4531333e-06,
+    "score": 0.003399460317085819,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "(range_1 * square(range_5)) / (upper_wick - 0.0004944384)",
+    "raw_expression": "(range_1**2*range_5**2)/(upper_wick*(range_1 - ret_7) - 1*7.0571978e-6)",
+    "complexity": 8,
+    "loss": 1.4630467e-06,
+    "score": 0.03079266276751156,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(square(range_50)) / (0.06378788 - range_pos_50)",
+    "raw_expression": "(range_1**2*range_5**2)/((vratio_20*(upper_wick**2 - 1*3.7187676e-6)))",
+    "complexity": 7,
+    "loss": 1.5087986e-06,
+    "score": 0.008165405728680745,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "2.0297682e-7 / (0.0639535 - range_pos_50)",
+    "raw_expression": "range_1*range_5**2/(upper_wick - 1*0.0004944384)",
+    "complexity": 5,
+    "loss": 1.5336408e-06,
+    "score": 0.007455126834280051,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "ret_7 * ret_50",
+    "raw_expression": "2.0297682e-7/(0.0639535 - range_pos_50)",
+    "complexity": 3,
+    "loss": 1.5566791e-06,
+    "score": 0.007771268999248098,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "square(ret_10)",
+    "raw_expression": "ret_50*ret_7",
+    "complexity": 2,
+    "loss": 1.5688236e-06,
+    "score": 0.003810305438974965,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  },
+  {
+    "expression": "-4.9648806e-5",
+    "raw_expression": "ret_10**2",
+    "complexity": 1,
+    "loss": 1.5748127e-06,
+    "score": 0.0,
+    "regime": "BEAR_TREND",
+    "horizon": 1
+  }
+]

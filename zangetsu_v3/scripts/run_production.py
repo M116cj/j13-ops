@@ -6,6 +6,7 @@ Usage (on Alaya):
     python3 -m scripts.run_production
 """
 from __future__ import annotations
+import os
 
 import json
 import logging
@@ -24,7 +25,7 @@ from zangetsu_v3.core.feature_engine import FeatureEngine
 from zangetsu_v3.core.data_split import DataSplit
 from zangetsu_v3.factors.bootstrap import compute_factor_matrix
 from zangetsu_v3.factors.normalizer import RobustNormalizer
-from zangetsu_v3.regime.labeler import RegimeLabeler
+from zangetsu_v3.regime.rule_labeler import label_symbol, Regime, REGIME_NAMES
 from zangetsu_v3.regime.predictor import OnlineRegimePredictor
 from zangetsu_v3.search.backtest import NumbaContinuousBacktest
 from zangetsu_v3.search.hyperband import HyperbandPipeline, make_evaluator, estimate_signal_scale, make_signal_adaptive_bounds
@@ -39,7 +40,7 @@ from zangetsu_v3.live.main_loop import build_live_state, on_new_bar
 
 # ── config ───────────────────────────────────────────────────────
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]
-DB_DSN = "dbname=zangetsu user=zangetsu password=9c424966bebb05a42966186bb22d7480 host=127.0.0.1 port=5432"
+DB_DSN = os.environ.get("ZV3_DB_DSN", "dbname=zangetsu user=zangetsu host=127.0.0.1 port=5432")
 TRAINING_MONTHS = 18
 EMBARGO_DAYS = 90
 HOLDOUT_MONTHS = 10

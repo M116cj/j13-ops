@@ -1,4 +1,7 @@
-"""Regime-specific pyribs Scheduler wrapper (C03, C11)."""
+"""Regime-specific pyribs Scheduler wrapper (C03, C11).
+
+V3.2: batch ask/tell interface for Arena 3 concurrent generation loop.
+"""
 
 from __future__ import annotations
 
@@ -16,7 +19,7 @@ DEFAULT_PARAM_BOUNDS = np.array([
     [0.05, 2.0],    # exit_thr
     [0.5, 5.0],     # stop_mult
     [0.01, 0.25],   # pos_frac (Fix1: hard cap 0.25)
-    [10, 480],       # hold_max
+    [3, 480],        # hold_max (V3.2: extended to 480)
 ], dtype=float)
 
 
@@ -46,7 +49,6 @@ class RegimeScheduler:
         x0[self.n_weights:self.n_weights + n_params] = 0.5
 
         # Fix4: sigma0 scales with signal std
-        # Weights sigma: if signal_std is small, weights need smaller perturbations
         sigma0 = min(0.5, self.median_signal_std * 0.3) if self.median_signal_std < 1.0 else 0.5
 
         emitter = EvolutionStrategyEmitter(
@@ -69,13 +71,18 @@ class RegimeScheduler:
             "exit_thr":   exit_,
             "stop_mult":  float(np.clip(pb[2, 0] + np.clip(raw[2], 0, 1) * (pb[2, 1] - pb[2, 0]), 0.5, 5.0)),
             "pos_frac":   float(np.clip(pb[3, 0] + np.clip(raw[3], 0, 1) * (pb[3, 1] - pb[3, 0]), 0.01, 0.25)),
-            "hold_max":   int(np.clip(pb[4, 0] + np.clip(raw[4], 0, 1) * (pb[4, 1] - pb[4, 0]), 3, 30)),
+            "hold_max":   int(np.clip(pb[4, 0] + np.clip(raw[4], 0, 1) * (pb[4, 1] - pb[4, 0]), 3, 480)),
         }
 
     def ask(self) -> List[np.ndarray]:
+        """Ask scheduler for N candidate solutions."""
         return self.scheduler.ask()
 
     def tell(self, objectives: List[float], measures: List[np.ndarray]) -> None:
+        """Tell scheduler the objectives and measures for all candidates.
+
+        Both lists must have exactly the same length as the last ask() return.
+        """
         self.scheduler.tell(objectives, measures)
 
     @property

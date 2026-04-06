@@ -1,0 +1,164 @@
+[
+  {
+    "expression": "(range_50 - ret_20) * (abs(ret_30 - (ret_5 / vratio_5)) + ((((ret_1 + ret_2) + (range_1 * -3.8257966)) / square(ret_30 - vratio_10)) - ret_20))",
+    "raw_expression": "(range_50 - ret_20) * (abs(ret_30 - (ret_5 / vratio_5)) + ((((ret_1 + ret_2) + (range_1 * -3.8257966)) / square(ret_30 - vratio_10)) - ret_20))",
+    "complexity": 25,
+    "loss": 4.020311e-06,
+    "score": 0.001218357837733518,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(range_50 - ret_20) * ((abs(ret_30 - (ret_5 / vratio_5)) + (((range_1 * -4.018719) + ret_2) / square(ret_30 - vratio_10))) - ret_20)",
+    "raw_expression": "(range_50 - ret_20) * ((abs(ret_30 - (ret_5 / vratio_5)) + (((range_1 * -4.018719) + ret_2) / square(ret_30 - vratio_10))) - ret_20)",
+    "complexity": 23,
+    "loss": 4.0301193e-06,
+    "score": 0.001251336207594456,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "((abs(ret_5 - ret_30) + ((ret_2 + (range_1 * -3.9480462)) / square(vratio_10 - ret_30))) - ret_20) * (range_50 - ret_20)",
+    "raw_expression": "((abs(ret_5 - ret_30) + ((ret_2 + (range_1 * -3.9480462)) / square(vratio_10 - ret_30))) - ret_20) * (range_50 - ret_20)",
+    "complexity": 21,
+    "loss": 4.040218e-06,
+    "score": 0.0010977446754371206,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(range_50 - ret_20) * (abs(ret_5 - ret_30) + ((((range_1 * -3.65332) + ret_2) / square(vratio_10)) - ret_20))",
+    "raw_expression": "(range_50 - ret_20) * (abs(ret_5 - ret_30) + ((((range_1 * -3.65332) + ret_2) / square(vratio_10)) - ret_20))",
+    "complexity": 19,
+    "loss": 4.049098e-06,
+    "score": 0.0029428897443701746,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(range_50 - ret_7) * ((((ret_2 + (range_1 * -3.6587424)) / vratio_10) / vratio_10) + (abs(ret_30) - ret_20))",
+    "raw_expression": "(range_50 - ret_7) * ((((ret_2 + (range_1 * -3.6587424)) / vratio_10) / vratio_10) + (abs(ret_30) - ret_20))",
+    "complexity": 18,
+    "loss": 4.0610316e-06,
+    "score": 1.9206923949116986e-06,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(abs(ret_30) + (((ret_2 + (range_1 * -3.6769996)) / square(vratio_10)) - ret_20)) * (range_50 - ret_7)",
+    "raw_expression": "(range_50 - ret_20)*(-ret_20 + Abs(ret_30 - ret_5/vratio_5) + (range_1*(-3.8257966) + ret_1 + ret_2)/((ret_30 - vratio_10)**2))",
+    "complexity": 17,
+    "loss": 4.0610394e-06,
+    "score": 0.0018744366979323575,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "((range_50 - ret_30) - ret_7) * ((((range_1 * -2.66052) + ret_2) / square(vratio_10)) - ret_30)",
+    "raw_expression": "(range_50 - ret_20)*(-ret_20 + Abs(ret_30 - ret_5/vratio_5) + (range_1*(-4.018719) + ret_2)/((ret_30 - vratio_10)**2))",
+    "complexity": 16,
+    "loss": 4.0686587e-06,
+    "score": 0.0018966925656142915,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(((ret_2 + (range_1 * -2.7706156)) / square(vratio_10)) - ret_30) * (range_50 - ret_30)",
+    "raw_expression": "(range_50 - ret_20)*(-ret_20 + Abs(ret_30 - ret_5) + (range_1*(-3.65332) + ret_2)/(vratio_10**2))",
+    "complexity": 14,
+    "loss": 4.084122e-06,
+    "score": 0.004140204246015108,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(ret_30 + ((range_5 - ret_2) / square(vratio_10))) * (ret_20 - range_50)",
+    "raw_expression": "(range_50 - ret_7)*(-ret_20 + Abs(ret_30) + (range_1*(-3.6769996) + ret_2)/(vratio_10**2))",
+    "complexity": 12,
+    "loss": 4.1180806e-06,
+    "score": 0.005270683390705992,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(square(ret_2 / vratio_10) * -21.452326) + square(range_3 - ret_30)",
+    "raw_expression": "(-ret_30 + (range_1*(-2.66052) + ret_2)/(vratio_10**2))*(range_50 - ret_30 - ret_7)",
+    "complexity": 11,
+    "loss": 4.139843e-06,
+    "score": 0.004301767169073441,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(ret_20 - range_50) * ((range_5 / square(vratio_10)) + ret_30)",
+    "raw_expression": "(range_50 - ret_30)*(-ret_30 + (range_1*(-2.7706156) + ret_2)/(vratio_10**2))",
+    "complexity": 10,
+    "loss": 4.15769e-06,
+    "score": 0.004674352171270812,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(square(ret_2 / vratio_10) * -18.893946) + square(ret_30)",
+    "raw_expression": "(-range_50 + ret_20)*(ret_30 + (range_5 - ret_2)/(vratio_10**2))",
+    "complexity": 9,
+    "loss": 4.17717e-06,
+    "score": 0.0068498002122032884,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "square(ret_2 / (0.021039013 - vratio_10)) * -13.026806",
+    "raw_expression": "(ret_2**2/vratio_10**2)*(-21.452326) + (range_3 - ret_30)**2",
+    "complexity": 8,
+    "loss": 4.205881e-06,
+    "score": 0.0018897257418144092,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "square(ret_2 / vratio_10) * -16.633957",
+    "raw_expression": "ret_30**2 + (ret_2**2/vratio_10**2)*(-18.893946)",
+    "complexity": 6,
+    "loss": 4.221807e-06,
+    "score": 0.01783746896502629,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "(vol_5 * -0.16912529) / vratio_10",
+    "raw_expression": "(ret_2**2/(0.021039013 - vratio_10)**2)*(-13.026806)",
+    "complexity": 5,
+    "loss": 4.297789e-06,
+    "score": 0.00585179277781181,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "-2.090633e-5 / square(vratio_10)",
+    "raw_expression": "(ret_2**2/vratio_10**2)*(-16.633957)",
+    "complexity": 4,
+    "loss": 4.3230125e-06,
+    "score": 0.001497139488626564,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "-9.730956e-5 / vratio_10",
+    "raw_expression": "vol_5*(-0.16912529)/vratio_10",
+    "complexity": 3,
+    "loss": 4.3294895e-06,
+    "score": 0.002308273617572471,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  },
+  {
+    "expression": "-8.540246e-5",
+    "raw_expression": "-9.730956e-5/vratio_10",
+    "complexity": 1,
+    "loss": 4.349523e-06,
+    "score": 0.0,
+    "regime": "BULL_PULLBACK",
+    "horizon": 3
+  }
+]

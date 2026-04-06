@@ -1,0 +1,40 @@
+2026-04-06 07:00:50 [ZangetsuBot] INFO ============================================================
+2026-04-06 07:00:50 [ZangetsuBot] INFO Zangetsu V3.2 Bot starting (NOTIFY ONLY)
+2026-04-06 07:00:50 [ZangetsuBot] INFO Chat ID: 5252897787
+2026-04-06 07:00:50 [ZangetsuBot] INFO Token: 82374...kDFU
+2026-04-06 07:00:50 [ZangetsuBot] INFO ============================================================
+Traceback (most recent call last):
+  File "/home/j13/j13-ops/zangetsu_v3/scripts/zangetsu_bot.py", line 640, in <module>
+    main()
+  File "/home/j13/j13-ops/zangetsu_v3/scripts/zangetsu_bot.py", line 634, in main
+    asyncio.run(async_main())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/j13/j13-ops/zangetsu_v3/scripts/zangetsu_bot.py", line 617, in async_main
+    orch = read_orchestrator_state()
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j13/j13-ops/zangetsu_v3/scripts/zangetsu_bot.py", line 172, in read_orchestrator_state
+    row = db_row("SELECT state, details_json, updated_at FROM orchestrator_state WHERE id = 1")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j13/j13-ops/zangetsu_v3/scripts/zangetsu_bot.py", line 137, in db_row
+    rows = db_query(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j13/j13-ops/zangetsu_v3/scripts/zangetsu_bot.py", line 122, in db_query
+    conn = _get_conn()
+           ^^^^^^^^^^^
+  File "/home/j13/j13-ops/zangetsu_v3/scripts/zangetsu_bot.py", line 118, in _get_conn
+    return psycopg2.connect(DB_DSN)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/j13/j13-ops/zangetsu_v3/.venv/lib/python3.12/site-packages/psycopg2/__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server on socket "/var/run/postgresql/.s.PGSQL.5432" failed: No such file or directory
+	Is the server running locally and accepting connections on that socket?
+
