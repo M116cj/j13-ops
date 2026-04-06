@@ -1,14 +1,17 @@
 """Arena 2 — compress Arena 1's raw PySR signal pool into 10-20 orthogonal factors.
 
-Reads:  arena1_results/all_candidates.json
-Writes: arena2_output/factor_pool.json
+V3.2 DB-backed:
+  Reads:  SELECT * FROM factor_candidates WHERE regime=$1
+  Writes: INSERT INTO factor_pool (regime, name, ast_json, raw_expression,
+          lookback, score, pool_version, pairwise_max_corr, avg_corr_with_target)
 
-Dedup logic:
+Dedup logic (per regime):
   1. Evaluate each candidate expression on OHLCV data to get factor time series.
   2. Remove weak factors (abs(corr with target) < 0.01 across all segments).
-  3. Remove redundant pairs: if abs(pairwise corr) > threshold, keep lower PySR loss.
-  4. If remaining > 20: keep top 20 by loss.
+  3. Greedy dedup: sort by score desc, add one-by-one, skip if pairwise corr > 0.7.
+  4. If remaining > 20: keep top 20 by score.
   5. If remaining < 10: relax threshold from 0.7 → 0.8 and repeat.
+  6. pool_version = current timestamp (same for all factors in one run).
 """
 
 from __future__ import annotations
@@ -17,6 +20,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -36,11 +40,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Config
 # ---------------------------------------------------------------------------
-DB_DSN = "dbname=zangetsu user=zangetsu password=REDACTED host=127.0.0.1 port=5432"
+DB_DSN = os.environ.get(
+    "ZV3_DB_DSN",
+    "dbname=zangetsu user=zangetsu password=REDACTED host=127.0.0.1 port=5432",
+)
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]
-
-INPUT_PATH = Path("arena1_results/all_candidates.json")
-OUTPUT_DIR = Path("arena2_output")
 
 MIN_FACTORS = 10
 MAX_FACTORS = 20
@@ -54,7 +58,116 @@ HORIZON_MAP = {
     5: "next_5_bar_return",
     10: "next_10_bar_return",
     20: "next_20_bar_return",
+    30: "next_30_bar_return",
 }
+
+
+# ---------------------------------------------------------------------------
+# DB helpers
+# ---------------------------------------------------------------------------
+def _get_conn():
+    """Create a new psycopg2 connection."""
+    try:
+        import psycopg2
+    except ImportError:
+        raise ImportError("psycopg2 required — pip install psycopg2-binary")
+    return psycopg2.connect(DB_DSN)
+
+
+def load_candidates_from_db(regime: str) -> List[Dict[str, Any]]:
+    """SELECT * FROM factor_candidates WHERE regime=$1, return as list of dicts."""
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT id, source, regime, horizon, ast_json, raw_expression, "
+            "loss, score, corr_h1, corr_h5, corr_h10, corr_h30, lookback, run_id "
+            "FROM factor_candidates WHERE regime = %s",
+            (regime,),
+        )
+        cols = [desc[0] for desc in cur.description]
+        rows = cur.fetchall()
+        cur.close()
+    finally:
+        conn.close()
+
+    candidates = []
+    for row in rows:
+        d = dict(zip(cols, row))
+        # Normalise: ast_json may already be dict from psycopg2 jsonb handling
+        if isinstance(d.get("ast_json"), str):
+            try:
+                d["ast_json"] = json.loads(d["ast_json"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        # Ensure expression field exists (used by compression logic)
+        if not d.get("raw_expression"):
+            d["raw_expression"] = ""
+        d["expression"] = d["raw_expression"]
+        candidates.append(d)
+
+    return candidates
+
+
+def get_all_regimes() -> List[str]:
+    """Return distinct regimes from factor_candidates."""
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        cur.execute("SELECT DISTINCT regime FROM factor_candidates ORDER BY regime")
+        regimes = [row[0] for row in cur.fetchall()]
+        cur.close()
+    finally:
+        conn.close()
+    return regimes
+
+
+def insert_factor_pool(
+    factors: List[Dict[str, Any]],
+    regime: str,
+    pool_version: datetime,
+) -> int:
+    """INSERT compressed factors into factor_pool. Returns count inserted."""
+    if not factors:
+        return 0
+
+    conn = _get_conn()
+    try:
+        cur = conn.cursor()
+        inserted = 0
+        for f in factors:
+            ast_json = f.get("ast_json")
+            if ast_json is not None and not isinstance(ast_json, str):
+                ast_json = json.dumps(ast_json)
+
+            cur.execute(
+                "INSERT INTO factor_pool "
+                "(regime, name, ast_json, raw_expression, lookback, score, "
+                " pool_version, pairwise_max_corr, avg_corr_with_target) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (
+                    regime,
+                    f.get("name", ""),
+                    ast_json,
+                    f.get("raw_expression", ""),
+                    f.get("lookback"),
+                    f.get("score"),
+                    pool_version,
+                    f.get("pairwise_max_corr"),
+                    f.get("avg_corr_with_target"),
+                ),
+            )
+            inserted += 1
+
+        conn.commit()
+        cur.close()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
+
+    return inserted
 
 
 # ---------------------------------------------------------------------------
@@ -62,12 +175,7 @@ HORIZON_MAP = {
 # ---------------------------------------------------------------------------
 def load_ohlcv_from_db(symbol: str, limit: int = 50_000) -> pl.DataFrame:
     """Load OHLCV bars from PostgreSQL ohlcv_1m table."""
-    try:
-        import psycopg2
-    except ImportError:
-        raise ImportError("psycopg2 required for DB access — pip install psycopg2-binary")
-
-    conn = psycopg2.connect(DB_DSN)
+    conn = _get_conn()
     try:
         query = (
             "SELECT timestamp, open, high, low, close, volume "
@@ -100,19 +208,13 @@ def load_ohlcv_from_db(symbol: str, limit: int = 50_000) -> pl.DataFrame:
 
 
 def prepare_factor_df(ohlcv: pl.DataFrame) -> pl.DataFrame:
-    """Compute HFT factor columns and forward returns on OHLCV data.
-
-    Returns a DataFrame containing both the HFT factor columns (ret_1, ret_3,
-    range_3, etc.) and OHLCV columns — suitable for ExprEval namespace.
-    """
+    """Compute HFT factor columns and forward returns on OHLCV data."""
     hft = compute_hft_factors(ohlcv)
-    # Merge OHLCV + HFT factors side-by-side
     combined = pl.concat([ohlcv, hft], how="horizontal")
 
-    # Add forward return columns for target correlation
     close = combined["close"].to_numpy().astype(np.float64)
     n = len(close)
-    for horizon in [1, 3, 5, 10, 20]:
+    for horizon in [1, 3, 5, 10, 20, 30]:
         fwd = np.full(n, np.nan)
         if horizon < n:
             fwd[:-horizon] = (close[horizon:] - close[:-horizon]) / (close[:-horizon] + 1e-12)
@@ -130,10 +232,7 @@ def evaluate_expression(
     df: pl.DataFrame,
     evaluator: ExprEval,
 ) -> Optional[np.ndarray]:
-    """Evaluate a PySR expression string against the factor DataFrame.
-
-    Returns the factor time series as a numpy array, or None on failure.
-    """
+    """Evaluate a PySR expression string against the factor DataFrame."""
     try:
         result = evaluator.eval(expr_str, df)
         if not isinstance(result, np.ndarray):
@@ -170,167 +269,188 @@ def remove_weak_candidates(
     series_map: Dict[int, np.ndarray],
     target_series: Dict[int, np.ndarray],
     threshold: float = WEAK_CORR_THRESHOLD,
-) -> List[Dict[str, Any]]:
-    """Remove factors whose abs(corr) with target < threshold across ALL segments."""
+) -> Tuple[List[Dict[str, Any]], Dict[int, float]]:
+    """Remove factors whose abs(corr) with target < threshold across ALL targets.
+
+    Returns (kept_candidates, avg_corr_map) where avg_corr_map[new_index] = avg abs corr with targets.
+    """
     kept = []
+    avg_corr_map: Dict[int, float] = {}
     for i, cand in enumerate(candidates):
         if i not in series_map:
             continue
         factor_ts = series_map[i]
-        # Check correlation with the candidate's own target horizon
-        horizon = cand.get("horizon", 5)
-        target_col = _target_col_for_horizon(horizon)
-        if horizon in target_series:
-            corr = abs(_pearson_corr(factor_ts, target_series[horizon]))
-            if corr >= threshold:
-                kept.append(cand)
-                continue
-        # If no matching horizon target, check all available
-        any_pass = False
+        # Compute correlations with all target horizons
+        corrs = []
         for h, tgt in target_series.items():
-            if abs(_pearson_corr(factor_ts, tgt)) >= threshold:
-                any_pass = True
-                break
-        if any_pass:
+            corrs.append(abs(_pearson_corr(factor_ts, tgt)))
+
+        if not corrs:
+            continue
+
+        max_corr = max(corrs)
+        if max_corr >= threshold:
+            avg_corr_map[len(kept)] = float(np.mean(corrs))
             kept.append(cand)
         else:
-            logger.info("Removed weak candidate: %s (max target corr < %.4f)", cand["expression"], threshold)
-    return kept
+            logger.info(
+                "Removed weak candidate: %s (max target corr %.6f < %.4f)",
+                cand.get("raw_expression", "?"), max_corr, threshold,
+            )
+    return kept, avg_corr_map
 
 
 def deduplicate(
     candidates: List[Dict[str, Any]],
     series_map: Dict[int, np.ndarray],
     threshold: float,
-) -> List[Dict[str, Any]]:
-    """Remove redundant factors by pairwise correlation.
+) -> Tuple[List[Dict[str, Any]], Dict[int, float]]:
+    """Greedy dedup: sort by score desc, add one-by-one, skip if pairwise corr > threshold.
 
-    For each pair with abs(corr) > threshold, remove the one with higher PySR loss.
+    Returns (kept_candidates, pairwise_max_corr_map) where
+    pairwise_max_corr_map[new_index] = max abs corr with any other kept factor.
     """
-    # Build index mapping from original candidate list position to series_map key
-    # We need to track which candidates have valid series
     valid = [(i, c) for i, c in enumerate(candidates) if i in series_map]
     if not valid:
-        return []
+        return [], {}
 
-    # Sort by loss ascending — lower loss = better, processed first
-    valid.sort(key=lambda x: x[1].get("loss", float("inf")))
+    # Sort by score descending (higher = better)
+    valid.sort(key=lambda x: x[1].get("score", 0.0), reverse=True)
 
     kept_indices: List[int] = []
     kept_series: List[np.ndarray] = []
+    pairwise_max_map: Dict[int, float] = {}  # keyed by position in result list
 
     for idx, cand in valid:
         ts = series_map[idx]
+        max_corr_with_kept = 0.0
         is_redundant = False
         for existing_ts in kept_series:
-            if abs(_pearson_corr(ts, existing_ts)) > threshold:
+            c = abs(_pearson_corr(ts, existing_ts))
+            if c > max_corr_with_kept:
+                max_corr_with_kept = c
+            if c > threshold:
                 is_redundant = True
                 break
         if not is_redundant:
+            pairwise_max_map[len(kept_indices)] = max_corr_with_kept
             kept_indices.append(idx)
             kept_series.append(ts)
 
-    return [candidates[i] for i in kept_indices]
+    return [candidates[i] for i in kept_indices], pairwise_max_map
 
 
-def compress(
+def compress_regime(
     candidates: List[Dict[str, Any]],
     dfs: Dict[str, pl.DataFrame],
     evaluator: ExprEval,
+    regime: str,
 ) -> List[Dict[str, Any]]:
-    """Main compression pipeline: evaluate → remove weak → dedup → cap/relax.
+    """Compression pipeline for a single regime.
 
-    Parameters
-    ----------
-    candidates : list of candidate dicts from Arena 1
-    dfs : dict mapping symbol → prepared factor DataFrame
-    evaluator : ExprEval instance
-
-    Returns
-    -------
-    list of 10-20 compressed factor dicts
+    Returns list of 10-20 compressed factor dicts with metadata fields:
+    name, raw_expression, ast_json, lookback, score, pairwise_max_corr, avg_corr_with_target.
     """
     if not candidates:
-        logger.warning("No candidates provided")
+        logger.warning("[%s] No candidates provided", regime)
         return []
 
-    # Pick the first available symbol for evaluation (multi-symbol averaging is future work)
-    primary_symbol = next(iter(dfs))
+    symbol_list = list(dfs.keys())
+    primary_symbol = symbol_list[0]
     df = dfs[primary_symbol]
 
-    # --- Step 1: Evaluate all expressions ---
+    # --- Step 1: Evaluate all expressions across all symbols ---
     series_map: Dict[int, np.ndarray] = {}
     for i, cand in enumerate(candidates):
         expr = cand.get("raw_expression") or cand.get("expression", "")
-        ts = evaluate_expression(expr, df, evaluator)
-        if ts is not None and np.isfinite(ts).sum() > 30:
-            series_map[i] = ts
-        else:
-            logger.info("Skipping candidate %d (%s): evaluation failed or too few finite values", i, expr)
+        if not expr:
+            continue
+        symbol_series = []
+        for sym, sym_df in dfs.items():
+            ts = evaluate_expression(expr, sym_df, evaluator)
+            if ts is not None and np.isfinite(ts).sum() > 30:
+                symbol_series.append(ts)
+        if symbol_series:
+            min_len = min(len(s) for s in symbol_series)
+            truncated = [s[:min_len] for s in symbol_series]
+            avg_ts = np.nanmean(truncated, axis=0)
+            if np.isfinite(avg_ts).sum() > 30:
+                series_map[i] = avg_ts
 
-    logger.info("Evaluated %d / %d candidates successfully", len(series_map), len(candidates))
+    logger.info("[%s] Evaluated %d / %d candidates (across %d symbols)",
+                regime, len(series_map), len(candidates), len(symbol_list))
 
-    # --- Step 2: Build target return series ---
+    if not series_map:
+        logger.warning("[%s] No candidates evaluated successfully", regime)
+        return []
+
+    # --- Step 2: Build target return series (primary symbol) ---
     target_series: Dict[int, np.ndarray] = {}
-    for horizon in [1, 3, 5, 10, 20]:
+    for horizon in [1, 3, 5, 10, 20, 30]:
         col = _target_col_for_horizon(horizon)
         if col in df.columns:
             target_series[horizon] = df[col].to_numpy().astype(np.float64)
 
     # --- Step 3: Remove weak candidates ---
-    filtered = remove_weak_candidates(candidates, series_map, target_series)
-    # Rebuild series_map indices for filtered list
-    old_to_new: Dict[int, int] = {}
+    filtered, avg_corr_map = remove_weak_candidates(candidates, series_map, target_series)
+
+    # Rebuild series_map for filtered list
+    filtered_ids = {id(c) for c in filtered}
     filtered_series: Dict[int, np.ndarray] = {}
     j = 0
     for i, cand in enumerate(candidates):
-        if cand in filtered:
+        if id(cand) in filtered_ids:
             if i in series_map:
                 filtered_series[j] = series_map[i]
-            old_to_new[i] = j
             j += 1
 
-    logger.info("After weak removal: %d candidates", len(filtered))
+    logger.info("[%s] After weak removal: %d candidates", regime, len(filtered))
 
-    # --- Step 4: Deduplicate at tight threshold ---
-    result = deduplicate(filtered, filtered_series, DEDUP_THRESHOLD_TIGHT)
+    # --- Step 4: Greedy dedup at tight threshold ---
+    result, pairwise_map = deduplicate(filtered, filtered_series, DEDUP_THRESHOLD_TIGHT)
 
     # --- Step 5: Cap at MAX_FACTORS ---
     if len(result) > MAX_FACTORS:
-        result.sort(key=lambda c: c.get("loss", float("inf")))
+        result.sort(key=lambda c: c.get("score", 0.0), reverse=True)
         result = result[:MAX_FACTORS]
 
     # --- Step 6: If < MIN_FACTORS, relax threshold and retry ---
     if len(result) < MIN_FACTORS:
-        logger.info("Only %d factors after tight dedup; relaxing to %.2f", len(result), DEDUP_THRESHOLD_RELAXED)
-        result = deduplicate(filtered, filtered_series, DEDUP_THRESHOLD_RELAXED)
+        logger.info("[%s] Only %d factors after tight dedup; relaxing to %.2f",
+                     regime, len(result), DEDUP_THRESHOLD_RELAXED)
+        result, pairwise_map = deduplicate(filtered, filtered_series, DEDUP_THRESHOLD_RELAXED)
         if len(result) > MAX_FACTORS:
-            result.sort(key=lambda c: c.get("loss", float("inf")))
+            result.sort(key=lambda c: c.get("score", 0.0), reverse=True)
             result = result[:MAX_FACTORS]
 
-    logger.info("Final factor count: %d", len(result))
-    return result
+    logger.info("[%s] Final factor count: %d", regime, len(result))
 
-
-# ---------------------------------------------------------------------------
-# Output formatting
-# ---------------------------------------------------------------------------
-def format_output(factors: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    """Convert compressed candidates into the arena2 output schema."""
+    # --- Step 7: Build output dicts with DB-ready fields ---
+    # Rebuild avg_corr for final result using filtered avg_corr_map
+    # We need to match result items back to their filtered index
+    filtered_id_to_idx = {id(c): idx for idx, c in enumerate(filtered)}
     output = []
-    for i, cand in enumerate(factors):
-        horizon = cand.get("horizon", 5)
+    for i, cand in enumerate(result):
+        filt_idx = filtered_id_to_idx.get(id(cand))
+        avg_corr = avg_corr_map.get(filt_idx) if filt_idx is not None else None
+        pw_max = pairwise_map.get(i)
+
+        horizon = cand.get("lookback") or cand.get("horizon", 5)
+        try:
+            horizon = int(horizon)
+        except (ValueError, TypeError):
+            horizon = 5
+
         output.append({
-            "index": i,
             "name": f"factor_{i + 1:03d}",
-            "expression": cand.get("expression", ""),
-            "raw_expression": cand.get("raw_expression", cand.get("expression", "")),
-            "pysr_loss": cand.get("loss", 0.0),
-            "pysr_score": cand.get("score", 0.0),
+            "raw_expression": cand.get("raw_expression", ""),
+            "ast_json": cand.get("ast_json"),
             "lookback": horizon,
-            "source_regime": cand.get("regime", "UNKNOWN"),
-            "source_target": _target_col_for_horizon(horizon),
+            "score": cand.get("score", 0.0),
+            "pairwise_max_corr": pw_max,
+            "avg_corr_with_target": avg_corr,
         })
+
     return output
 
 
@@ -343,21 +463,19 @@ def main() -> None:
         format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     )
 
-    # Load candidates
-    if not INPUT_PATH.exists():
-        logger.error("Input file not found: %s", INPUT_PATH)
+    # Determine pool_version — one timestamp for the entire run
+    pool_version = datetime.now(timezone.utc)
+    logger.info("Pool version (run timestamp): %s", pool_version.isoformat())
+
+    # Discover regimes from DB
+    regimes = get_all_regimes()
+    if not regimes:
+        logger.error("No regimes found in factor_candidates — nothing to compress")
         sys.exit(1)
 
-    with open(INPUT_PATH) as f:
-        candidates: List[Dict[str, Any]] = json.load(f)
+    logger.info("Found %d regimes: %s", len(regimes), regimes)
 
-    logger.info("Loaded %d candidates from %s", len(candidates), INPUT_PATH)
-
-    if not candidates:
-        logger.error("No candidates to process")
-        sys.exit(1)
-
-    # Load OHLCV and prepare factor DataFrames
+    # Load OHLCV and prepare factor DataFrames (shared across regimes)
     evaluator = ExprEval()
     dfs: Dict[str, pl.DataFrame] = {}
 
@@ -373,21 +491,32 @@ def main() -> None:
         logger.error("No OHLCV data loaded for any symbol")
         sys.exit(1)
 
-    # Compress
-    compressed = compress(candidates, dfs, evaluator)
+    # Process each regime independently
+    total_inserted = 0
+    for regime in regimes:
+        logger.info("--- Processing regime: %s ---", regime)
+        candidates = load_candidates_from_db(regime)
+        if not candidates:
+            logger.warning("[%s] No candidates in DB — skipping", regime)
+            continue
 
-    if not compressed:
-        logger.error("Compression produced zero factors")
+        logger.info("[%s] Loaded %d candidates from factor_candidates", regime, len(candidates))
+        compressed = compress_regime(candidates, dfs, evaluator, regime)
+
+        if not compressed:
+            logger.warning("[%s] Compression produced zero factors", regime)
+            continue
+
+        count = insert_factor_pool(compressed, regime, pool_version)
+        total_inserted += count
+        logger.info("[%s] Inserted %d factors into factor_pool", regime, count)
+
+    logger.info("=== Arena 2 complete: %d total factors inserted across %d regimes ===",
+                total_inserted, len(regimes))
+
+    if total_inserted == 0:
+        logger.error("No factors were inserted — check factor_candidates data")
         sys.exit(1)
-
-    # Write output
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    output = format_output(compressed)
-    output_path = OUTPUT_DIR / "factor_pool.json"
-    with open(output_path, "w") as f:
-        json.dump(output, f, indent=2)
-
-    logger.info("Wrote %d factors to %s", len(output), output_path)
 
 
 if __name__ == "__main__":
