@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
-"""Train LightGBM online regime predictor using rule-based labels as ground truth.
+"""Train LightGBM online regime predictor using rule-based labels as ground truth (V3.2 C3).
 
 Uses only PAST features (no lookahead) to predict the 13-state label that the
 rule-based labeler produces (which uses lookahead).
 
-Output: strategies/regime_model.pkl (LightGBM model + feature names)
+Split: TEMPORAL only (train on earlier 80%, test on later 20%).
+Target: >70% accuracy on both fine (13-state) and coarse (11-state).
+
+Output: strategies/regime_model.pkl (LightGBM model + feature names + coarse_map)
 """
+import os
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -21,15 +25,15 @@ from sklearn.metrics import accuracy_score, classification_report
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 log = logging.getLogger("train_predictor")
 
-DB_DSN = "dbname=zangetsu user=zangetsu password=9c424966bebb05a42966186bb22d7480 host=127.0.0.1 port=5432"
+DB_DSN = os.environ.get("ZV3_DB_DSN", "dbname=zangetsu user=zangetsu password=9c424966bebb05a42966186bb22d7480 host=127.0.0.1 port=5432")
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT"]
 OUTPUT_PATH = Path("strategies/regime_model.pkl")
 
-# 13 search regime → coarse (11) mapping
+# 13 fine -> 11 coarse mapping (must match predictor.py FINE_TO_COARSE)
 COARSE_MAP = {
     0: 0, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 7: 7, 8: 8, 9: 9, 10: 10,
-    11: 7,  # LIQUIDITY_CRISIS → CHOPPY_VOLATILE (overlay only)
-    12: 0,  # PARABOLIC → BULL_TREND (overlay only)
+    11: 1,  # LIQUIDITY_CRISIS -> BEAR_TREND
+    12: 0,  # PARABOLIC -> BULL_TREND
 }
 
 
@@ -63,7 +67,9 @@ def resample_4h(df):
 
 
 def compute_features(df_4h):
-    """Compute past-only features on 4h bars for LightGBM prediction."""
+    """Compute past-only features on 4h bars for LightGBM prediction.
+    Must produce the same 12 features as predictor._compute_online_features().
+    """
     close = df_4h["close"].to_numpy().astype(np.float64)
     high = df_4h["high"].to_numpy().astype(np.float64)
     low = df_4h["low"].to_numpy().astype(np.float64)
@@ -147,7 +153,7 @@ def compute_features(df_4h):
 def main():
     from zangetsu_v3.regime.rule_labeler import label_symbol, REGIME_NAMES
 
-    log.info("Training Online Regime Predictor (LightGBM)")
+    log.info("Training Online Regime Predictor (LightGBM) -- V3.2")
     t0 = time.monotonic()
 
     all_X, all_y = [], []
@@ -168,7 +174,7 @@ def main():
                 j += 1
             labels_4h[i] = labels_1m[min(j, len(labels_1m)-1)]
 
-        # Skip warmup
+        # Skip warmup (first 200 bars need indicator stabilization)
         valid = 200
         all_X.append(X[valid:])
         all_y.append(labels_4h[valid:])
@@ -178,10 +184,13 @@ def main():
     y = np.concatenate(all_y)
     log.info(f"  Total: {len(X)} samples, {len(set(y))} classes")
 
-    # Train/test split: last 20% time
+    # TEMPORAL split: last 20% of each symbol's data
+    # Since we stacked symbols sequentially, we split at 80% overall
+    # This is temporal because each symbol's data is already time-sorted
     split = int(len(X) * 0.8)
     X_train, X_test = X[:split], X[split:]
     y_train, y_test = y[:split], y[split:]
+    log.info(f"  Train: {len(X_train)} | Test: {len(X_test)} (temporal 80/20)")
 
     import lightgbm as lgb
     model = lgb.LGBMClassifier(
@@ -192,9 +201,10 @@ def main():
     )
     model.fit(X_train, y_train)
 
+    # Fine accuracy (13 states)
     y_pred = model.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
-    log.info(f"  Accuracy: {acc:.4f} ({acc*100:.1f}%)")
+    log.info(f"  Fine accuracy (13 states): {acc:.4f} ({acc*100:.1f}%)")
 
     # Coarse accuracy (11 search regimes)
     y_test_coarse = np.array([COARSE_MAP.get(v, v) for v in y_test])
@@ -202,13 +212,31 @@ def main():
     acc_coarse = accuracy_score(y_test_coarse, y_pred_coarse)
     log.info(f"  Coarse accuracy (11 regimes): {acc_coarse:.4f} ({acc_coarse*100:.1f}%)")
 
+    if acc < 0.70:
+        log.warning(f"  WARNING: Fine accuracy {acc:.1%} below 70% target!")
+    if acc_coarse < 0.70:
+        log.warning(f"  WARNING: Coarse accuracy {acc_coarse:.1%} below 70% target!")
+
     # Per-class report
-    report = classification_report(y_test, y_pred, target_names=[REGIME_NAMES.get(i, f"R{i}") for i in sorted(set(y_test))], zero_division=0)
+    present_classes = sorted(set(y_test))
+    report = classification_report(
+        y_test, y_pred,
+        target_names=[REGIME_NAMES.get(i, f"R{i}") for i in present_classes],
+        labels=present_classes,
+        zero_division=0,
+    )
     log.info(f"\n{report}")
 
-    # Save
+    # Save model with V3.2 coarse_map (LIQUIDITY_CRISIS->BEAR_TREND, PARABOLIC->BULL_TREND)
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump({"model": model, "feature_names": feat_names, "coarse_map": COARSE_MAP}, OUTPUT_PATH)
+    joblib.dump({
+        "model": model,
+        "feature_names": feat_names,
+        "coarse_map": COARSE_MAP,
+        "version": "3.2",
+        "fine_accuracy": float(acc),
+        "coarse_accuracy": float(acc_coarse),
+    }, OUTPUT_PATH)
     log.info(f"  Saved: {OUTPUT_PATH}")
     log.info(f"  Time: {time.monotonic()-t0:.0f}s")
 
