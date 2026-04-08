@@ -43,6 +43,24 @@ from zangetsu_v3.live.stale_breaker import StaleBreaker, StaleFeedError
 from zangetsu_v3.regime.rule_labeler import label_symbol, Regime, REGIME_NAMES
 from zangetsu_v3.regime.predictor import OnlineRegimePredictor
 
+# [F8] Engine version verification
+def _verify_engine_hash(card: dict) -> bool:
+    """Check if current engine matches the card's engine_hash. Returns True if ok or no hash stored."""
+    engine_hash = card.get("engine_hash")
+    if not engine_hash or engine_hash == "unknown":
+        return True  # pre-F8 card, no hash to check
+    try:
+        from scripts.engine_version import preflight_check
+        ok, msg = preflight_check(engine_hash)
+        if not ok:
+            log.error(f"[F8] ENGINE MISMATCH: {msg}")
+            return False
+        log.info(f"[F8] Engine verified: {engine_hash[:20]}...")
+        return True
+    except Exception as e:
+        log.error(f"[F8] Engine verification failed: {e}")
+        return False
+
 log = logging.getLogger(__name__)
 
 
@@ -624,6 +642,12 @@ def build_live_state(
 
     V3.2: removed status_json_path, added card_id for DB writes.
     """
+    # [F8] Verify engine hash before building live state
+    if not _verify_engine_hash(card):
+        raise RuntimeError(
+            f"[F8] Engine hash mismatch for card {card.get('card_id', '?')}. "
+            f"Cannot proceed — strategy was trained on a different engine version."
+        )
     params = card.get("params", {})
     cost_model = card.get("cost_model", {})
     return LiveState(

@@ -30,6 +30,9 @@ _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 
 from zangetsu_v3.regime.rule_labeler import Regime, REGIME_NAMES
+from scripts.engine_version import (
+    compute_engine_hash, archive_engine, verify_engine_hash, preflight_check
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -470,6 +473,12 @@ def handle_arena3(details: dict) -> Optional[State]:
     """Run arena3 QD search per regime. Monitor search_progress."""
     log.info("ARENA3: running QD evolutionary search per regime...")
 
+    # [F8] Lock engine version at search start
+    engine_hash, archive_dir = archive_engine()
+    log.info(f"ARENA3: engine locked — {engine_hash} archived at {archive_dir}")
+    details["engine_hash"] = engine_hash
+    details["engine_archive_path"] = str(archive_dir)
+
     # Check which regimes have champions (search complete)
     champion_regimes = set()
     rows = db_query(
@@ -513,22 +522,22 @@ def handle_arena3(details: dict) -> Optional[State]:
         "updated_at": datetime.now(timezone.utc).isoformat(),
     })
 
-    # Run the v31 search pipeline
+    # Run System B search via scripts/arena3_regime.py
     scripts_dir = Path(__file__).resolve().parent
-    run_script = scripts_dir / "run_v31.py"
+    arena3_script = scripts_dir / "arena3_regime.py"
 
-    if not run_script.exists():
-        log.error("ARENA3: run_v31.py not found at %s", run_script)
+    if not arena3_script.exists():
+        log.error("ARENA3: arena3_regime.py not found at %s", arena3_script)
         db_log_event("arena3_error", None, {"error": "script_not_found"})
         return None
 
     for regime in missing:
-        db_log_event("arena3_regime_start", regime, {"regime": regime})
-        log.info("ARENA3: running search for regime %s ...", regime)
+        db_log_event("arena3_regime_start", regime, {"regime": regime, "engine_hash": details.get("engine_hash")})
+        log.info("ARENA3: running search for regime %s (engine: %s)...", regime, details.get("engine_hash", "?")[:16])
 
         try:
             result = subprocess.run(
-                [sys.executable, str(run_script), "--regime", regime],
+                [sys.executable, str(arena3_script), "--regime", regime],
                 cwd=str(_PROJECT_ROOT),
                 capture_output=True,
                 text=True,
@@ -591,6 +600,18 @@ def handle_arena3(details: dict) -> Optional[State]:
 def handle_gating(details: dict) -> Optional[State]:
     """Run 3 gates per champion. Write validation_gates."""
     log.info("GATING: running validation gates on champions...")
+
+    # [F8] Verify engine hash matches search-time engine
+    search_engine_hash = details.get("engine_hash")
+    if search_engine_hash:
+        ok, msg = preflight_check(search_engine_hash)
+        if not ok:
+            log.error(f"GATING BLOCKED: {msg}")
+            db_log_event("gating_blocked", None, {"reason": msg})
+            return None  # stay in GATING, do not proceed
+        log.info(f"GATING: engine hash verified — {msg}")
+    else:
+        log.warning("GATING: no engine_hash in details — F8 not active for this run")
 
     # Get champions that haven't been gated yet
     champions = db_query(
@@ -816,6 +837,8 @@ def handle_deploying(details: dict) -> Optional[State]:
             "validation": {"passed": True},
             "status": "PASSED_HOLDOUT",
             "deployed_at": datetime.now(timezone.utc).isoformat(),
+            "engine_hash": details.get("engine_hash", "unknown"),
+            "engine_archive_path": details.get("engine_archive_path", ""),
         }
 
         # Compare with existing card
