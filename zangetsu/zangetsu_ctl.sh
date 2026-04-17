@@ -58,6 +58,7 @@ case "${1:-status}" in
       "$VENV services/arena45_orchestrator.py" \
       "$LOG_DIR/zangetsu_a45.log"
 
+
     sleep 5
     echo ""
     bash "$(dirname "$0")/zangetsu_ctl.sh" status
