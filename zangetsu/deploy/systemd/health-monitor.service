@@ -1,0 +1,17 @@
+[Unit]
+Description=Zangetsu V5 Health Monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=j13
+WorkingDirectory=/home/j13/j13-ops
+EnvironmentFile=/etc/zangetsu/zangetsu.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/j13/j13-ops/zangetsu/.venv/bin/uvicorn zangetsu.services.health_monitor:app --app-dir /home/j13/j13-ops --host 0.0.0.0 --port 9100
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

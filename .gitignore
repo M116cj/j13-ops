@@ -15,3 +15,8 @@ zangetsu_v5/**/*.pyc
 zangetsu_v5/**/*.bak
 zangetsu_v5/**/*.deleted
 zangetsu_v5/graphify-out/
+**/.venv/
+**/.venv/
+**/__pycache__/
+**/*.bak2
+**/*.deleted

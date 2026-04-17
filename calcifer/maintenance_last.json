@@ -1,0 +1,47 @@
+{
+  "start": "2026-04-17T08:32:57.179745+00:00",
+  "tasks": {
+    "docker_prune": {
+      "status": "OK",
+      "duration_s": 0.5,
+      "output": "system df after:\ntemplate parsing error: template: :1:12: executing \"\" at <.Total>: can't evaluate field Total in type *formatter.diskUsageImagesContext"
+    },
+    "postgres_vacuum": {
+      "status": "OK",
+      "duration_s": 0.1,
+      "output": "zangetsu:INFO:  analyzing \"public.champion_pipeline\"\nINFO:  \"champion_pipeline\": scanned 0 of 0 pages, containing 0 live rows and 0 dead rows; 0 rows in sample, 0 estimated total rows\nVACUUM\nakasha:ERROR:  VACUUM cannot run inside a transaction block"
+    },
+    "redis_health": {
+      "status": "OK",
+      "duration_s": 0.2,
+      "output": "magi: used_memory_human:1.39M\nmaxmemory_policy:noeviction\n# Keyspace\ndb0:keys=1,expires=0,avg_ttl=0,subexpiry=0\nakasha: used_memory_human:1.33M"
+    },
+    "akasha_compact": {
+      "status": "OK",
+      "duration_s": 0.0,
+      "output": "{\"deleted\": 1, \"status\": \"ok\"}"
+    },
+    "log_rotation": {
+      "status": "OK",
+      "duration_s": 0.1,
+      "output": "rotation: \nsizes: 25M\t/home/j13/j13-ops/zangetsu_v5/logs"
+    },
+    "backup_verify": {
+      "status": "OK",
+      "duration_s": 0.0,
+      "output": "pg:\n\nredis:\n\nfresh_pg_24h=2"
+    },
+    "disk_memory_gpu": {
+      "status": "OK",
+      "duration_s": 0.0,
+      "output": "disk:\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/nvme1n1p2  915G   85G  784G  10% /\n/dev/nvme1n1p2  915G   85G  784G  10% /\n/dev/nvme1n1p2  915G   85G  784G  10% /\nmem:\ntotal        used        free      shared  buff/cache   available\nMem:            31Gi       7.6Gi       1.4Gi       191Mi        17Gi        23Gi\ngpu: 0 %, 1 MiB, 12288 MiB, 46\nload: 16:32:58 up 4 days,  4:31,  1 user,  load average: 6.52, 6.69, 6.72"
+    },
+    "zangetsu_status": {
+      "status": "OK",
+      "duration_s": 0.1,
+      "output": "services:\narena-pipeline: active\narena23-orchestrator: active\narena45-orchestrator: active\narena13-feedback.timer: active\ndashboard-api: active\nconsole-api: active\ndb:\nchampions=0 deployable=0"
+    }
+  },
+  "end": "2026-04-17T08:32:58.244641+00:00",
+  "duration_s": 1.1
+}
