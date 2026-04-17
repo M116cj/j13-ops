@@ -26,7 +26,6 @@ import polars as pl
 import asyncpg
 import asyncpg.exceptions
 from zangetsu_v5.services.pidlock import acquire_lock
-acquire_lock("arena23_orchestrator")
 
 from zangetsu_v5.services.db_audit import log_transition
 
@@ -978,4 +977,5 @@ async def main():
 
 
 if __name__ == "__main__":
+    acquire_lock("arena23_orchestrator")
     asyncio.run(main())

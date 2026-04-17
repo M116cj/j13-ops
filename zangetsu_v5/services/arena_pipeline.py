@@ -15,7 +15,6 @@ os.chdir('/home/j13/j13-ops')
 
 import numpy as np
 from zangetsu_v5.services.pidlock import acquire_lock
-import os as _os; acquire_lock(f"arena_pipeline_w{_os.environ.get('A1_WORKER_ID', '0')}")
 
 # --- Regime classification from 1m data ---
 from zangetsu_v5.engine.components.p_value import load_baseline, compute_p_value, compute_pnl_p_value, is_significant
@@ -32,6 +31,7 @@ from zangetsu_v5.services.shared_utils import (
     compute_atr, _ema,
 )
 from zangetsu_v5.services.market_state import build_market_state
+from zangetsu_v5.services.bloom_service import bloom_init as rbloom_init, bloom_add as rbloom_add, bloom_madd as rbloom_madd, bloom_count as rbloom_count
 
 
 
@@ -537,6 +537,8 @@ async def main():
 
     # ── O1: Initialize bloom filter and load ALL existing config hashes ──
     bloom = BloomFilter(capacity=200_000, fp_rate=0.001)
+    # V9 oneshot A3: shadow RedisBloom (cross-worker consistency)
+    await rbloom_init(capacity=200_000, fp_rate=0.001)
     try:
         existing_hashes = await db.fetch("""
             SELECT DISTINCT regime, passport->'arena1'->>'config_hash' as ch
@@ -544,10 +546,14 @@ async def main():
             WHERE status NOT LIKE 'LEGACY%'
               AND passport->'arena1'->>'config_hash' IS NOT NULL
         """)
+        _rbloom_batch = []
         for row in existing_hashes:
             bloom_key = f"{row['regime']}|{row['ch']}"
             bloom.add(bloom_key)
-        log.info(f"Bloom filter loaded: {bloom.count} unique (regime,hash) pairs from ALL statuses")
+            _rbloom_batch.append(bloom_key)
+        if _rbloom_batch:
+            await rbloom_madd(_rbloom_batch)
+        log.info(f"Bloom filter loaded: {bloom.count} local / RedisBloom={await rbloom_count()} (regime,hash) pairs")
     except Exception as e:
         log.warning(f"Bloom filter load failed: {e}")
 
@@ -615,6 +621,7 @@ async def main():
                     _bk = f"{_r['regime']}|{_r['ch']}"
                     if _bk not in bloom:
                         bloom.add(_bk)
+                        await rbloom_add(_bk)
                         _added += 1
                 if _added > 0:
                     log.info(f"Bloom refresh: +{_added} new entries from DB (total={bloom.count})")
@@ -626,6 +633,7 @@ async def main():
             for _ck in _guidance_cache.get("cool_off", set()):
                 if _ck not in bloom:
                     bloom.add(_ck)
+                    await rbloom_add(_ck)
 
         t0 = time.time()
 
@@ -842,6 +850,7 @@ async def main():
             stats["a2_prescreen_rejects"] += 1
             # Still add to bloom to prevent re-evaluation
             bloom.add(_bloom_key)
+            await rbloom_add(_bloom_key)
             continue
 
         # ── DB INSERTION ──
@@ -849,6 +858,7 @@ async def main():
         stats["champions_inserted"] += 1
         regime_champion_counts[regime] = regime_champion_counts.get(regime, 0) + 1
         bloom.add(_bloom_key)
+        await rbloom_add(_bloom_key)
 
         if total_champions % 200 == 0:
             log.info(f"Regime balance at champion #{total_champions}: {dict(regime_champion_counts)}")
@@ -919,4 +929,5 @@ async def main():
     log.info(f"Stopped. rounds={round_number} champions={total_champions} | final_stats={json.dumps(stats)}")
 
 if __name__ == "__main__":
+    acquire_lock(f"arena_pipeline_w{os.environ.get('A1_WORKER_ID', '0')}")
     asyncio.run(main())
