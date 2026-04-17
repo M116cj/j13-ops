@@ -1,5 +1,5 @@
 #!/bin/bash
-# zangetsu_ctl.sh — start/stop/status/logs/health/reap for all Zangetsu V5 services
+# zangetsu_ctl.sh — start/stop/status/logs/health/reap for all Zangetsu V9 services
 # Usage: ./zangetsu_ctl.sh {start|stop|status|restart|logs|health|reap}
 set -e
 
@@ -33,7 +33,7 @@ case "${1:-status}" in
     # Clear stale Numba cache to prevent ModuleNotFoundError on cold restart
     find . -name '*.nbi' -not -path './.venv/*' -delete 2>/dev/null
     find . -name '*.nbc' -not -path './.venv/*' -delete 2>/dev/null
-    echo "Starting Zangetsu V5 services ($A1_WORKERS A1 workers)..."
+    echo "Starting Zangetsu V9 services ($A1_WORKERS A1 workers)..."
 
     # A1 Workers
     for i in $(seq 0 $((A1_WORKERS - 1))); do
@@ -60,11 +60,11 @@ case "${1:-status}" in
 
     sleep 5
     echo ""
-    $0 status
+    bash "$(dirname "$0")/zangetsu_ctl.sh" status
     ;;
 
   stop)
-    echo "Stopping Zangetsu V5 services..."
+    echo "Stopping Zangetsu V9 services..."
     # Graceful: SIGTERM via lockfile PIDs
     for lock in $LOCK_DIR/*.lock; do
       [ -f "$lock" ] || continue
@@ -191,7 +191,7 @@ case "${1:-status}" in
       esac
     else
       # Follow all services (live tail)
-      echo "=== Live tail of all Zangetsu V5 services (Ctrl+C to stop) ==="
+      echo "=== Live tail of all Zangetsu V9 services (Ctrl+C to stop) ==="
       journalctl -u arena-pipeline -u arena23-orchestrator -u arena45-orchestrator \
                  -u console-api -u dashboard-api \
                  -f --no-pager 2>/dev/null &
@@ -390,7 +390,7 @@ case "${1:-status}" in
     # Log the reap event
     echo ""
     total_reaped=$($PSQL_CMD "SELECT 'total_reaped'" 2>/dev/null | wc -l || echo 0)
-    echo "  Reap complete. Run '$0 status' to verify pipeline."
+    echo "  Reap complete. Run 'bash "$(dirname "$0")/zangetsu_ctl.sh" status' to verify pipeline."
     ;;
 
   *)
