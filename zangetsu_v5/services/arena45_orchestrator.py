@@ -100,7 +100,7 @@ def normalize_with_passport(arrs, passport):
 
 
 def backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_hold=480,
-                   atr=None, atr_stop_mult=None):
+                   atr=None, atr_stop_mult=None, sizes=None):
     """Run backtest on a data slice with optional ATR stop."""
     if len(signals) < 50:
         return None
@@ -108,6 +108,8 @@ def backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_
     if atr is not None and atr_stop_mult is not None:
         kwargs["atr"] = atr[:len(signals)]
         kwargs["atr_stop_mult"] = atr_stop_mult
+    if sizes is not None:
+        kwargs["sizes"] = sizes[:len(signals)]
     return backtester.run(signals, close, symbol, cost_bps, max_hold, **kwargs)
 
 
@@ -355,8 +357,9 @@ async def process_arena4(champ, data_cache, backtester, cost_model, rust_engine,
         seg_h = high[s_start:s_end]
         seg_l = low[s_start:s_end]
         seg_atr = atr[s_start:s_end]
+        seg_sizes = _sizes_a4[s_start:s_end]
         bt = backtest_slice(backtester, seg_s, seg_c, seg_h, seg_l, symbol, cost_bps, max_hold,
-                            atr=seg_atr, atr_stop_mult=atr_stop_mult)
+                            atr=seg_atr, atr_stop_mult=atr_stop_mult, sizes=seg_sizes)
         if bt and bt.total_trades >= A4_MIN_SEG_TRADES:
             wr = float(bt.win_rate)
             segment_wrs.append(wr)
@@ -374,7 +377,7 @@ async def process_arena4(champ, data_cache, backtester, cost_model, rust_engine,
 
     # Full holdout backtest (with ATR stop, matching A3 params)
     bt_full = backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_hold,
-                             atr=atr, atr_stop_mult=atr_stop_mult)
+                             atr=atr, atr_stop_mult=atr_stop_mult, sizes=_sizes_a4)
     if bt_full and bt_full.total_trades >= 3:
         full_wr = float(bt_full.win_rate)
         full_result = {
@@ -615,7 +618,7 @@ async def run_elo_round(by_regime, data_cache, backtester, cost_model, rust_engi
             # Fix #3: Compute ATR on the match slice and pass to backtest
             match_atr = compute_atr(high, low, close, period=14)
             bt = backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_hold,
-                                atr=match_atr, atr_stop_mult=atr_stop_mult)
+                                atr=match_atr, atr_stop_mult=atr_stop_mult, sizes=_sz_elo)
 
             if bt is None or bt.total_trades < 2:
                 scores[label] = {"metric": -999.0}

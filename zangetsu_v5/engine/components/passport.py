@@ -85,6 +85,43 @@ class ChampionPassport:
             "quant_class": quant_class,
         }
 
+    def stamp_alpha_expression(self, alpha_result: dict):
+        """Stamp a GP-discovered alpha expression into the passport (V9 X7).
+
+        `alpha_result` may be either an `AlphaResult.to_passport_dict()`
+        payload (keys: formula/ast/ic/sharpe/stability/complexity/hash/
+        generation) or an `AlphaResult.to_dict()` payload (keys use `ast_json`
+        instead of `ast`). We normalize to a canonical shape so downstream
+        live-trade loaders can rely on a stable schema.
+        """
+        if not isinstance(alpha_result, dict):
+            raise TypeError(
+                f"stamp_alpha_expression: expected dict, got {type(alpha_result).__name__}"
+            )
+        if "formula" not in alpha_result:
+            raise ValueError("stamp_alpha_expression: missing 'formula'")
+
+        ast_payload = alpha_result.get("ast")
+        if ast_payload is None:
+            ast_payload = alpha_result.get("ast_json")
+        if ast_payload is None:
+            raise ValueError("stamp_alpha_expression: missing 'ast' / 'ast_json'")
+
+        self._data["alpha_expression"] = {
+            "formula": str(alpha_result["formula"]),
+            "ast": ast_payload,
+            "metrics": {
+                "ic": float(alpha_result.get("ic", 0.0) or 0.0),
+                "sharpe": float(alpha_result.get("sharpe", 0.0) or 0.0),
+                "stability": float(alpha_result.get("stability", 0.0) or 0.0),
+                "complexity": int(alpha_result.get("complexity", 0) or 0),
+            },
+            "hash": str(alpha_result.get("hash", "") or ""),
+            "generation": int(alpha_result.get("generation", 0) or 0),
+            "stamped_at": datetime.now(timezone.utc).isoformat(),
+            "schema": "alpha_expression.v1",
+        }
+
     def stamp_arena5(self, elo_rating, rounds_played, wins, losses, draws, rank, is_active):
         self._data["arena5"] = {
             "elo_rating": elo_rating,

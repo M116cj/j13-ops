@@ -1,9 +1,11 @@
 {
-  "version": 1,
-  "min_survivors_for_soft": 20,
-  "min_failures_for_soft": 50,
-  "min_survivors_for_active": 50,
-  "min_failures_for_active": 100,
-  "min_post_update_champions": 50,
-  "note": "A13 mode transitions: observe (default) -> soft (N>=20/50) -> active (N>=50/100). Mode is written into guidance.json for A1 to read."
+  "version": 2,
+  "min_survivors_for_soft": 3,
+  "min_failures_for_soft": 5,
+  "min_survivors_for_active": 20,
+  "min_failures_for_active": 50,
+  "min_post_update_champions": 20,
+  "soft_exit_below_survivors": 1,
+  "active_exit_below_survivors": 12,
+  "note": "V9 (2026-04-17): bootstrap-friendly thresholds + hysteresis. Mode transitions: observe (default) -> soft (N>=3/5) -> active (N>=20/50). Hysteresis: drop to observe if survivors<1; drop active->soft if survivors<12. Mode written into guidance.json for A1 to read."
 }

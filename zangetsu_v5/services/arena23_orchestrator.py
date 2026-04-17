@@ -185,14 +185,21 @@ async def is_duplicate_champion(db: asyncpg.Connection, champion_id: int, passpo
 
 
 async def pick_champion(db: asyncpg.Connection, from_status: str, to_status: str) -> dict | None:
-    """Atomically pick and lease one champion."""
+    """Atomically pick and lease one champion.
+
+    V9: rank by arena1_score × regime_confidence (5-factor MarketState tiebreaker).
+    Falls back to arena1_score alone if confidence missing."""
     row = await db.fetchrow(f"""
         UPDATE champion_pipeline
         SET status = $1, worker_id = $2, lease_until = NOW() + INTERVAL '{LEASE_MINUTES} minutes', updated_at = NOW()
         WHERE id = (
             SELECT id FROM champion_pipeline
             WHERE status = $3
-            ORDER BY arena1_score DESC LIMIT 1
+            ORDER BY
+                arena1_score *
+                COALESCE((passport->'market_state'->>'regime_confidence')::float, 1.0) DESC,
+                arena1_score DESC
+            LIMIT 1
             FOR UPDATE SKIP LOCKED
         )
         RETURNING *
@@ -306,8 +313,8 @@ async def process_arena2(
         a1_entry_thr = 0.60
     else:
         a1_entry_thr = 0.55
-    baseline_signals, _, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
-    baseline_bt = backtester.run(baseline_signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low)
+    baseline_signals, baseline_sizes, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+    baseline_bt = backtester.run(baseline_signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=baseline_sizes)
     original_wr = float(baseline_bt.win_rate)
     original_pnl = float(baseline_bt.net_pnl)
     original_sharpe = float(baseline_bt.sharpe_ratio)
@@ -316,8 +323,8 @@ async def process_arena2(
 
     # ── AD1: 2-indicator combos are AND gates — skip grid search ──
     if len(configs) <= 2:
-        signals, _, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
-        bt = backtester.run(signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low)
+        signals, sizes_v, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+        bt = backtester.run(signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=sizes_v)
         pos_count = sum([bt.net_pnl > 0, bt.sharpe_ratio > 0, bt.pnl_per_trade > 0])
         if bt.total_trades >= 25 and pos_count >= 2:
             # AD1+AD3: 2-indicator passthrough — auto-promote if economically valid
@@ -370,8 +377,8 @@ async def process_arena2(
 
     def evaluate_pair(entry_thr: float, exit_thr: float):
         nonlocal best_score, best_wr, best_entry, best_exit, best_trades, best_result
-        signals, _, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
-        bt = backtester.run(signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low)
+        signals, sizes_v, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+        bt = backtester.run(signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=sizes_v)
         if bt.total_trades < 25:
             return False  # Need >= 25 trades for reliable WR in threshold grid
         pos = (bt.net_pnl > 0) + (bt.sharpe_ratio > 0) + (bt.pnl_per_trade > 0)
@@ -515,7 +522,7 @@ async def process_arena3(
         return None
     names_v = [v[0] for v in valid]
     arrs_v = [v[1] for v in valid]
-    base_signals, _, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+    base_signals, base_sizes, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
     atr_fit = compute_atr(high_fit, low_fit, close_fit, period=14)
 
     # Also prepare validation signals
@@ -523,7 +530,7 @@ async def process_arena3(
     valid_val = [(n, a) for n, a in zip(names_raw_val, arrays_raw_val) if np.median(np.abs(a - np.median(a))) > 0]
     names_val = [v[0] for v in valid_val]
     arrs_val = [v[1] for v in valid_val]
-    base_signals_val, _, _ = _gen_threshold(names_val, arrs_val, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+    base_signals_val, base_sizes_val, _ = _gen_threshold(names_val, arrs_val, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
     atr_val = compute_atr(high_val, low_val, close_val, period=14)
 
     # ── Search across ATR multipliers x TP strategies (on train-inner) ──
@@ -543,7 +550,7 @@ async def process_arena3(
     # no TP/ATR combo will save it. Skip the 39-combo grid entirely.
     _pf_bt = backtester.run(
         base_signals, close_fit, symbol, cost_bps, MAX_HOLD_BARS_A3,
-        high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=max(ATR_STOP_MULTS),
+        high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=max(ATR_STOP_MULTS), sizes=base_sizes,
     )
     _pf_pos = (_pf_bt.net_pnl > 0) + (_pf_bt.sharpe_ratio > 0) + (_pf_bt.pnl_per_trade > 0) if _pf_bt and _pf_bt.total_trades >= 10 else 0
     if _pf_pos < 1:
@@ -560,7 +567,7 @@ async def process_arena3(
         # ── Pool 2: No TP (expectancy-optimized) ──
         bt = backtester.run(
             base_signals, close_fit, symbol, cost_bps, MAX_HOLD_BARS_A3,
-            high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult,
+            high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult, sizes=base_sizes,
         )
         if bt.total_trades >= 25:
             if bt.pnl_per_trade > best_expect:
@@ -581,7 +588,7 @@ async def process_arena3(
             trail_signals = apply_trailing_stop(base_signals, close_fit, trail_pct)
             bt = backtester.run(
                 trail_signals, close_fit, symbol, cost_bps, MAX_HOLD_BARS_A3,
-                high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult,
+                high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult, sizes=base_sizes,
             )
             if bt.total_trades >= 25:
                 if bt.sharpe_ratio > best_sharpe:
@@ -602,7 +609,7 @@ async def process_arena3(
             target_signals = apply_fixed_target(base_signals, close_fit, target_pct)
             bt = backtester.run(
                 target_signals, close_fit, symbol, cost_bps, MAX_HOLD_BARS_A3,
-                high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult,
+                high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult, sizes=base_sizes,
             )
             if bt.total_trades >= 25:
                 if bt.net_pnl > best_pnl:
@@ -652,7 +659,7 @@ async def process_arena3(
 
     bt_val = backtester.run(
         val_signals, close_val, symbol, cost_bps, MAX_HOLD_BARS_A3,
-        high=high_val, low=low_val, atr=atr_val, atr_stop_mult=val_atr_mult,
+        high=high_val, low=low_val, atr=atr_val, atr_stop_mult=val_atr_mult, sizes=base_sizes_val,
     )
 
     val_pos = _positive_count(bt_val)

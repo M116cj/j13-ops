@@ -1,0 +1,8 @@
+.venv/
+data/
+logs/
+__pycache__/
+*.parquet
+*.pyc
+services/_backup*
+*.bak
