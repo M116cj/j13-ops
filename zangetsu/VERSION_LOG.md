@@ -1,3 +1,31 @@
+## v0.3.4 — 2026-04-17 — Watchdog round 2: orchestrator stale-check skip
+**Engine hash:** `zv5_v71` / `zv5_v9`
+**Branch / commit:** `feat/v9-oneshot-hardening` @ `f8bc5701`
+
+### Feature: Watchdog — arena23/45 orchestrators skip stale-log check
+- **Change type:** fix (production-impacting, second-order from v0.3.2)
+- **What changed:** `zangetsu/watchdog.sh` lockfile loop now branches:
+  - For `arena23_orchestrator` and `arena45_orchestrator`: PID-alive check only, skip stale-log check entirely
+  - All other workers (A1 pipeline w0-w3): keep stale check (they actively log when working)
+- **Why:** v0.3.2 bumped STALE_THRESHOLD 600→1800 (10min→30min) but observation at 15:00 UTC showed orchestrators STILL restarted every cycle. Root cause: orchestrators legitimately idle while `champion_pipeline` empty (V9 has no champions yet) → no log writes for 30+ min → stale check fires → pure churn restart. Restarting an idle orchestrator does nothing useful. The threshold isn't the right knob; orchestrator semantics are different from A1 workers (which actively process work).
+- **Q1/Q2/Q3:**
+  - Q1 PASS — orchestrators still get PID-dead detection (real crashes still restart); only the stale-log false-positive is suppressed
+  - Q2 PASS — manual `bash watchdog.sh` after fix shows `WATCHDOG: all 8 services healthy`
+  - Q3 PASS — 7-line patch (case statement + continue)
+- **Rollback:** revert the case branch in lockfile loop
+
+### Round-2 deep scan summary (Explore agent + Opus env audit + Codex/Gemini auth-blocked)
+- ✅ **0 critical findings** in all-projects audit (zangetsu, calcifer, markl, agent_bus, infra)
+- ✅ **0 systemd failed units**
+- ✅ **22 Docker containers healthy**
+- ✅ **Disk 10% / RAM 21G free / GPU idle** — no leaks
+- ✅ **0 zombie/defunct processes** (17 orphans = legitimate daemon backgrounding)
+- ✅ **8 pidlocks** (4 A1 + arena23 + arena45 + arena13_feedback transient + calcifer_supervisor)
+- ✅ **All `zangetsu_v5` references in active code = 0** (`zv5_` only in engine_hash + log filenames, intentional)
+- ✅ **Cross-project consistency**: agent_bus / markl / infra all clean
+- ⚠️ **Codex CLI on Alaya needs OPENAI_API_KEY** (`codex exec` returned 401 Unauthorized)
+- ⚠️ **Gemini CLI on Alaya needs GEMINI_API_KEY** (already noted in v0.3.0)
+
 ## v0.3.1 — 2026-04-17 — LFS + V9 SQL view + watchdog stale-loop fix
 **Engine hash:** `zv5_v71` / `zv5_v9` (literals preserved)
 **Branch / commit:** `feat/v9-oneshot-hardening` @ `c1f23a46`
