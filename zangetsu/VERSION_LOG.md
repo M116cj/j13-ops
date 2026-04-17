@@ -1,3 +1,64 @@
+## v0.3.0 — 2026-04-17 — All-ctl service model + test cred + hygiene
+**Engine hash:** `zv5_v71` / `zv5_v9` (literals preserved)
+**Branch / commit:** `feat/v9-oneshot-hardening` @ `d0aab305`
+
+### Feature: all-ctl.sh service management (eliminate systemd dual-management)
+- **Change type:** refactor (infra)
+- **What changed:**
+  - Removed 6 systemd unit files: `arena-pipeline.service`, `arena23-orchestrator.service`, `arena45-orchestrator.service`, `arena13-feedback.service`, `arena13-feedback.timer`, `arena13-evolution.service`
+  - `watchdog.sh`: removed dead `SYSTEMD_SERVICES` array + `LOCK_TO_SYSTEMD` map + the `restart_service` systemd-prefer branch (~23 lines)
+  - `restart_service` now lockfile-only restart for arena workers
+  - Source-of-truth: `zangetsu_ctl.sh` + `watchdog.sh` (cron */5min)
+  - Kept systemd-managed: `console-api`, `dashboard-api`, `calcifer-supervisor`
+- **Why:** systemd arena units were spawning workers in restart loop, losing pidlock to ctl.sh-spawned ones. Pure log noise. Watchdog's `LOCK_TO_SYSTEMD` mapping triggered failed `systemctl restart` calls. Single-management model = clean ops.
+- **Q1/Q2/Q3:** PASS — V9 scan reports `✅ Systemd units stable`, 6 workers running, no restart loops
+- **Rollback:** re-create unit files from systemd template + `daemon-reload`
+
+### Feature: test credential auto-loading
+- **Change type:** new
+- **What changed:**
+  - Created user-readable env file at `~/.zangetsu_test.env` (mode 0600, owner j13:j13) — copy of `/etc/zangetsu/zangetsu.env`
+  - Added `zangetsu/tests/conftest.py` — auto-loads env vars from that file on pytest startup
+- **Why:** `/etc/zangetsu/zangetsu.env` is root-only (used by systemd EnvironmentFile). pytest as `j13` user couldn't read → asyncpg InvalidPassword in `test_db` / `test_checkpoint` / `test_console_api`. After fix: 3 passed / 3 skipped (was 2 failed).
+- **Q1/Q2/Q3:** PASS — pytest now exits 0
+- **Rollback:** delete the user-readable env file and `tests/conftest.py`
+
+### Feature: V32 scan — Calcifer endpoint moved to AKASHA /health
+- **Change type:** fix
+- **What changed:** `~/.claude/scratch/v32-deep-scan.sh` Calcifer section: `http://100.123.49.102:8770/health` → `http://100.123.49.102:8769/health` (AKASHA), section header renamed `## Calcifer` → `## AKASHA Health`
+- **Why:** Calcifer-supervisor doesn't bind any HTTP port (it's an Ollama+Telegram bot), so 8770 returned empty forever. AKASHA at 8769 is the actual health source.
+- **Q1/Q2/Q3:** PASS — scan now reads `AKASHA: {"status":"ok"}`
+- **Rollback:** revert sed in scan script
+
+### Feature: ctl.sh — `$0 status` bug + V5/V9 banner
+- **Change type:** fix (cosmetic + ergonomics)
+- **What changed:** Line 63 `$0 status` → `bash "$(dirname "$0")/zangetsu_ctl.sh" status`; banner string `"Zangetsu V5 services"` → `"Zangetsu V9 services"`
+- **Why:** `$0` resolves to bare `zangetsu_ctl.sh` (not in PATH), causing `command not found` every restart. Banner was outdated.
+- **Q1/Q2/Q3:** PASS
+- **Rollback:** sed reverse
+
+### Feature: post-rename hygiene — calcifer paths + log filenames
+- **Change type:** fix (post-rename leftover)
+- **What changed:**
+  - `calcifer/supervisor.py`: 3 paths `~/j13-ops/zangetsu_v5/` → `~/j13-ops/zangetsu/`, lock `/tmp/zangetsu_v5/` → `/tmp/zangetsu/`
+  - `watchdog.sh` + `zangetsu_ctl.sh`: log filenames `/tmp/zv5_*.log` → `/tmp/zangetsu_*.log`
+  - cron: `/tmp/zv5_watchdog.log` → `/tmp/zangetsu_watchdog.log`
+  - `.gitignore`: added `**/.venv/`, `**/__pycache__/`, `**/*.bak2`, `**/*.deleted`, `zangetsu/data/{funding,ohlcv,oi,regimes}/`
+- **Why:** Explore-agent post-rename audit caught these (Calcifer was actively writing to dead path; log filenames mismatch would trigger watchdog auto-restart in 5min)
+- **Q1/Q2/Q3:** PASS — caught by 2nd-round scan, fixed before next watchdog tick
+
+### Non-feature changes
+- engine_hash literals (`zv5_v9`, `zv5_v71`) and SQL pattern (`'zv5_%'`) intentionally preserved per project_naming convention (folder=physical axis, hash=runtime stamp axis)
+- During sweep I accidentally caught engine_hash literals — reverted in same session
+- arena45 worker dropped during ctl restart → systemd race spawned duplicate → caught + cleaned + systemd units permanently removed in this version
+
+### Deferred (not in this version)
+- Git LFS for `zangetsu/data/**/*.parquet` — needs `apt install git-lfs` on Alaya first
+- engine_hash default filter on dashboard/scripts — wait until V9 (`zv5_v9`) accumulates champion records
+- PR #3 merge to main — pending review
+
+---
+
 # zangetsu — VERSION LOG
 
 > Per `_global/feedback_project_naming.md`: bare project folder name + this log file as single-source-of-truth for "what changed when".
