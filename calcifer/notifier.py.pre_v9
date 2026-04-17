@@ -1,0 +1,73 @@
+"""AKASHA write-back + Telegram notification for agent findings.
+
+Shared by both Calcifer and Markl supervisors.
+- Writes confirmed findings to AKASHA project memory
+- Sends critical/warning findings to Telegram
+"""
+import json, urllib.request, os
+
+AKASHA_URL = "http://100.123.49.102:8769"
+TELEGRAM_TOKEN = os.environ.get("TG_BOT_TOKEN", "8237499581:AAFfSngYTSmsmVHPCMMFw0g7kkXpOj5kDFU")
+TELEGRAM_CHAT = os.environ.get("TG_CHAT_ID", "5252897787")
+TELEGRAM_THREAD = os.environ.get("TG_THREAD_ID", "")
+
+def write_to_akasha(project, agent_name, finding):
+    """Write a confirmed finding to AKASHA project memory."""
+    content = (
+        f"[{agent_name} finding {finding.get('ts', '?')}] "
+        f"{finding.get('insight', 'no insight')} | "
+        f"confidence={finding.get('confidence', '?')} | "
+        f"recommendation={finding.get('recommendation', 'none')}"
+    )
+    body = json.dumps({
+        "project": project,
+        "segment": "agent_findings",
+        "content": content,
+        "tags": [agent_name, "finding", finding.get("confidence", "low")],
+    }).encode()
+    req = urllib.request.Request(
+        f"{AKASHA_URL}/memory",
+        data=body,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        resp = urllib.request.urlopen(req, timeout=10)
+        return json.loads(resp.read()).get("status") == "accepted"
+    except Exception:
+        return False
+
+def notify_telegram(agent_name, finding):
+    """Send critical/warning finding to Telegram."""
+    if not TELEGRAM_TOKEN:
+        return False
+    severity = finding.get("severity", finding.get("confidence", "info"))
+    if severity not in ("critical", "warning", "high", "medium"):
+        return False
+    text = (
+        f"🔔 *{agent_name.upper()} FINDING*\n"
+        f"Severity: {severity}\n"
+        f"Insight: {finding.get('insight', 'N/A')}\n"
+        f"Recommendation: {finding.get('recommendation', 'N/A')}"
+    )
+    body = json.dumps({
+        "chat_id": TELEGRAM_CHAT,
+        "text": text,
+        "parse_mode": "Markdown",
+        **({"message_thread_id": int(TELEGRAM_THREAD)} if TELEGRAM_THREAD else {}),
+    }).encode()
+    req = urllib.request.Request(
+        f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage",
+        data=body,
+        headers={"Content-Type": "application/json"},
+    )
+    try:
+        urllib.request.urlopen(req, timeout=10)
+        return True
+    except Exception:
+        return False
+
+def process_finding(project, agent_name, finding):
+    """Write to AKASHA + notify if critical."""
+    akasha_ok = write_to_akasha(project, agent_name, finding)
+    tg_ok = notify_telegram(agent_name, finding)
+    return {"akasha": akasha_ok, "telegram": tg_ok}

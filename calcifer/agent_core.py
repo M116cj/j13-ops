@@ -1,0 +1,718 @@
+"""Agent Core — Hermes-grade shared framework for Calcifer/Markl.
+
+Provides: context compression, error recovery, multi-turn tool chaining,
+skill system, trajectory recording, self-correction.
+"""
+import os, json, time, hashlib, subprocess
+from datetime import datetime, timezone
+
+# ── Context Compression (4-phase from Hermes) ──
+class ContextManager:
+    def __init__(self, max_tokens=6000):
+        self.max_tokens = max_tokens
+        self.messages = []
+
+    def add(self, role, content):
+        self.messages.append({"role": role, "content": content, "ts": time.time()})
+
+    def get_prompt_context(self, limit=None):
+        """Build context string with compression if needed."""
+        limit = limit or self.max_tokens
+        full = "\n".join(f"[{m['role']}] {m['content']}" for m in self.messages)
+        if len(full) <= limit:
+            return full
+        # Phase 1: truncate old tool results
+        compressed = []
+        for m in self.messages:
+            if m["role"] == "tool_result" and time.time() - m["ts"] > 300:
+                compressed.append({**m, "content": m["content"][:200] + "...[truncated]"})
+            else:
+                compressed.append(m)
+        # Phase 2: keep system + last 10 messages
+        if len(compressed) > 12:
+            compressed = compressed[:2] + compressed[-10:]
+        return "\n".join(f"[{m['role']}] {m['content']}" for m in compressed)[:limit]
+
+    def clear(self):
+        self.messages = []
+
+
+# ── Error Recovery ──
+class ErrorRecovery:
+    MAX_RETRIES = 3
+    BACKOFF = [2, 5, 10]
+
+    @staticmethod
+    def classify(error_str):
+        e = str(error_str).lower()
+        if "timeout" in e or "timed out" in e:
+            return "timeout", True
+        if "connection" in e or "refused" in e:
+            return "connection", True
+        if "json" in e or "decode" in e:
+            return "parse", True
+        if "oom" in e or "memory" in e:
+            return "memory", False
+        return "unknown", True
+
+    @staticmethod
+    def with_retry(fn, max_retries=3):
+        for attempt in range(max_retries):
+            try:
+                return fn()
+            except Exception as e:
+                err_type, retryable = ErrorRecovery.classify(e)
+                if not retryable or attempt == max_retries - 1:
+                    return f"[ERROR after {attempt+1} attempts: {err_type}] {e}"
+                time.sleep(ErrorRecovery.BACKOFF[min(attempt, len(ErrorRecovery.BACKOFF)-1)])
+        return "[ERROR] max retries exceeded"
+
+
+# ── Multi-Turn Tool Chaining ──
+def chain_tools(ask_llm_fn, tools, initial_prompt, max_turns=3, log_fn=None):
+    """Run tool→reason→tool loop up to max_turns.
+    ask_llm_fn(prompt) -> str
+    tools: dict of {name: callable}
+    Returns final response string.
+    """
+    context = initial_prompt
+    for turn in range(max_turns):
+        response = ask_llm_fn(context)
+        if not response:
+            break
+
+        # Check for TOOL: directive
+        lines = response.strip().split("\n")
+        tool_line = None
+        for line in lines[:3]:
+            if line.strip().startswith("TOOL:"):
+                tool_line = line.strip()
+                break
+
+        if not tool_line:
+            return response  # Final answer, no more tools needed
+
+        tool_name = tool_line.split("TOOL:")[1].strip().split()[0].strip()
+        if log_fn:
+            log_fn("INFO", f"Chain turn {turn+1}: {tool_name}")
+
+        if tool_name in tools:
+            result = ErrorRecovery.with_retry(lambda: tools[tool_name]())
+        else:
+            result = f"Unknown tool: {tool_name}. Available: {', '.join(tools.keys())}"
+
+        context = f"""{context}
+
+Tool '{tool_name}' returned:
+{result[:2000]}
+
+Based on this data, either answer the question or request another TOOL: if you need more information.
+If you have enough information, respond with your final answer (no TOOL: prefix)."""
+
+    return response
+
+
+# ── Skill System ──
+class SkillManager:
+    def __init__(self, skills_dir):
+        self.skills_dir = skills_dir
+        os.makedirs(skills_dir, exist_ok=True)
+
+    def list_skills(self):
+        skills = []
+        for f in os.listdir(self.skills_dir):
+            if f.endswith(".md"):
+                path = os.path.join(self.skills_dir, f)
+                content = open(path).read()
+                name = f.replace(".md", "")
+                first_line = content.split("\n")[0].replace("#", "").strip()
+                skills.append({"name": name, "title": first_line, "path": path})
+        return skills
+
+    def get_skill(self, name):
+        path = os.path.join(self.skills_dir, f"{name}.md")
+        if os.path.exists(path):
+            return open(path).read()
+        return None
+
+    def save_skill(self, name, content):
+        path = os.path.join(self.skills_dir, f"{name}.md")
+        with open(path, "w") as f:
+            f.write(content)
+        return path
+
+    def skills_summary(self):
+        skills = self.list_skills()
+        if not skills:
+            return "No skills available."
+        return "\n".join(f"- {s['name']}: {s['title']}" for s in skills)
+
+    def skills_full_context(self, max_chars=3000):
+        """Load full skill content into prompt (not just titles)."""
+        skills = self.list_skills()
+        if not skills:
+            return ""
+        parts = []
+        total = 0
+        for s in skills[:10]:
+            content = open(s["path"]).read()
+            if total + len(content) > max_chars:
+                break
+            parts.append(f"### Skill: {s['name']}\n{content}")
+            total += len(content)
+        return "\n\n".join(parts) if parts else ""
+
+
+# ── Trajectory Recording ──
+class TrajectoryRecorder:
+    def __init__(self, base_dir):
+        self.path = os.path.join(base_dir, "trajectory.jsonl")
+
+    def record(self, role, content, metadata=None):
+        entry = {
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "role": role,
+            "content": content[:1000],
+        }
+        if metadata:
+            entry["meta"] = metadata
+        with open(self.path, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    def recent(self, n=10):
+        if not os.path.exists(self.path):
+            return []
+        lines = open(self.path).readlines()
+        return [json.loads(l) for l in lines[-n:]]
+
+    def user_interests(self, n=30):
+        """Analyze recent user messages to identify what j13 cares about."""
+        entries = self.recent(n)
+        user_msgs = [e["content"] for e in entries if e.get("role") == "user"]
+        if not user_msgs:
+            return ""
+        return "j13 最近關注的話題:\n" + "\n".join(f"- {m[:80]}" for m in user_msgs[-5:])
+
+
+# ── Tool Effectiveness Tracker ──
+class ToolTracker:
+    """Tracks which tools produce useful results most often."""
+
+    def __init__(self, base_dir):
+        self.path = os.path.join(base_dir, "tool_stats.json")
+        self.stats = self._load()
+
+    def _load(self):
+        if os.path.exists(self.path):
+            try:
+                return json.load(open(self.path))
+            except (json.JSONDecodeError, ValueError):
+                pass
+        return {}
+
+    def _save(self):
+        with open(self.path, "w") as f:
+            json.dump(self.stats, f, indent=2)
+
+    def record_use(self, tool_name, useful=True):
+        if tool_name not in self.stats:
+            self.stats[tool_name] = {"used": 0, "useful": 0}
+        self.stats[tool_name]["used"] += 1
+        if useful:
+            self.stats[tool_name]["useful"] += 1
+        self._save()
+
+    def effectiveness_summary(self):
+        if not self.stats:
+            return ""
+        ranked = sorted(self.stats.items(),
+                        key=lambda x: x[1]["useful"] / max(x[1]["used"], 1), reverse=True)
+        return "Tool effectiveness:\n" + "\n".join(
+            f"- {name}: {s['useful']}/{s['used']} useful ({s['useful']*100//max(s['used'],1)}%)"
+            for name, s in ranked
+        )
+
+
+# ── AKASHA Client (read + write) ──
+class AkashaClient:
+    """V9 (2026-04-17): + confidence + source tagging + memory_relations + sync write."""
+
+    def __init__(self, url="http://100.123.49.102:8769"):
+        self.url = url
+
+    def query(self, project, query_text, max_chunks=5):
+        import urllib.request
+        try:
+            url = f"{self.url}/context?project={project}&query={urllib.parse.quote(query_text)}"
+            resp = urllib.request.urlopen(url, timeout=10)
+            data = json.loads(resp.read())
+            chunks = data.get("chunks", [])[:max_chunks]
+            return "\n".join(c.get("content", "")[:300] for c in chunks)
+        except Exception:
+            return ""
+
+    def write(self, project, segment, content, tags=None, confidence=None, source=None):
+        """V9: async write. Returns bool. Use write_sync if you need chunk_ids."""
+        import urllib.request
+        body_dict = {
+            "project": project, "segment": segment,
+            "content": content, "tags": tags or [],
+        }
+        if confidence:
+            body_dict["confidence"] = confidence
+        if source:
+            body_dict["source"] = source
+        body = json.dumps(body_dict).encode()
+        req = urllib.request.Request(f"{self.url}/memory", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            resp = urllib.request.urlopen(req, timeout=10)
+            return json.loads(resp.read()).get("status") == "accepted"
+        except Exception:
+            return False
+
+    def write_sync(self, project, segment, content, tags=None, confidence=None, source=None):
+        """V9: sync write. Returns list[chunk_id] or [] on failure."""
+        import urllib.request
+        body_dict = {
+            "project": project, "segment": segment,
+            "content": content, "tags": tags or [],
+        }
+        if confidence:
+            body_dict["confidence"] = confidence
+        if source:
+            body_dict["source"] = source
+        body = json.dumps(body_dict).encode()
+        req = urllib.request.Request(f"{self.url}/memory/sync", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            resp = urllib.request.urlopen(req, timeout=15)
+            result = json.loads(resp.read())
+            if result.get("status") == "inserted":
+                return result.get("chunk_ids", [])
+        except Exception:
+            pass
+        return []
+
+    def create_relation(self, from_id, to_id, relation, confidence="INFERRED"):
+        """V9: create memory_relation. relation in {supersedes, contradicts, derived_from, refines, references}."""
+        if relation not in {"supersedes", "contradicts", "derived_from", "refines", "references"}:
+            return False
+        import urllib.request
+        body = json.dumps({
+            "from_memory_id": int(from_id),
+            "to_memory_id": int(to_id),
+            "relation": relation,
+            "confidence": confidence,
+        }).encode()
+        req = urllib.request.Request(f"{self.url}/relations", data=body,
+                                     headers={"Content-Type": "application/json"})
+        try:
+            resp = urllib.request.urlopen(req, timeout=10)
+            return json.loads(resp.read()).get("status") == "created"
+        except Exception:
+            return False
+
+    def get_relations(self, memory_id, direction="both", max_age_days=None):
+        """V9: query memory_relations. direction in {from, to, both}. Returns list[dict]."""
+        import urllib.request
+        try:
+            url = f"{self.url}/relations?memory_id={int(memory_id)}&direction={direction}"
+            if max_age_days is not None:
+                url += f"&max_age_days={int(max_age_days)}"
+            resp = urllib.request.urlopen(url, timeout=10)
+            return json.loads(resp.read()).get("relations", [])
+        except Exception:
+            return []
+
+
+# ── Self-Evolution Engine ──
+class EvolutionEngine:
+    """Enables agents to learn from their own history and AKASHA knowledge."""
+
+    def __init__(self, base_dir, akasha_project, agent_name):
+        self.base_dir = base_dir
+        self.akasha = AkashaClient()
+        self.project = akasha_project
+        self.agent_name = agent_name
+        self.findings_file = os.path.join(base_dir, "findings.jsonl")
+        self.evolution_file = os.path.join(base_dir, "evolution_log.jsonl")
+
+    def pre_cycle_context(self):
+        """Build context from AKASHA + past findings + skills before each cycle.
+        Returns a string to inject into the LLM prompt."""
+        parts = []
+
+        # 1. Query AKASHA for relevant project knowledge
+        akasha_ctx = self.akasha.query(self.project, f"{self.agent_name} recent findings and project state")
+        if akasha_ctx:
+            parts.append(f"AKASHA project knowledge:\n{akasha_ctx[:1000]}")
+
+        # 2. Review past findings for patterns
+        findings = self._load_recent_findings(20)
+        if findings:
+            confirmed = [f for f in findings if f.get("confirmed")]
+            topics = {}
+            for f in confirmed:
+                key = f.get("insight", "")[:40]
+                topics[key] = topics.get(key, 0) + 1
+            recurring = {k: v for k, v in topics.items() if v >= 2}
+            if recurring:
+                parts.append(f"Recurring findings (investigate deeper):\n" +
+                             "\n".join(f"- {k} (seen {v}x)" for k, v in recurring.items()))
+            recent_insights = [f.get("insight", "") for f in confirmed[-5:]]
+            if recent_insights:
+                parts.append(f"Recent confirmed insights:\n" +
+                             "\n".join(f"- {i}" for i in recent_insights))
+
+        # 3. Load skills into context
+        skills_dir = os.path.join(self.base_dir, "skills")
+        if os.path.exists(skills_dir):
+            skill_files = [f for f in os.listdir(skills_dir) if f.endswith(".md")]
+            if skill_files:
+                skill_summaries = []
+                for sf in skill_files[:5]:
+                    content = open(os.path.join(skills_dir, sf)).read()
+                    first_line = content.split("\n")[0].replace("#", "").strip()
+                    skill_summaries.append(f"- {sf}: {first_line}")
+                parts.append(f"Available skills (use these patterns):\n" + "\n".join(skill_summaries))
+
+        return "\n\n".join(parts) if parts else ""
+
+    def post_cycle_evolve(self, cycle, findings_this_cycle, ask_llm_fn):
+        """After a cycle, reflect on what was learned and evolve."""
+        if not findings_this_cycle:
+            return
+
+        # Self-assessment: what did we learn this cycle?
+        findings_text = "\n".join(f"- {f.get('insight', '')}" for f in findings_this_cycle)
+        prompt = f"""You are {self.agent_name}. After research cycle #{cycle}, you found:
+{findings_text}
+
+Reflect briefly:
+1. What is the most important pattern across these findings?
+2. What should you investigate NEXT cycle that you haven't tried before?
+3. Should any finding become a permanent monitoring rule (skill)?
+
+Respond in JSON: {{"pattern": "...", "next_investigation": "...", "new_skill": null or "skill description"}}"""
+
+        response = ask_llm_fn(prompt, max_tokens=300)
+        reflection = parse_json_safe(response)
+        if not reflection:
+            return
+
+        # Log evolution
+        entry = {
+            "cycle": cycle,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "findings_count": len(findings_this_cycle),
+            "reflection": reflection,
+        }
+        with open(self.evolution_file, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+        # Auto-generate skill if suggested
+        if reflection.get("new_skill"):
+            skill_name = f"auto_{hashlib.md5(reflection['new_skill'].encode()).hexdigest()[:8]}"
+            skill_path = os.path.join(self.base_dir, "skills", f"{skill_name}.md")
+            if not os.path.exists(skill_path):
+                with open(skill_path, "w") as f:
+                    f.write(f"# {reflection['new_skill']}\n\nGenerated by {self.agent_name} cycle #{cycle}\n\n"
+                            f"Pattern: {reflection.get('pattern', 'N/A')}\n"
+                            f"Next step: {reflection.get('next_investigation', 'N/A')}\n")
+
+        # Write evolution summary to AKASHA
+        self.akasha.write(self.project, "agent_evolution",
+                          f"[{self.agent_name} cycle #{cycle}] {reflection.get('pattern', '')} | "
+                          f"next: {reflection.get('next_investigation', '')}",
+                          tags=[self.agent_name, "evolution"])
+
+    def _load_recent_findings(self, n=20):
+        if not os.path.exists(self.findings_file):
+            return []
+        lines = open(self.findings_file).readlines()
+        results = []
+        for l in lines[-n:]:
+            try:
+                results.append(json.loads(l))
+            except (json.JSONDecodeError, ValueError):
+                continue
+        return results
+
+
+import urllib.parse
+
+# ── JSON Self-Correction ──
+def parse_json_safe(text, retries=2):
+    """Try to extract JSON from LLM response with self-correction."""
+    for attempt in range(retries + 1):
+        try:
+            # Try direct parse
+            return json.loads(text)
+        except (json.JSONDecodeError, ValueError):
+            pass
+        # Try to find JSON in text
+        for start_char, end_char in [("{", "}"), ("[", "]")]:
+            s = text.find(start_char)
+            e = text.rfind(end_char)
+            if s >= 0 and e > s:
+                try:
+                    return json.loads(text[s:e+1])
+                except (json.JSONDecodeError, ValueError):
+                    pass
+        # Clean common issues
+        text = text.replace("'", '"').replace("True", "true").replace("False", "false").replace("None", "null")
+    return None
+
+
+# ── LiteLLM Client (external models for tech scout + deep research) ──
+class LiteLLMClient:
+    def __init__(self, url=None, key="sk-alaya-3ba6230a8f6f8c4ce270cd5e", model="gemini-2.5-flash"):
+        if url is None:
+            import socket
+            hostname = socket.gethostname()
+            url = "http://127.0.0.1:4000" if "alaya" in hostname.lower() or os.path.exists("/home/j13") else "http://100.123.49.102:4000"
+        self.url = url
+        self.key = key
+        self.model = model
+
+    def ask(self, prompt, max_tokens=1024):
+        import urllib.request
+        body = json.dumps({
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "max_tokens": max_tokens,
+            "temperature": 0.4,
+        }).encode()
+        req = urllib.request.Request(
+            f"{self.url}/v1/chat/completions", data=body,
+            headers={"Content-Type": "application/json", "Authorization": f"Bearer {self.key}"},
+        )
+        try:
+            resp = urllib.request.urlopen(req, timeout=60)
+            data = json.loads(resp.read())
+            msg = data.get("choices", [{}])[0].get("message", {})
+            text = msg.get("content") or ""
+            if not text and msg.get("reasoning_content"):
+                text = msg.get("reasoning_content", "")
+            return text.strip()
+        except Exception as e:
+            return f"[LiteLLM Error: {e}]"
+
+
+# ── Tech Scout (periodic technology reconnaissance) ──
+class TechScout:
+    def __init__(self, litellm, agent_name, domain_prompt, base_dir):
+        self.llm = litellm
+        self.agent_name = agent_name
+        self.domain = domain_prompt
+        self.report_file = os.path.join(base_dir, "tech_scout.jsonl")
+
+    def scout(self):
+        prompt = f"""You are {self.agent_name}, a technical supervisor.
+{self.domain}
+
+Based on your knowledge of current technology trends (2024-2026), identify 1-2 new technologies, tools, methods, or best practices that could improve the systems you manage.
+
+For each, provide:
+1. Name of technology/tool
+2. One-line description
+3. Where it could be applied in our current system
+4. Expected benefit
+5. Risk or caveat
+
+Respond in JSON array:
+[{{"name":"...","description":"...","applies_to":"...","benefit":"...","risk":"..."}}]
+
+Only suggest things that are genuinely useful and production-ready. No vaporware."""
+
+        response = self.llm.ask(prompt, max_tokens=800)
+        findings = parse_json_safe(response) or []
+        if isinstance(findings, dict):
+            findings = [findings]
+
+        for f in findings:
+            f["ts"] = datetime.now(timezone.utc).isoformat()
+            f["agent"] = self.agent_name
+            with open(self.report_file, "a") as fp:
+                fp.write(json.dumps(f) + "\n")
+
+        return findings
+
+    def format_report(self, findings):
+        if not findings:
+            return None
+        lines = [f"🔍 {self.agent_name.upper()} 技術偵察報告\n"]
+        for f in findings:
+            lines.append(f"📌 {f.get('name', '?')}")
+            lines.append(f"   {f.get('description', '')}")
+            lines.append(f"   可用在: {f.get('applies_to', '?')}")
+            lines.append(f"   效果: {f.get('benefit', '?')}")
+            lines.append(f"   風險: {f.get('risk', '?')}")
+            lines.append("")
+        return "\n".join(lines)
+
+
+# ── Task Tracker (j13 assigns tasks, agent tracks and reports) ──
+class TaskTracker:
+    def __init__(self, base_dir):
+        self.tasks_file = os.path.join(base_dir, "tasks.json")
+        self.tasks = self._load()
+
+    def _load(self):
+        if os.path.exists(self.tasks_file):
+            try:
+                return json.load(open(self.tasks_file))
+            except (json.JSONDecodeError, ValueError):
+                pass
+        return []
+
+    def _save(self):
+        with open(self.tasks_file, "w") as f:
+            json.dump(self.tasks, f, indent=2)
+
+    def add(self, description, assigned_by="j13"):
+        task = {
+            "id": len(self.tasks) + 1,
+            "description": description,
+            "status": "pending",
+            "assigned_by": assigned_by,
+            "assigned_at": datetime.now(timezone.utc).isoformat(),
+            "completed_at": None,
+            "result": None,
+        }
+        self.tasks.append(task)
+        self._save()
+        return task
+
+    def complete(self, task_id, result):
+        for t in self.tasks:
+            if t["id"] == task_id:
+                t["status"] = "completed"
+                t["completed_at"] = datetime.now(timezone.utc).isoformat()
+                t["result"] = result
+                self._save()
+                return t
+        return None
+
+    def pending(self):
+        return [t for t in self.tasks if t["status"] == "pending"]
+
+    def summary(self):
+        p = len([t for t in self.tasks if t["status"] == "pending"])
+        c = len([t for t in self.tasks if t["status"] == "completed"])
+        return f"Tasks: {p} pending, {c} completed"
+
+
+# ── Scheduled Reports ──
+class ScheduledReporter:
+    def __init__(self, base_dir):
+        self.state_file = os.path.join(base_dir, "report_state.json")
+        self.state = self._load()
+
+    def _load(self):
+        if os.path.exists(self.state_file):
+            try:
+                return json.load(open(self.state_file))
+            except (json.JSONDecodeError, ValueError):
+                pass
+        return {"last_daily": 0, "last_weekly": 0}
+
+    def _save(self):
+        with open(self.state_file, "w") as f:
+            json.dump(self.state, f)
+
+    def should_daily(self):
+        return time.time() - self.state.get("last_daily", 0) > 86400
+
+    def should_weekly(self):
+        return time.time() - self.state.get("last_weekly", 0) > 604800
+
+    def mark_daily(self):
+        self.state["last_daily"] = time.time()
+        self._save()
+
+    def mark_weekly(self):
+        self.state["last_weekly"] = time.time()
+        self._save()
+
+
+# ── Dangerous Operation Guard ──
+class OperationGuard:
+    DANGEROUS_PATTERNS = [
+        "docker stop", "docker restart", "docker rm", "docker kill",
+        "systemctl", "reboot", "shutdown", "kill ", "rm -rf", "rm -f",
+        "DROP", "DELETE FROM", "TRUNCATE", "UPDATE ",
+        "chmod", "chown",
+    ]
+
+    @staticmethod
+    def is_dangerous(cmd):
+        cmd_lower = cmd.lower()
+        for pattern in OperationGuard.DANGEROUS_PATTERNS:
+            if pattern.lower() in cmd_lower:
+                return True, pattern
+        return False, None
+
+
+# ── Cross-Agent Message Bus ──
+class AgentBus:
+    """File-based message bus for Calcifer↔Markl communication on Alaya."""
+
+    def __init__(self, agent_name, bus_path="/home/j13/j13-ops/agent_bus/bus.json", is_remote=False, ssh_target=None):
+        self.agent_name = agent_name
+        self.bus_path = bus_path
+        self.is_remote = is_remote
+        self.ssh_target = ssh_target
+        self._last_read_count = 0
+
+    def _read_bus(self):
+        try:
+            if self.is_remote:
+                r = subprocess.run(
+                    ["ssh", "-o", "ConnectTimeout=3", self.ssh_target, f"cat {self.bus_path}"],
+                    capture_output=True, text=True, timeout=10)
+                return json.loads(r.stdout)
+            else:
+                return json.load(open(self.bus_path))
+        except Exception:
+            return {"messages": []}
+
+    def _write_bus(self, data):
+        content = json.dumps(data, indent=2)
+        try:
+            if self.is_remote:
+                subprocess.run(
+                    ["ssh", "-o", "ConnectTimeout=3", self.ssh_target,
+                     f"cat > {self.bus_path} << 'BUSEOF'\n{content}\nBUSEOF"],
+                    capture_output=True, text=True, timeout=10)
+            else:
+                with open(self.bus_path, "w") as f:
+                    f.write(content)
+        except Exception:
+            pass
+
+    def send(self, to_agent, message, severity="info"):
+        bus = self._read_bus()
+        bus["messages"].append({
+            "from": self.agent_name,
+            "to": to_agent,
+            "message": message,
+            "severity": severity,
+            "ts": datetime.now(timezone.utc).isoformat(),
+            "read": False,
+        })
+        # Keep last 50 messages
+        bus["messages"] = bus["messages"][-50:]
+        self._write_bus(bus)
+
+    def receive(self):
+        bus = self._read_bus()
+        new_msgs = []
+        for i, msg in enumerate(bus["messages"]):
+            if msg.get("to") == self.agent_name and not msg.get("read"):
+                new_msgs.append(msg)
+                bus["messages"][i]["read"] = True
+        if new_msgs:
+            self._write_bus(bus)
+        return new_msgs

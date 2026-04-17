@@ -1,0 +1,57 @@
+{
+  "version": 3,
+  "mode": "observe",
+  "updated_at": "2026-04-17T11:18:32Z",
+  "indicator_weights": {
+    "tsi": 2.0,
+    "macd": 2.0,
+    "zscore": 1.8,
+    "ppo": 1.8,
+    "cci": 1.5,
+    "trix": 1.5,
+    "cmo": 1.2,
+    "roc": 1.2,
+    "rsi": 1.0,
+    "stochastic_k": 1.0,
+    "obv": 1.0,
+    "mfi": 1.2,
+    "vwap": 1.0
+  },
+  "period_preferences": {},
+  "cool_off_hashes": [],
+  "regime_boosts": {},
+  "diversity_floor": 0.3,
+  "tp_survival": {},
+  "meta": {
+    "mode": "observe",
+    "gating": {
+      "version": 2,
+      "min_survivors_for_soft": 3,
+      "min_failures_for_soft": 5,
+      "min_survivors_for_active": 20,
+      "min_failures_for_active": 50,
+      "min_post_update_champions": 20,
+      "soft_exit_below_survivors": 1,
+      "active_exit_below_survivors": 12,
+      "note": "V9 (2026-04-17): bootstrap-friendly thresholds + hysteresis. Mode transitions: observe (default) -> soft (N>=3/5) -> active (N>=20/50). Hysteresis: drop to observe if survivors<1; drop active->soft if survivors<12. Mode written into guidance.json for A1 to read."
+    },
+    "survivors_analyzed": 0,
+    "failures_analyzed": 0,
+    "cool_off_count": 0,
+    "indicator_scores": {
+      "tsi": 1.0,
+      "macd": 1.0,
+      "zscore": 1.0,
+      "ppo": 1.0,
+      "cci": 1.0,
+      "trix": 1.0,
+      "cmo": 1.0,
+      "roc": 1.0,
+      "rsi": 1.0,
+      "stochastic_k": 1.0,
+      "obv": 1.0,
+      "mfi": 1.0,
+      "vwap": 1.0
+    }
+  }
+}

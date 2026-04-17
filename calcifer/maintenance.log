@@ -1,0 +1,30 @@
+{"ts": "2026-04-17T08:25:55Z", "level": "INFO", "msg": "Calcifer nightly maintenance starting (TW 00:00-01:00)"}
+{"ts": "2026-04-17T08:25:57Z", "level": "INFO", "msg": "[docker_prune] OK (1.7s)"}
+{"ts": "2026-04-17T08:25:57Z", "level": "INFO", "msg": "[postgres_vacuum] OK (0.2s)"}
+{"ts": "2026-04-17T08:25:57Z", "level": "INFO", "msg": "[redis_health] OK (0.2s)"}
+{"ts": "2026-04-17T08:25:57Z", "level": "INFO", "msg": "[akasha_compact] OK (0.0s)"}
+{"ts": "2026-04-17T08:25:57Z", "level": "INFO", "msg": "[log_rotation] OK (0.2s)"}
+{"ts": "2026-04-17T08:25:57Z", "level": "INFO", "msg": "[backup_verify] WARN (0.0s)"}
+{"ts": "2026-04-17T08:25:57Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
+{"ts": "2026-04-17T08:25:58Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
+{"ts": "2026-04-17T08:25:58Z", "level": "INFO", "msg": "Maintenance complete: OK=7 WARN=1 ERR=0 SKIP=0 duration=2.4s"}
+{"ts": "2026-04-17T08:26:02Z", "level": "INFO", "msg": "Calcifer nightly maintenance starting (TW 00:00-01:00)"}
+{"ts": "2026-04-17T08:26:02Z", "level": "INFO", "msg": "[docker_prune] OK (0.5s)"}
+{"ts": "2026-04-17T08:26:03Z", "level": "INFO", "msg": "[postgres_vacuum] OK (0.2s)"}
+{"ts": "2026-04-17T08:26:03Z", "level": "INFO", "msg": "[redis_health] OK (0.2s)"}
+{"ts": "2026-04-17T08:26:03Z", "level": "INFO", "msg": "[akasha_compact] OK (0.0s)"}
+{"ts": "2026-04-17T08:26:03Z", "level": "INFO", "msg": "[log_rotation] OK (0.1s)"}
+{"ts": "2026-04-17T08:26:03Z", "level": "INFO", "msg": "[backup_verify] WARN (0.0s)"}
+{"ts": "2026-04-17T08:26:03Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
+{"ts": "2026-04-17T08:26:03Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
+{"ts": "2026-04-17T08:26:03Z", "level": "INFO", "msg": "Maintenance complete: OK=7 WARN=1 ERR=0 SKIP=0 duration=1.1s"}
+{"ts": "2026-04-17T08:32:57Z", "level": "INFO", "msg": "Calcifer nightly maintenance starting (TW 00:00-01:00)"}
+{"ts": "2026-04-17T08:32:57Z", "level": "INFO", "msg": "[docker_prune] OK (0.5s)"}
+{"ts": "2026-04-17T08:32:57Z", "level": "INFO", "msg": "[postgres_vacuum] OK (0.1s)"}
+{"ts": "2026-04-17T08:32:58Z", "level": "INFO", "msg": "[redis_health] OK (0.2s)"}
+{"ts": "2026-04-17T08:32:58Z", "level": "INFO", "msg": "[akasha_compact] OK (0.0s)"}
+{"ts": "2026-04-17T08:32:58Z", "level": "INFO", "msg": "[log_rotation] OK (0.1s)"}
+{"ts": "2026-04-17T08:32:58Z", "level": "INFO", "msg": "[backup_verify] OK (0.0s)"}
+{"ts": "2026-04-17T08:32:58Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
+{"ts": "2026-04-17T08:32:58Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
+{"ts": "2026-04-17T08:32:58Z", "level": "INFO", "msg": "Maintenance complete: OK=8 WARN=0 ERR=0 SKIP=0 duration=1.1s"}

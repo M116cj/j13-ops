@@ -47,6 +47,24 @@ services:
       timeout: 3s
       retries: 3
 
+
+  bloom:
+    image: redis/redis-stack-server:7.4.0-v3
+    container_name: magi-bloom-1
+    restart: always
+    command: redis-stack-server --appendonly yes --port 6381
+    ports:
+      - "127.0.0.1:6381:6381"
+    volumes:
+      - magi_bloom-data:/data
+    networks:
+      - magi_default
+    healthcheck:
+      test: ["CMD", "redis-cli", "-p", "6381", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
   claude-inbox:
     image: python:3.12-slim
     container_name: claude-inbox
@@ -75,6 +93,8 @@ networks:
     name: magi_default
 
 volumes:
+  magi_bloom-data:
+    name: magi_bloom-data
   magi_redis-data:
     name: magi_redis-data
     # 保留現有 named volume，不丟資料

@@ -1,0 +1,80 @@
+{"ts": "2026-04-16T14:42:32", "level": "INFO", "msg": "Arena Pipeline v6 starting \u2014 bloom dedup + A2 pre-screen + early exit | worker=1/1"}
+2026-04-16 14:42:32,272 INFO Arena Pipeline v6 starting — bloom dedup + A2 pre-screen + early exit | worker=1/1
+{"ts": "2026-04-16T14:42:32", "level": "INFO", "msg": "Rust engine loaded"}
+2026-04-16 14:42:32,272 INFO Rust engine loaded
+{"ts": "2026-04-16T14:42:32", "level": "INFO", "msg": "Random baseline loaded: WR_mean=0.3848 WR_std=0.0209 n=10000"}
+2026-04-16 14:42:32,272 INFO Random baseline loaded: WR_mean=0.3848 WR_std=0.0209 n=10000
+{"ts": "2026-04-16T14:42:32", "level": "INFO", "msg": "Loaded BTCUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:32,501 INFO Loaded BTCUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:32", "level": "INFO", "msg": "Loaded ETHUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:32,672 INFO Loaded ETHUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:32", "level": "INFO", "msg": "Loaded BNBUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:32,831 INFO Loaded BNBUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:32", "level": "INFO", "msg": "Loaded SOLUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:32,978 INFO Loaded SOLUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:33", "level": "INFO", "msg": "Loaded XRPUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:33,145 INFO Loaded XRPUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:33", "level": "INFO", "msg": "Loaded DOGEUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:33,296 INFO Loaded DOGEUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:33", "level": "INFO", "msg": "Loaded LINKUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:33,463 INFO Loaded LINKUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:33", "level": "INFO", "msg": "Loaded AAVEUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:33,620 INFO Loaded AAVEUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:33", "level": "INFO", "msg": "Loaded AVAXUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:33,780 INFO Loaded AVAXUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:33", "level": "INFO", "msg": "Loaded DOTUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:33,951 INFO Loaded DOTUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:34", "level": "INFO", "msg": "Loaded FILUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:34,121 INFO Loaded FILUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:34", "level": "INFO", "msg": "Loaded 1000PEPEUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:34,191 INFO Loaded 1000PEPEUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:34", "level": "INFO", "msg": "Loaded 1000SHIBUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:34,311 INFO Loaded 1000SHIBUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:34", "level": "INFO", "msg": "Loaded GALAUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes"}
+2026-04-16 14:42:34,420 INFO Loaded GALAUSDT: 200000 bars (train: 140000, holdout: 60000) funding=yes oi=yes
+{"ts": "2026-04-16T14:42:36", "level": "INFO", "msg": "Factor enrichment complete: F1(momentum) F2(volatility) F3(volume) F4(funding) F5(OI)"}
+2026-04-16 14:42:36,368 INFO Factor enrichment complete: F1(momentum) F2(volatility) F3(volume) F4(funding) F5(OI)
+{"ts": "2026-04-16T14:42:49", "level": "INFO", "msg": "Regime BTCUSDT: BEAR_TREND (L1=BEAR, conf=0.78, mom=-0.78 vol=0.03 vm=0.89 fund=-0.61 oi=0.70)"}
+2026-04-16 14:42:49,139 INFO Regime BTCUSDT: BEAR_TREND (L1=BEAR, conf=0.78, mom=-0.78 vol=0.03 vm=0.89 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:43:01", "level": "INFO", "msg": "Regime ETHUSDT: BEAR_TREND (L1=BEAR, conf=0.76, mom=-0.76 vol=0.03 vm=0.16 fund=-0.61 oi=0.70)"}
+2026-04-16 14:43:01,941 INFO Regime ETHUSDT: BEAR_TREND (L1=BEAR, conf=0.76, mom=-0.76 vol=0.03 vm=0.16 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:43:14", "level": "INFO", "msg": "Regime BNBUSDT: BEAR_TREND (L1=BEAR, conf=0.81, mom=-0.81 vol=0.27 vm=0.03 fund=0.00 oi=0.70)"}
+2026-04-16 14:43:14,649 INFO Regime BNBUSDT: BEAR_TREND (L1=BEAR, conf=0.81, mom=-0.81 vol=0.27 vm=0.03 fund=0.00 oi=0.70)
+{"ts": "2026-04-16T14:43:27", "level": "INFO", "msg": "Regime SOLUSDT: BEAR_TREND (L1=BEAR, conf=0.75, mom=-0.75 vol=0.01 vm=0.34 fund=-0.61 oi=0.70)"}
+2026-04-16 14:43:27,413 INFO Regime SOLUSDT: BEAR_TREND (L1=BEAR, conf=0.75, mom=-0.75 vol=0.01 vm=0.34 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:43:40", "level": "INFO", "msg": "Regime XRPUSDT: BEAR_TREND (L1=BEAR, conf=0.72, mom=-0.72 vol=0.09 vm=0.29 fund=-0.61 oi=0.70)"}
+2026-04-16 14:43:40,214 INFO Regime XRPUSDT: BEAR_TREND (L1=BEAR, conf=0.72, mom=-0.72 vol=0.09 vm=0.29 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:43:52", "level": "INFO", "msg": "Regime DOGEUSDT: CONSOLIDATION (L1=NEUTRAL, conf=0.33, mom=-0.11 vol=0.00 vm=0.04 fund=-0.61 oi=0.70)"}
+2026-04-16 14:43:52,953 INFO Regime DOGEUSDT: CONSOLIDATION (L1=NEUTRAL, conf=0.33, mom=-0.11 vol=0.00 vm=0.04 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:44:05", "level": "INFO", "msg": "Regime LINKUSDT: BEAR_TREND (L1=BEAR, conf=0.78, mom=-0.78 vol=0.06 vm=0.02 fund=-0.61 oi=0.70)"}
+2026-04-16 14:44:05,716 INFO Regime LINKUSDT: BEAR_TREND (L1=BEAR, conf=0.78, mom=-0.78 vol=0.06 vm=0.02 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:44:18", "level": "INFO", "msg": "Regime AAVEUSDT: BULL_TREND (L1=BULL, conf=0.61, mom=0.61 vol=0.36 vm=0.82 fund=-0.61 oi=0.70)"}
+2026-04-16 14:44:18,596 INFO Regime AAVEUSDT: BULL_TREND (L1=BULL, conf=0.61, mom=0.61 vol=0.36 vm=0.82 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:44:31", "level": "INFO", "msg": "Regime AVAXUSDT: BULL_TREND (L1=BULL, conf=0.64, mom=0.64 vol=0.07 vm=0.87 fund=0.61 oi=0.70)"}
+2026-04-16 14:44:31,418 INFO Regime AVAXUSDT: BULL_TREND (L1=BULL, conf=0.64, mom=0.64 vol=0.07 vm=0.87 fund=0.61 oi=0.70)
+{"ts": "2026-04-16T14:44:44", "level": "INFO", "msg": "Regime DOTUSDT: BULL_TREND (L1=BULL, conf=0.63, mom=0.63 vol=0.18 vm=0.75 fund=0.61 oi=0.70)"}
+2026-04-16 14:44:44,113 INFO Regime DOTUSDT: BULL_TREND (L1=BULL, conf=0.63, mom=0.63 vol=0.18 vm=0.75 fund=0.61 oi=0.70)
+{"ts": "2026-04-16T14:44:56", "level": "INFO", "msg": "Regime FILUSDT: BEAR_TREND (L1=BEAR, conf=0.61, mom=-0.61 vol=0.01 vm=0.99 fund=-0.61 oi=0.70)"}
+2026-04-16 14:44:56,816 INFO Regime FILUSDT: BEAR_TREND (L1=BEAR, conf=0.61, mom=-0.61 vol=0.01 vm=0.99 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:45:10", "level": "INFO", "msg": "Regime 1000PEPEUSDT: BULL_TREND (L1=BULL, conf=0.53, mom=0.53 vol=0.04 vm=0.43 fund=-0.61 oi=0.70)"}
+2026-04-16 14:45:10,157 INFO Regime 1000PEPEUSDT: BULL_TREND (L1=BULL, conf=0.53, mom=0.53 vol=0.04 vm=0.43 fund=-0.61 oi=0.70)
+{"ts": "2026-04-16T14:45:23", "level": "INFO", "msg": "Regime 1000SHIBUSDT: BULL_TREND (L1=BULL, conf=0.51, mom=0.51 vol=0.01 vm=0.45 fund=0.61 oi=0.70)"}
+2026-04-16 14:45:23,427 INFO Regime 1000SHIBUSDT: BULL_TREND (L1=BULL, conf=0.51, mom=0.51 vol=0.01 vm=0.45 fund=0.61 oi=0.70)
+{"ts": "2026-04-16T14:45:36", "level": "INFO", "msg": "Regime GALAUSDT: BULL_TREND (L1=BULL, conf=0.50, mom=0.50 vol=0.22 vm=0.33 fund=-0.61 oi=0.70)"}
+2026-04-16 14:45:36,126 INFO Regime GALAUSDT: BULL_TREND (L1=BULL, conf=0.50, mom=0.50 vol=0.22 vm=0.33 fund=-0.61 oi=0.70)
+Traceback (most recent call last):
+  File "/home/j13/j13-ops/zangetsu_v5/services/arena_pipeline.py", line 966, in <module>
+    asyncio.run(main())
+  File "/usr/lib/python3.12/asyncio/runners.py", line 194, in run
+    return runner.run(main)
+           ^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/runners.py", line 118, in run
+    return self._loop.run_until_complete(task)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/asyncio/base_events.py", line 687, in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+  File "/home/j13/j13-ops/zangetsu_v5/services/arena_pipeline.py", line 517, in main
+    log.info(f"Factor indicators computed for {_sym}: natr={_d.get(normalized_atr) is not None} "
+                                                                   ^^^^^^^^^^^^^^
+NameError: name 'normalized_atr' is not defined
