@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "atr_stop_mults": [
+    2.0,
+    3.0,
+    4.0
+  ],
+  "trail_pcts": [
+    0.003,
+    0.005,
+    0.008,
+    0.01,
+    0.015,
+    0.02
+  ],
+  "fixed_targets": [
+    0.005,
+    0.008,
+    0.01,
+    0.015,
+    0.02,
+    0.03
+  ],
+  "inner_split": 0.8,
+  "max_hold_bars": 480,
+  "min_trades_fit": 25,
+  "min_trades_validation": 10,
+  "positive_count_gate": 2,
+  "divergence_ratio_max": 10.0,
+  "note": "Training policy. Modifiable for experimentation without code changes."
+}

@@ -1,0 +1,17 @@
+[Unit]
+Description=Zangetsu V5 Arena13 Evolution
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=j13
+WorkingDirectory=/home/j13/j13-ops
+EnvironmentFile=/etc/zangetsu/zangetsu.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/home/j13/j13-ops/zangetsu_v5/.venv/bin/python3 /home/j13/j13-ops/zangetsu_v5/services/arena13_evolution.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

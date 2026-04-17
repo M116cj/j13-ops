@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "min_survivors_for_soft": 20,
+  "min_failures_for_soft": 50,
+  "min_survivors_for_active": 50,
+  "min_failures_for_active": 100,
+  "min_post_update_champions": 50,
+  "note": "A13 mode transitions: observe (default) -> soft (N>=20/50) -> active (N>=50/100). Mode is written into guidance.json for A1 to read."
+}

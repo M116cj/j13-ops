@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zangetsu V5 Console</title>
+<link rel="stylesheet" href="/static/console.css">
+</head>
+<body>
+<header>
+  <h1>Zangetsu V5 Console</h1>
+  <span id="status-dot" class="status-dot offline"></span>
+  <span id="status-text">Connecting...</span>
+</header>
+<main>
+  <section class="panel" id="health-panel">
+    <h2>System Health</h2>
+    <div id="health-grid" class="health-grid"></div>
+  </section>
+  <section class="panel" id="arena-panel">
+    <h2>Arena Control</h2>
+    <div class="arena-grid" id="arena-grid"></div>
+  </section>
+  <section class="panel" id="params-panel">
+    <h2>Parameters</h2>
+    <div class="param-filter">
+      <input type="text" id="param-search" placeholder="Filter parameters...">
+    </div>
+    <div class="table-wrap">
+      <table id="params-table">
+        <thead><tr><th>Group</th><th>Parameter</th><th>Value</th></tr></thead>
+        <tbody id="params-body"></tbody>
+      </table>
+    </div>
+  </section>
+  <section class="panel" id="cost-panel">
+    <h2>Cost Model</h2>
+    <div class="table-wrap">
+      <table id="cost-table">
+        <thead><tr><th>Symbol</th><th>Maker (bps)</th><th>Taker (bps)</th><th>Slippage (bps)</th><th>Funding 8h (bps)</th></tr></thead>
+        <tbody id="cost-body"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<div id="toast-container"></div>
+<script src="/static/console.js"></script>
+</body>
+</html>
