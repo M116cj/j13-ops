@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "indicator_weights": {
+    "tsi": 2.0,
+    "macd": 2.0,
+    "zscore": 1.8,
+    "ppo": 1.8,
+    "cci": 1.5,
+    "trix": 1.5,
+    "cmo": 1.2,
+    "roc": 1.2,
+    "rsi": 1.0,
+    "stochastic_k": 1.0,
+    "obv": 1.0,
+    "mfi": 1.2,
+    "vwap": 1.0
+  },
+  "explore_rate": 0.5,
+  "period_choices": [
+    7,
+    14,
+    20,
+    30,
+    48,
+    50,
+    100,
+    200
+  ],
+  "n_ind_distribution": {
+    "2": 0.2,
+    "3": 0.6,
+    "4": 0.2
+  },
+  "regime_cap_pct": 0.25,
+  "note": "Base policy. A13 guidance can override indicator_weights and explore_rate only."
+}

@@ -4,3 +4,13 @@ infra/magi/litellm_config.yaml
 infra/.env
 infra/magi/*.env
 *.bak*
+
+# zangetsu_v5 runtime (added 2026-04-16)
+zangetsu_v5/.venv/
+zangetsu_v5/data/
+zangetsu_v5/logs/
+zangetsu_v5/indicator_engine/target/
+zangetsu_v5/**/__pycache__/
+zangetsu_v5/**/*.pyc
+zangetsu_v5/**/*.bak
+zangetsu_v5/**/*.deleted
