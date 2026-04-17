@@ -22,7 +22,7 @@ POLL_INTERVAL = 2
 HEALTH_INTERVAL = 300
 BASE_DIR = os.path.expanduser("~/j13-ops/calcifer")
 LOG_FILE = os.path.join(BASE_DIR, "calcifer.log")
-LOCK_FILE = "/tmp/zangetsu_v5/calcifer_supervisor.lock"
+LOCK_FILE = "/tmp/zangetsu/calcifer_supervisor.lock"
 
 os.makedirs(BASE_DIR, exist_ok=True)
 os.makedirs(os.path.dirname(LOCK_FILE), exist_ok=True)
@@ -107,13 +107,13 @@ TOOLS = {
     "check_akasha_api": lambda: run_cmd("curl -s --connect-timeout 3 http://100.123.49.102:8769/health 2>&1"),
     "check_akasha_db": lambda: run_cmd("docker exec akasha-postgres psql -U akasha -d akasha -t -c \"SELECT 'chunks=' || count(*) FROM memory_chunks\" 2>&1 || echo 'unreachable'"),
     "check_akasha_redis": lambda: run_cmd("docker exec akasha-redis redis-cli ping 2>&1"),
-    "check_zangetsu": lambda: run_cmd("~/j13-ops/zangetsu_v5/zangetsu_ctl.sh status 2>&1 | head -15"),
+    "check_zangetsu": lambda: run_cmd("~/j13-ops/zangetsu/zangetsu_ctl.sh status 2>&1 | head -15"),
     "check_ollama": lambda: run_cmd("curl -s http://localhost:11434/api/tags 2>&1 | head -5"),
     "check_litellm": lambda: run_cmd("curl -s --connect-timeout 3 http://localhost:4000/health 2>&1 | head -5 || echo 'DOWN'"),
     "check_db_health": lambda: run_cmd("docker exec deploy-postgres-1 psql -U zangetsu -d zangetsu -t -c \"SELECT 'rows=' || count(*) || ' deployable=' || count(*) FILTER (WHERE status='DEPLOYABLE') FROM champion_pipeline\" 2>&1"),
     "check_backups": lambda: run_cmd("echo PG: && ls -lh /home/j13/backups/*.sql.gz 2>/dev/null | tail -3 && echo Redis: && ls -lh /home/j13/backups/*.rdb 2>/dev/null | tail -3 || echo no backups found"),
     "check_rsteiner": lambda: run_cmd("tail -5 ~/r-steiner/data/run.log 2>/dev/null && echo --- && ps aux | grep r-steiner | grep -v grep | wc -l && echo processes"),
-    "check_logs": lambda: run_cmd("tail -30 ~/j13-ops/zangetsu_v5/logs/engine.jsonl 2>/dev/null | grep -i 'error\\|fail\\|warn' | tail -10 || echo 'no errors'"),
+    "check_logs": lambda: run_cmd("tail -30 ~/j13-ops/zangetsu/logs/engine.jsonl 2>/dev/null | grep -i 'error\\|fail\\|warn' | tail -10 || echo 'no errors'"),
 }
 
 SYSTEM_KNOWLEDGE = """Alaya Infrastructure:

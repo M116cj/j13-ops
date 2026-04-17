@@ -1,6 +1,6 @@
 #!/bin/bash
 # Watchdog — checks each service independently, restarts only the dead one
-# Install: crontab -e → */5 * * * * ~/j13-ops/zangetsu/watchdog.sh >> /tmp/zv5_watchdog.log 2>&1
+# Install: crontab -e → */5 * * * * ~/j13-ops/zangetsu/watchdog.sh >> /tmp/zangetsu_watchdog.log 2>&1
 #
 # NOTE: This replaces the old watchdog that killed ALL services when one was dead.
 #       Also replaces scripts/watchdog_arena23.sh — remove that cron entry.
@@ -32,12 +32,12 @@ declare -A LOCK_TO_SYSTEMD=(
 
 # Lockfile-to-log mapping (for health checks)
 declare -A LOCK_TO_LOG=(
-  [arena_pipeline_w0]=$LOG_DIR/zv5_a1_w0.log
-  [arena_pipeline_w1]=$LOG_DIR/zv5_a1_w1.log
-  [arena_pipeline_w2]=$LOG_DIR/zv5_a1_w2.log
-  [arena_pipeline_w3]=$LOG_DIR/zv5_a1_w3.log
-  [arena23_orchestrator]=$LOG_DIR/zv5_a23.log
-  [arena45_orchestrator]=$LOG_DIR/zv5_a45.log
+  [arena_pipeline_w0]=$LOG_DIR/zangetsu_a1_w0.log
+  [arena_pipeline_w1]=$LOG_DIR/zangetsu_a1_w1.log
+  [arena_pipeline_w2]=$LOG_DIR/zangetsu_a1_w2.log
+  [arena_pipeline_w3]=$LOG_DIR/zangetsu_a1_w3.log
+  [arena23_orchestrator]=$LOG_DIR/zangetsu_a23.log
+  [arena45_orchestrator]=$LOG_DIR/zangetsu_a45.log
 )
 
 timestamp() {
@@ -64,7 +64,7 @@ rotate_log() {
       i=$((i - 1))
     done
     mv -f "$logfile" "${logfile}.1"
-    echo "$(timestamp) WATCHDOG: rotated $logfile (was ${size} bytes)" >> /tmp/zv5_watchdog.log
+    echo "$(timestamp) WATCHDOG: rotated $logfile (was ${size} bytes)" >> /tmp/zangetsu_watchdog.log
   fi
 }
 
@@ -100,7 +100,7 @@ restart_service() {
 
   # Fallback: lockfile-based restart for A1 workers w1-w3 (not in systemd)
   local lock="$LOCK_DIR/${name}.lock"
-  local log="${LOCK_TO_LOG[$name]:-$LOG_DIR/zv5_${name}.log}"
+  local log="${LOCK_TO_LOG[$name]:-$LOG_DIR/zangetsu_${name}.log}"
 
   # Kill old process if still around
   if [ -f "$lock" ]; then
@@ -145,7 +145,7 @@ restart_service() {
 rotate_log "$ENGINE_LOG" "$MAX_LOG_SIZE" "$MAX_ROTATIONS"
 
 # 2. Rotate service logs in /tmp if too large (same threshold)
-for logfile in $LOG_DIR/zv5_*.log; do
+for logfile in $LOG_DIR/zangetsu_*.log; do
   [ -f "$logfile" ] || continue
   rotate_log "$logfile" "$MAX_LOG_SIZE" "$MAX_ROTATIONS"
 done

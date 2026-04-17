@@ -20,3 +20,7 @@ zangetsu_v5/graphify-out/
 **/__pycache__/
 **/*.bak2
 **/*.deleted
+zangetsu/data/funding/
+zangetsu/data/ohlcv/
+zangetsu/data/regimes/
+zangetsu/data/oi/
