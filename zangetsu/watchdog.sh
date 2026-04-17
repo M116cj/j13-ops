@@ -152,6 +152,13 @@ for lock in $LOCK_DIR/*.lock; do
     dead_count=$((dead_count + 1))
   else
     # Process exists, but check log activity for deeper health
+    # Orchestrators (A23/A45) idle when no candidates -> skip stale-log check, only PID-alive
+    case "$name" in
+      arena23_orchestrator|arena45_orchestrator)
+        running_count=$((running_count + 1))
+        continue
+        ;;
+    esac
     logfile="${LOCK_TO_LOG[$name]:-}"
     if [ -n "$logfile" ] && ! check_log_activity "$logfile"; then
       echo "$(timestamp) WATCHDOG: $name pid=$pid alive but log stale (>$(( STALE_THRESHOLD / 60 ))min), restarting..."
