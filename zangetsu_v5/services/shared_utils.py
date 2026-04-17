@@ -242,7 +242,7 @@ SYMBOLS = [
 
 
 def extract_symbol(indicator_hash: str) -> str:
-    """Extract symbol from indicator_hash (e.g., 'v6_w2_r277_c11_AVAXUSDT')."""
+    """Extract symbol from indicator_hash (e.g., 'v9_w2_r277_c11_AVAXUSDT')."""
     for sym in SYMBOLS:
         if indicator_hash.endswith(sym):
             return sym

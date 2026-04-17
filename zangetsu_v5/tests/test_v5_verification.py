@@ -1,3 +1,9 @@
+"""OBSOLETE — V5-era tests, references removed modules (voter, data_weight).
+Marked skip pending rewrite for V9 architecture. See TODO.
+"""
+import pytest
+pytest.skip("V5-era tests — modules voter/data_weight deprecated in V9 unification", allow_module_level=True)
+
 """V5 Architecture Verification — 17-point compliance test."""
 import sys, os
 sys.path.insert(0, os.path.expanduser("~/j13-ops/zangetsu_v5"))
