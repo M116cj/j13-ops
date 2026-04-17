@@ -92,7 +92,7 @@ def _vectorized_backtest(
             if reason >= 0:
                 exit_price = close[i]
                 raw_return = (exit_price - entry_price) / entry_price * position
-                # V7.1: scale by position size from continuous signal strength
+                # V9: scale by position size from continuous signal strength
                 size = sizes[i] if sizes[i] > 0.0 else 1.0
                 cost = cost_per_trade
                 pnl[i] = (raw_return - cost) * size

@@ -3,7 +3,7 @@
 Arena 2: Threshold optimization (entry/exit grid search)
 Arena 3: PnL training (ATR stop + TP strategy search + half-Kelly sizing)
 
-v4: Shared utils imports, DB reconnect, lease reaper, crash-loop hardening.
+v9: Shared utils imports, DB reconnect, lease reaper, crash-loop hardening.
     Train-inner/validation split within A3 to prevent overfitting.
     Uses TRAIN data only (70% split) — holdout reserved for Arena 4+5.
     A3 grid search on train-inner (80% of train), validated on train-validation (20% of train).
@@ -64,15 +64,15 @@ EXIT_THRESHOLDS = [0.20, 0.25, 0.30, 0.35, 0.40, 0.45, 0.50]
 A2_STAGE1_PAIRS = [(0.60, 0.20), (0.65, 0.25), (0.70, 0.30), (0.75, 0.35), (0.80, 0.40), (0.85, 0.45), (0.90, 0.50)]
 
 # Arena 3 grid
-ATR_STOP_MULTS = [2.0, 3.0, 4.0]  # v6: narrowed from 7 to 3 (tight stops never survive A4)
+ATR_STOP_MULTS = [2.0, 3.0, 4.0]  # v9: narrowed from 7 to 3 (tight stops never survive A4)
 MAX_HOLD_BARS_A2 = 120
 MAX_HOLD_BARS_A3 = 480
 
-# Arena 3 TP search params (v3: trimmed extremes to reduce overfitting degrees of freedom)
+# Arena 3 TP search params (v9: trimmed extremes to reduce overfitting degrees of freedom)
 TRAIL_PCTS = [0.003, 0.005, 0.008, 0.01, 0.015, 0.02]
 FIXED_TARGETS = [0.005, 0.008, 0.01, 0.015, 0.02, 0.03]
 
-# v3: Train-inner split ratio for A3 cross-validation
+# v9: Train-inner split ratio for A3 cross-validation
 A3_INNER_SPLIT = 0.80  # 80% of train for fitting, 20% for validation
 
 
@@ -402,7 +402,7 @@ async def process_arena2(
 
     # ── Multi-metric promotion gate (AD3) ──────────────────────────
     # Champion passes Arena 2 if ANY metric improves OR if already economically valid.
-    # v6 champions arrive pre-screened (A1 already tested at A2 params), so the strict
+    # v9 champions arrive pre-screened (A1 already tested at A2 params), so the strict
     # improvement check would reject them even though they're valid.
     improvements = {
         "wr": best_wr > original_wr,
@@ -656,7 +656,7 @@ async def process_arena3(
     )
 
     val_pos = _positive_count(bt_val)
-    # v6: Validation gate — positive economics required, no raw WR floor
+    # v9: Validation gate — positive economics required, no raw WR floor
     if bt_val.total_trades < 10 or val_pos < 2:
         log.info(
             f"A3 REJECTED id={champion_id} {symbol}: validation split fail | "
@@ -666,7 +666,7 @@ async def process_arena3(
         )
         return None
 
-    # v5: Train/validation divergence check
+    # v9: Train/validation divergence check
     if winner_result.net_pnl > 0 and bt_val.net_pnl > 0:
         pnl_ratio = winner_result.net_pnl / bt_val.net_pnl
         if pnl_ratio > 10.0:
@@ -767,7 +767,7 @@ async def main():
     log = StructuredLogger(
         "arena23", settings.log_level, settings.log_file, settings.log_rotation_mb
     )
-    log.info("Arena 2+3 Orchestrator starting (v4: shared_utils, DB reconnect, lease reaper)")
+    log.info("Arena 2+3 Orchestrator starting (v9: shared_utils, DB reconnect, lease reaper)")
 
     class BtConfig:
         backtest_chunk_size = 10000

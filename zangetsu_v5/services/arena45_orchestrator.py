@@ -5,11 +5,11 @@ Arena 4: Validates ARENA3_COMPLETE champions on HOLDOUT data (last 30%).
 Arena 5: Continuous ELO tournament for CANDIDATE + DEPLOYABLE strategies (Swiss-system pairing).
          Only DEPLOYABLE can become ACTIVE card.
 
-v2: Arena 4 uses holdout data only — never sees train data from Arena 1/2/3.
-v3: Dual-tier CANDIDATE → DEPLOYABLE promotion gate (AD2).
-v4: A4 now faithfully replays A3's TP strategy + ATR params + max_hold=480 on holdout.
+v9: Arena 4 uses holdout data only — never sees train data from Arena 1/2/3.
+v9: Dual-tier CANDIDATE → DEPLOYABLE promotion gate (AD2).
+v9: A4 now faithfully replays A3's TP strategy + ATR params + max_hold=480 on holdout.
 v6c: A4 min_seg_trades=8, A5 same-symbol evidence accumulation for Wilson LB promotion, pool_size=2, A3 PnL pre-filter.
-v5: Deduplicated shared_utils (compute_indicators, compute_atr, wilson_lower,
+v9: Deduplicated shared_utils (compute_indicators, compute_atr, wilson_lower,
     compute_config_hash, apply_trailing_stop, apply_fixed_target, apply_tp_strategy,
     extract_a3_params). Fixed A5 max_hold bug, ATR stop in ELO matches,
     config hash compatibility, trailing stop semantic mismatch.
@@ -113,7 +113,7 @@ def backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_
 
 async def pick_arena3_complete(db):
     """Atomically pick one ARENA3_COMPLETE champion for processing."""
-    # v6: Pre-filter - skip A3 champions with non-positive PnL
+    # v9: Pre-filter - skip A3 champions with non-positive PnL
     n_prefiltered = await db.fetchval("""
         WITH to_filter AS (
             SELECT id FROM champion_pipeline
@@ -775,7 +775,7 @@ async def main():
     cost_model = CostModel()
     log = StructuredLogger("arena45", settings.log_level, settings.log_file, settings.log_rotation_mb)
 
-    log.info("Arena 4+5 Orchestrator starting (v5: shared_utils dedup + ATR/TP fixes)")
+    log.info("Arena 4+5 Orchestrator starting (v9: shared_utils dedup + ATR/TP fixes)")
 
     # Load Rust engine
     rust_engine = None
@@ -865,7 +865,7 @@ async def main():
     signal.signal(signal.SIGTERM, handle_sig)
     signal.signal(signal.SIGINT, handle_sig)
 
-    log.info("Arena 4+5 Orchestrator running (v5: shared_utils dedup + ATR/TP fixes)")
+    log.info("Arena 4+5 Orchestrator running (v9: shared_utils dedup + ATR/TP fixes)")
 
     while running:
         try:
