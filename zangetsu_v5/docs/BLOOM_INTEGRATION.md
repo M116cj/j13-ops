@@ -165,11 +165,11 @@ Near the end of `main()`, before the process exits:
 
 4. **Key cleanup**: To reset the bloom (e.g., after schema changes):
    ```bash
-   redis-cli DEL zangetsu:bloom:v6:bits zangetsu:bloom:v6:count
+   redis-cli DEL zangetsu:bloom:v9:bits zangetsu:bloom:v9:count
    ```
 
 5. **Monitoring**: Check shared bloom health:
    ```bash
-   redis-cli STRLEN zangetsu:bloom:v6:bits   # bytes used
-   redis-cli GET zangetsu:bloom:v6:count      # approx entries
+   redis-cli STRLEN zangetsu:bloom:v9:bits   # bytes used
+   redis-cli GET zangetsu:bloom:v9:count      # approx entries
    ```

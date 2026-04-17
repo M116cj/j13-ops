@@ -22,10 +22,8 @@ from zangetsu_v5.engine.components.p_value import load_baseline, compute_p_value
 from zangetsu_v5.engine.components.data_preprocessor import enrich_data_cache
 from zangetsu_v5.services.data_collector import merge_funding_to_1m, merge_oi_to_1m
 from pathlib import Path
-# V9: Only _ema needed for downstream factor computations — v1 regime removed
-from zangetsu_v5.engine.components.regime_labeler import _ema
-
 # V9: LABEL_TO_REGIME and L1_ALLOWED live in market_state.py (single source of truth)
+# V9: _ema is imported from shared_utils below (which re-exports from regime_labeler)
 
 from zangetsu_v5.services.shared_utils import wilson_lower
 from zangetsu_v5.services.shared_utils import (

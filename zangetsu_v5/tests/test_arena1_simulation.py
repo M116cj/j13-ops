@@ -1,3 +1,9 @@
+"""OBSOLETE — V5-era tests, references removed modules (voter, data_weight).
+Marked skip pending rewrite for V9 architecture. See TODO.
+"""
+import pytest
+pytest.skip("V5-era tests — modules voter/data_weight deprecated in V9 unification", allow_module_level=True)
+
 #!/usr/bin/env python3
 """Arena 1 single-round simulation — tests the full pipeline."""
 import sys, os, time, importlib.util
