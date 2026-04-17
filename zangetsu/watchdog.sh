@@ -12,7 +12,7 @@ LOG_DIR=/tmp
 ENGINE_LOG=$BASE/logs/engine.jsonl
 MAX_LOG_SIZE=$((50 * 1024 * 1024))  # 50MB
 MAX_ROTATIONS=2
-STALE_THRESHOLD=600  # 10 minutes — service considered unhealthy if log not updated
+STALE_THRESHOLD=1800  # 10 minutes — service considered unhealthy if log not updated
 
 
 
@@ -135,6 +135,11 @@ for lock in $LOCK_DIR/*.lock; do
   [ -f "$lock" ] || continue
   pid=$(cat "$lock" 2>/dev/null)
   name=$(basename "$lock" .lock)
+
+  # Cron-managed services: lock file persists between runs, skip
+  case "$name" in
+    arena13_feedback|calcifer_supervisor) continue ;;
+  esac
 
   alive=false
   if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
