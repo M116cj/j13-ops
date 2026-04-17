@@ -41,7 +41,7 @@ case "${1:-status}" in
         "A1-W$i" \
         "$LOCK_DIR/arena_pipeline_w${i}.lock" \
         "env A1_WORKER_ID=$i A1_WORKER_COUNT=$A1_WORKERS A1_LANE=$(if [ $i -lt 2 ]; then echo baseline; elif [ $i -lt 4 ]; then echo guided; else echo exploration; fi) $VENV services/arena_pipeline.py" \
-        "$LOG_DIR/zv5_a1_w${i}.log"
+        "$LOG_DIR/zangetsu_a1_w${i}.log"
     done
 
     # A23 Orchestrator
@@ -49,14 +49,14 @@ case "${1:-status}" in
       "A23" \
       "$LOCK_DIR/arena23_orchestrator.lock" \
       "$VENV services/arena23_orchestrator.py" \
-      "$LOG_DIR/zv5_a23.log"
+      "$LOG_DIR/zangetsu_a23.log"
 
     # A45 Orchestrator
     start_if_not_running \
       "A45" \
       "$LOCK_DIR/arena45_orchestrator.lock" \
       "$VENV services/arena45_orchestrator.py" \
-      "$LOG_DIR/zv5_a45.log"
+      "$LOG_DIR/zangetsu_a45.log"
 
     sleep 5
     echo ""
@@ -160,7 +160,7 @@ case "${1:-status}" in
           # Tail all A1 worker logs
           echo "=== A1 Worker Logs (last $lines lines each) ==="
           for i in $(seq 0 $((A1_WORKERS - 1))); do
-            logfile="$LOG_DIR/zv5_a1_w${i}.log"
+            logfile="$LOG_DIR/zangetsu_a1_w${i}.log"
             if [ -f "$logfile" ]; then
               echo "--- A1-W$i ---"
               tail -n "$lines" "$logfile"
@@ -169,11 +169,11 @@ case "${1:-status}" in
           ;;
         a23|arena23)
           echo "=== Arena23 Logs ==="
-          journalctl -u arena23-orchestrator -n "$lines" --no-pager 2>/dev/null || tail -n "$lines" "$LOG_DIR/zv5_a23.log" 2>/dev/null
+          journalctl -u arena23-orchestrator -n "$lines" --no-pager 2>/dev/null || tail -n "$lines" "$LOG_DIR/zangetsu_a23.log" 2>/dev/null
           ;;
         a45|arena45)
           echo "=== Arena45 Logs ==="
-          journalctl -u arena45-orchestrator -n "$lines" --no-pager 2>/dev/null || tail -n "$lines" "$LOG_DIR/zv5_a45.log" 2>/dev/null
+          journalctl -u arena45-orchestrator -n "$lines" --no-pager 2>/dev/null || tail -n "$lines" "$LOG_DIR/zangetsu_a45.log" 2>/dev/null
           ;;
         console)
           echo "=== Console API Logs ==="
@@ -198,7 +198,7 @@ case "${1:-status}" in
       JOURNAL_PID=$!
 
       # Also tail lockfile-managed worker logs
-      tail -f $LOG_DIR/zv5_a1_w*.log $LOG_DIR/zv5_a23.log $LOG_DIR/zv5_a45.log 2>/dev/null &
+      tail -f $LOG_DIR/zangetsu_a1_w*.log $LOG_DIR/zangetsu_a23.log $LOG_DIR/zangetsu_a45.log 2>/dev/null &
       TAIL_PID=$!
 
       trap "kill $JOURNAL_PID $TAIL_PID 2>/dev/null; exit 0" INT TERM
@@ -291,7 +291,7 @@ case "${1:-status}" in
 
     # 7. Log file sizes
     echo "--- Log Sizes ---"
-    for f in $LOG_DIR/zv5_*.log $BASE/logs/engine.jsonl; do
+    for f in $LOG_DIR/zangetsu_*.log $BASE/logs/engine.jsonl; do
       [ -f "$f" ] || continue
       size=$(du -h "$f" 2>/dev/null | cut -f1)
       echo "  $(basename "$f"): $size"
