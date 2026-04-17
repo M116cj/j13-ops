@@ -5,7 +5,7 @@ Replaces per-worker in-memory BloomFilter with a single shared bloom
 stored in Redis BITFIELD. All 4 A1 workers share the same filter,
 eliminating the 200-round DB re-sync and the 3,204 duplicate inserts.
 
-Key prefix: zangetsu:bloom:v6:
+Key prefix: zangetsu:bloom:v9:
 Requires: redis[hiredis] (async via redis.asyncio)
 
 Usage:
@@ -33,7 +33,7 @@ _bits_key: str = ""  # Redis key for the bit array
 _initialized: bool = False
 _using_redis: bool = False
 
-PREFIX = "zangetsu:bloom:v6:"
+PREFIX = "zangetsu:bloom:v9:"
 
 
 # ── Math helpers (same as original BloomFilter) ──

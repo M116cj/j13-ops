@@ -1,7 +1,7 @@
-"""Shared signal generation — V7.1 Semantic Continuous Signals.
+"""Shared signal generation — V9 Semantic Continuous Signals.
 Indicator-specific interpretation with continuous [-1,+1] strength signals.
 Optimized: Numba JIT for inner loop.
-V7.1: All indicators output continuous strength instead of binary votes."""
+V9: All indicators output continuous strength instead of binary votes."""
 from __future__ import annotations
 import numpy as np
 from typing import Dict, List, Tuple, Callable
@@ -19,7 +19,7 @@ except ImportError:
         return wrapper
 
 
-# ═══ V7.1: Continuous signal lambdas [-1, +1] ═══
+# ═══ V9: Continuous signal lambdas [-1, +1] ═══
 
 # --- Overbought/Oversold group ---
 def _ob_os_signal(v: np.ndarray, buy_thr: float, sell_thr: float) -> np.ndarray:
@@ -111,7 +111,7 @@ _BOUNDED_INDICATORS = frozenset({
 
 
 def _trend_vote(name: str, values: np.ndarray, regime: str) -> np.ndarray:
-    """V7.1: Continuous momentum-based voting for trending regimes.
+    """V9: Continuous momentum-based voting for trending regimes.
     Output: continuous [-1, +1] strength via tanh(delta / avg_delta)."""
     n = len(values)
     votes = np.zeros(n, dtype=np.float64)
@@ -152,7 +152,7 @@ def _trend_vote(name: str, values: np.ndarray, regime: str) -> np.ndarray:
 
 
 def indicator_vote(name: str, values: np.ndarray, regime: str = "") -> np.ndarray:
-    """V7.1: Vote based on indicator values. Returns continuous [-1, +1] strength."""
+    """V9: Vote based on indicator values. Returns continuous [-1, +1] strength."""
     if regime in TRENDING_REGIMES:
         return _trend_vote(name, values, regime)
     if name in INDICATOR_SIGNALS:
@@ -175,7 +175,7 @@ def _threshold_signals_numba(
     min_hold: int,
     cooldown: int,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """V7.1: Numba-jitted inner loop for signal generation.
+    """V9: Numba-jitted inner loop for signal generation.
     vote_matrix: float64 [-1, +1] continuous votes.
     Returns: (signals, sizes, agreements)."""
     n_bars = vote_matrix.shape[0]
@@ -227,7 +227,7 @@ def _threshold_signals_numba(
             agreement_rate = 0.0  # FIXED BUG-8: tie = abstain (was defaulting SHORT)
         agreements[i] = agreement_rate
 
-        # V7.1: strength = mean(|vote_values|) for nonzero votes
+        # V9: strength = mean(|vote_values|) for nonzero votes
         strength = abs_sum / n_voters
         sizes[i] = strength
 
@@ -269,7 +269,7 @@ def generate_threshold_signals(
     cooldown: int = 60,
     regime: str = "",
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """V7.1: Generate threshold signals with continuous voting.
+    """V9: Generate threshold signals with continuous voting.
     Returns: (signals, sizes, agreements) — 3-tuple for drop-in composite replacement."""
     n_bars = len(indicator_values[0])
     n_ind = len(indicator_names)

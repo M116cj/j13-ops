@@ -1,6 +1,6 @@
-"""Arena Pipeline v6 — High-throughput optimized A1 with bloom filter dedup + A2 pre-screen.
+"""Arena Pipeline V9 — High-throughput optimized A1 with bloom filter dedup + A2 pre-screen.
 
-Changes from v4/v5:
+Changes from v4/v5 (unified V9):
 - O1: Bloom filter full-history dedup (all statuses, not just active)
 - O2: A2-aligned pre-screen (max_hold=120 + positive_count>=2) before DB insert
 - O3: Adaptive early exit (stop after 80 contestants if strong champion found)
@@ -22,34 +22,10 @@ from zangetsu_v5.engine.components.p_value import load_baseline, compute_p_value
 from zangetsu_v5.engine.components.data_preprocessor import enrich_data_cache
 from zangetsu_v5.services.data_collector import merge_funding_to_1m, merge_oi_to_1m
 from pathlib import Path
-from zangetsu_v5.engine.components.regime_labeler import (
-    _ema, _atr, _adx, _classify_bar, _rolling_std, _ema_slope, label_4h_causal,
-)
+# V9: Only _ema needed for downstream factor computations — v1 regime removed
+from zangetsu_v5.engine.components.regime_labeler import _ema
 
-# Map labeler int states -> pipeline string regimes
-LABEL_TO_REGIME = {
-    0: "CONSOLIDATION",      # quiet_range
-    1: "BULL_PULLBACK",      # trending_up_weak
-    2: "BULL_TREND",         # trending_up_strong
-    3: "BEAR_RALLY",         # trending_down_weak
-    4: "BEAR_TREND",         # trending_down_strong
-    5: "PARABOLIC",          # high_vol_up
-    6: "LIQUIDITY_CRISIS",   # high_vol_down
-    7: "CONSOLIDATION",      # mean_revert
-    8: "BULL_TREND",         # breakout_up
-    9: "BEAR_TREND",         # breakout_down
-    10: "SQUEEZE",           # compression
-    11: "CHOPPY_VOLATILE",   # expansion
-    12: "CHOPPY_VOLATILE",   # choppy
-}
-
-# L1 macro constraints
-L1_ALLOWED = {
-    "BULL":    ["BULL_TREND","BULL_PULLBACK","DISTRIBUTION","TOPPING","CONSOLIDATION","SQUEEZE","PARABOLIC"],
-    "BEAR":    ["BEAR_TREND","BEAR_RALLY","ACCUMULATION","BOTTOMING","CONSOLIDATION","SQUEEZE","LIQUIDITY_CRISIS"],
-    "NEUTRAL": ["CONSOLIDATION","CHOPPY_VOLATILE","SQUEEZE"],
-}
-
+# V9: LABEL_TO_REGIME and L1_ALLOWED live in market_state.py (single source of truth)
 
 from zangetsu_v5.services.shared_utils import wilson_lower
 from zangetsu_v5.services.shared_utils import (
@@ -60,60 +36,6 @@ from zangetsu_v5.services.shared_utils import (
 from zangetsu_v5.services.market_state import build_market_state
 
 
-# DEPRECATED: v1 price-only regime detection. Replaced by 5-factor v2 in market_state.py
-# Kept as fallback reference. Not called by pipeline.
-def get_current_regime(close_1m: np.ndarray, high_1m: np.ndarray,
-                       low_1m: np.ndarray, volume_1m: np.ndarray) -> str:
-    """Determine current regime from 1m OHLCV using the regime labeler."""
-    import pandas as pd
-
-    n = len(close_1m)
-    chunk = 240  # 240 1m bars = 1 4h bar
-
-    n_4h = n // chunk
-    if n_4h < 50:
-        return "CONSOLIDATION"
-
-    # Resample to 4h bars
-    close_4h = np.array([close_1m[(i + 1) * chunk - 1] for i in range(n_4h)])
-    high_4h = np.array([np.max(high_1m[i * chunk:(i + 1) * chunk]) for i in range(n_4h)])
-    low_4h = np.array([np.min(low_1m[i * chunk:(i + 1) * chunk]) for i in range(n_4h)])
-    vol_4h = np.array([np.sum(volume_1m[i * chunk:(i + 1) * chunk]) for i in range(n_4h)])
-    open_4h = np.array([close_1m[i * chunk] for i in range(n_4h)])
-
-    # L1: Macro trend from EMA crossover + ADX
-    ema20 = _ema(close_4h, 20)
-    ema50 = _ema(close_4h, 50)
-    adx = _adx(high_4h, low_4h, close_4h, 14)
-
-    if ema20[-1] > ema50[-1] and adx[-1] > 20:
-        l1 = "BULL"
-    elif ema20[-1] < ema50[-1] and adx[-1] > 20:
-        l1 = "BEAR"
-    else:
-        l1 = "NEUTRAL"
-
-    # L2: Use label_4h_causal for 13-state classification
-    df_4h = pd.DataFrame({
-        "open": open_4h,
-        "high": high_4h,
-        "low": low_4h,
-        "close": close_4h,
-        "volume": vol_4h,
-    })
-    labels = label_4h_causal(df_4h)
-    # ISS-04 fix: use MODE (most common) regime, not last bar
-    from collections import Counter
-    label_counts = Counter(int(x) for x in labels)
-    l2_int = label_counts.most_common(1)[0][0]
-    l2 = LABEL_TO_REGIME.get(l2_int, "CONSOLIDATION")
-
-    # L1 -> L2 constraint: RELAXED (was forcing CONSOLIDATION when L1=NEUTRAL)
-    # Now: L2 label from 4H regime labeler stands on its own regardless of L1
-    # This allows BEAR_TREND/BULL_TREND exploration when ADX < 20
-    # L1 is still used as a feature, just not as a hard gate
-
-    return l2
 
 
 # Indicator weights based on historical hit rate analysis
@@ -287,7 +209,7 @@ async def main():
     worker_id = min(_env_int("A1_WORKER_ID", 0, 0), worker_count - 1)
     checkpoint_arena = f"arena1_pipeline_w{worker_id}" if worker_count > 1 else "arena1_pipeline"
 
-    log.info(f"Arena Pipeline v6 starting — bloom dedup + A2 pre-screen + early exit | worker={worker_id+1}/{worker_count}")
+    log.info(f"Arena Pipeline V9 starting — bloom dedup + A2 pre-screen + early exit | worker={worker_id+1}/{worker_count}")
 
     try:
         import zangetsu_indicators as zi
@@ -848,7 +770,7 @@ async def main():
                 best_champion = {
                     "configs": configs,
                     "indicator_names": [cfg["name"] for cfg in configs],
-                    "hash": f"v6_w{worker_id}_r{round_number}_c{c}_{sym}",
+                    "hash": f"v9_w{worker_id}_r{round_number}_c{c}_{sym}",
                     "wr": float(bt.win_rate),
                     "wilson_wr": float(adjusted_wr),
                     "pnl": float(bt.net_pnl),
@@ -939,7 +861,7 @@ async def main():
             """,
                 regime, best_champion["hash"], len(best_champion["configs"]),
                 best_score, best_champion["wilson_wr"], best_champion["pnl"],
-                best_champion["trades"], passport, "zv5_v71",
+                best_champion["trades"], passport, "zv9",
             )
         except Exception as e:
             log.error(f"DB: {e}")

@@ -86,7 +86,7 @@ async def compute_guidance(db, log):
         SELECT id, passport->'arena1'->'configs' as configs
         FROM champion_pipeline
         WHERE status = 'ARENA4_ELIMINATED'
-          AND engine_hash = 'zv5_v7'
+          AND engine_hash = 'zv9'
           AND passport->'arena1'->'configs' IS NOT NULL
     """)
 
@@ -141,7 +141,7 @@ async def compute_guidance(db, log):
         SELECT DISTINCT passport->'arena1'->>'config_hash' as ch, regime
         FROM champion_pipeline
         WHERE status = 'ARENA4_ELIMINATED'
-          AND engine_hash = 'zv5_v7'
+          AND engine_hash = 'zv9'
           AND updated_at > NOW() - INTERVAL '{COOL_OFF_HOURS} hours'
           AND passport->'arena1'->>'config_hash' IS NOT NULL
     """)
@@ -175,7 +175,7 @@ async def compute_guidance(db, log):
           status,
           count(*) as cnt
         FROM champion_pipeline
-        WHERE engine_hash = 'zv5_v7' AND arena3_sharpe IS NOT NULL
+        WHERE engine_hash = 'zv9' AND arena3_sharpe IS NOT NULL
         GROUP BY 1, 2, 3
     """)
     tp_survival = {}

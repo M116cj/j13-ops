@@ -1,4 +1,4 @@
-"""Zangetsu V6 Market State — Five-factor market description layer.
+"""Zangetsu V9 Market State — Five-factor market description layer.
 
 Provides the MarketState dataclass and the v2 regime detection engine.
 The 13-regime framework is preserved; detection is rebuilt on 5 factors:

@@ -1,4 +1,4 @@
-"""Zangetsu V6 Shared Utilities — Single source of truth for cross-arena logic.
+"""Zangetsu V9 Shared Utilities — Single source of truth for cross-arena logic.
 
 Eliminates duplicated implementations across arena_pipeline, arena23, arena45.
 All arenas MUST import from here to ensure semantic consistency.
@@ -368,21 +368,8 @@ async def reap_expired_leases(db, log, lease_minutes: int = 15):
 # Five-Factor Market State Computation
 # ═══════════════════════════════════════════════════════════════════
 
-def _ema_slope(ema_arr, lookback=3):
-    """Causal slope of EMA over lookback bars."""
-    slope = np.zeros(len(ema_arr))
-    for i in range(lookback, len(ema_arr)):
-        slope[i] = ema_arr[i] - ema_arr[i - lookback]
-    return slope
-
-def _ema(series, span):
-    """Causal EMA. No future data."""
-    out = np.empty_like(series, dtype=np.float64)
-    alpha = 2.0 / (span + 1)
-    out[0] = float(series[0])
-    for i in range(1, len(series)):
-        out[i] = alpha * series[i] + (1 - alpha) * out[i - 1]
-    return out
+# V9: Import _ema and _ema_slope from single source (regime_labeler) — deduplicated
+from zangetsu_v5.engine.components.regime_labeler import _ema, _ema_slope
 
 
 def rolling_percentile_rank(arr, window=720):

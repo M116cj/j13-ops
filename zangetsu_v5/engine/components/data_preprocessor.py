@@ -1,4 +1,4 @@
-"""Data Preprocessor — Nondimensionalization module for Zangetsu V5.
+"""Data Preprocessor — Nondimensionalization module for Zangetsu V9.
 
 Transforms raw OHLCV + funding + OI into scale-free features (5 factor categories).
 All outputs are unitless (no USD dependency).

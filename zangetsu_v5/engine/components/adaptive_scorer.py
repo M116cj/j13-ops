@@ -1,4 +1,4 @@
-"""Adaptive family-level scoring for Zangetsu V5 Sharpe Quant doctrine.
+"""Adaptive family-level scoring for Zangetsu V9 Sharpe Quant doctrine.
 
 Score_t(f) = ((Pi(s_i+eps)^w_i)^eta * (Sum w_i*s_i)^(1-eta)) - Penalty_t(f)
 
