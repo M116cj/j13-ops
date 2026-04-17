@@ -15,7 +15,6 @@ os.chdir('/home/j13/j13-ops')
 
 import numpy as np
 from zangetsu_v5.services.pidlock import acquire_lock
-acquire_lock("arena13_feedback")
 
 from zangetsu_v5.config.settings import Settings
 from zangetsu_v5.engine.components.logger import StructuredLogger
@@ -317,4 +316,5 @@ async def main():
 
 
 if __name__ == "__main__":
+    acquire_lock("arena13_feedback")
     asyncio.run(main())
