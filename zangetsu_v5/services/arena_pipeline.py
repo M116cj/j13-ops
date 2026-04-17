@@ -777,7 +777,7 @@ async def main():
                 continue
 
             # Gate 2: PnL floor
-            if float(bt.net_pnl) < -0.3:
+            if float(bt.net_pnl) < -1.0:  # V9 oneshot A1: relaxed from -0.3 (70% reject rate)
                 stats["reject_neg_pnl"] += 1
                 continue
 
