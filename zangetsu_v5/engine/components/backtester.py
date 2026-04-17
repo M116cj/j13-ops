@@ -157,7 +157,8 @@ class Backtester:
         )
 
         total_trades = len(entries)
-        trade_pnls = pnl_array[pnl_array != 0.0]
+        # V9 FIX: index by exit positions (was: float-equal filter that dropped break-even trades)
+        trade_pnls = pnl_array[exits] if total_trades > 0 else np.array([], dtype=np.float64)
         winning = int(np.sum(trade_pnls > 0))
         losing = int(np.sum(trade_pnls < 0))
         gross_pnl = float(np.sum(trade_pnls[trade_pnls > 0])) if winning > 0 else 0.0

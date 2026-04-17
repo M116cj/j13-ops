@@ -29,15 +29,55 @@ def load_gating_policy():
         with open(GATING_PATH) as f:
             return json.load(f)
     except Exception:
-        return {"min_survivors_for_soft": 20, "min_failures_for_soft": 50,
-                "min_survivors_for_active": 50, "min_failures_for_active": 100}
+        return {"min_survivors_for_soft": 3, "min_failures_for_soft": 5,
+                "min_survivors_for_active": 20, "min_failures_for_active": 50,
+                "soft_exit_below_survivors": 1, "active_exit_below_survivors": 12}
 
-def determine_mode(n_survivors, n_failures, gating):
-    if n_survivors >= gating.get("min_survivors_for_active", 50) and n_failures >= gating.get("min_failures_for_active", 100):
+def determine_mode(n_survivors, n_failures, gating, previous_mode="observe"):
+    """V9 (2026-04-17): hysteresis-aware mode transition.
+
+    Standard entry thresholds apply when going UP (observe → soft → active).
+    Exit thresholds (lower) apply when going DOWN to prevent thrash near boundary.
+    """
+    soft_in = gating.get("min_survivors_for_soft", 3)
+    soft_in_fail = gating.get("min_failures_for_soft", 5)
+    active_in = gating.get("min_survivors_for_active", 20)
+    active_in_fail = gating.get("min_failures_for_active", 50)
+    soft_exit = gating.get("soft_exit_below_survivors", 1)
+    active_exit = gating.get("active_exit_below_survivors", 12)
+
+    # Currently active → only drop if survivors fall below active_exit
+    if previous_mode == "active":
+        if n_survivors < active_exit:
+            # Drop one level: active → soft (if still meets soft entry, else observe)
+            if n_survivors >= soft_in and n_failures >= soft_in_fail:
+                return "soft"
+            return "observe"
         return "active"
-    if n_survivors >= gating.get("min_survivors_for_soft", 20) and n_failures >= gating.get("min_failures_for_soft", 50):
+
+    # Currently soft → only drop to observe if survivors fall below soft_exit
+    if previous_mode == "soft":
+        if n_survivors >= active_in and n_failures >= active_in_fail:
+            return "active"
+        if n_survivors < soft_exit:
+            return "observe"
+        return "soft"
+
+    # Currently observe → standard upgrade thresholds
+    if n_survivors >= active_in and n_failures >= active_in_fail:
+        return "active"
+    if n_survivors >= soft_in and n_failures >= soft_in_fail:
         return "soft"
     return "observe"
+
+
+def load_previous_mode():
+    """Read mode from existing guidance.json for hysteresis logic."""
+    try:
+        with open(GUIDANCE_PATH) as f:
+            return json.load(f).get("mode", "observe")
+    except Exception:
+        return "observe"
 
 # Bounds: guidance weights are clamped to prevent overfit or collapse
 WEIGHT_FLOOR = 0.5
@@ -58,6 +98,8 @@ ALL_PERIODS = [7, 14, 20, 30, 48, 50, 100, 200]
 
 async def compute_guidance(db, log):
     """Extract downstream truth and compute guidance weights."""
+    # V9: load gating early so failure-noise guard can use bootstrap thresholds
+    gating = load_gating_policy()
 
     # ── 1. Survivor analysis: what indicators/periods appear in successful champions? ──
     survivors = await db.fetch("""
@@ -109,19 +151,26 @@ async def compute_guidance(db, log):
         score = (s + 1) / (f + 1)
         indicator_scores[ind] = score
 
-    # Normalize scores to weights: map score range to [WEIGHT_FLOOR, WEIGHT_CEIL]
-    scores = list(indicator_scores.values())
-    if max(scores) > min(scores):
-        s_min, s_max = min(scores), max(scores)
-        guided_weights = {}
-        for ind, score in indicator_scores.items():
-            normalized = (score - s_min) / (s_max - s_min)  # 0-1
-            weight = WEIGHT_FLOOR + normalized * (WEIGHT_CEIL - WEIGHT_FLOOR)
-            # Blend with base weight: 60% guidance, 40% base (prevents drift)
-            blended = 0.3 * weight + 0.7 * BASE_WEIGHTS.get(ind, 1.0)
-            guided_weights[ind] = round(max(WEIGHT_FLOOR, min(WEIGHT_CEIL, blended)), 3)
-    else:
+    # V9 FIX: Skip weight calc when survivors < gating threshold (avoid failure-only noise)
+    survivor_total = sum(survivor_ind_count.values())
+    MIN_SURVIVORS_FOR_WEIGHTS = gating.get('min_survivors_for_soft', 3)  # V9: matches gating bootstrap threshold
+    if survivor_total < MIN_SURVIVORS_FOR_WEIGHTS:
+        log.info(f"A13: only {survivor_total} survivor indicator-uses, using BASE_WEIGHTS (need {MIN_SURVIVORS_FOR_WEIGHTS})") if log else None
         guided_weights = dict(BASE_WEIGHTS)
+    else:
+        # Normalize scores to weights: map score range to [WEIGHT_FLOOR, WEIGHT_CEIL]
+        scores = list(indicator_scores.values())
+        if max(scores) > min(scores):
+            s_min, s_max = min(scores), max(scores)
+            guided_weights = {}
+            for ind, score in indicator_scores.items():
+                normalized = (score - s_min) / (s_max - s_min)  # 0-1
+                weight = WEIGHT_FLOOR + normalized * (WEIGHT_CEIL - WEIGHT_FLOOR)
+                # Blend with base weight: 60% guidance, 40% base (prevents drift)
+                blended = 0.3 * weight + 0.7 * BASE_WEIGHTS.get(ind, 1.0)
+                guided_weights[ind] = round(max(WEIGHT_FLOOR, min(WEIGHT_CEIL, blended)), 3)
+        else:
+            guided_weights = dict(BASE_WEIGHTS)
 
     # ── 4. Period preferences from survivors ──
     period_preferences = {}
@@ -188,8 +237,8 @@ async def compute_guidance(db, log):
         else:
             tp_survival[key]["failed"] += row["cnt"]
 
-    gating = load_gating_policy()
-    mode = determine_mode(len(survivors), len(failures), gating)
+    previous_mode = load_previous_mode()
+    mode = determine_mode(len(survivors), len(failures), gating, previous_mode)
 
     # ── 8. Assemble guidance ──
     guidance = {
@@ -236,41 +285,35 @@ async def main():
     signal.signal(signal.SIGTERM, handle_sig)
     signal.signal(signal.SIGINT, handle_sig)
 
-    cycle = 0
-    while running:
-        cycle += 1
-        try:
-            guidance = await compute_guidance(db, log)
+    # V9 SINGLE-SHOT: compute once, write, exit (triggered by systemd timer every 1h)
+    try:
+        guidance = await compute_guidance(db, log)
 
-            # Write atomically (write to tmp, rename)
-            tmp_path = GUIDANCE_PATH + ".tmp"
-            with open(tmp_path, "w") as f:
-                json.dump(guidance, f, indent=2)
-            os.replace(tmp_path, GUIDANCE_PATH)
+        # Write atomically (write to tmp, rename)
+        tmp_path = GUIDANCE_PATH + ".tmp"
+        with open(tmp_path, "w") as f:
+            json.dump(guidance, f, indent=2)
+        os.replace(tmp_path, GUIDANCE_PATH)
 
-            meta = guidance["meta"]
-            weights = guidance["indicator_weights"]
-            top3 = sorted(weights.items(), key=lambda x: -x[1])[:3]
-            bot3 = sorted(weights.items(), key=lambda x: x[1])[:3]
+        meta = guidance["meta"]
+        weights = guidance["indicator_weights"]
+        top3 = sorted(weights.items(), key=lambda x: -x[1])[:3]
+        bot3 = sorted(weights.items(), key=lambda x: x[1])[:3]
 
-            log.info(
-                f"A13 guidance #{cycle} MODE={guidance.get('mode','?')} | survivors={meta['survivors_analyzed']} "
-                f"failures={meta['failures_analyzed']} cool_off={meta['cool_off_count']} | "
-                f"top: {', '.join(f'{k}={v}' for k,v in top3)} | "
-                f"bot: {', '.join(f'{k}={v}' for k,v in bot3)}"
-            )
+        log.info(
+            f"A13 guidance MODE={guidance.get('mode','?')} | survivors={meta['survivors_analyzed']} "
+            f"failures={meta['failures_analyzed']} cool_off={meta['cool_off_count']} | "
+            f"top: {', '.join(f'{k}={v}' for k,v in top3)} | "
+            f"bot: {', '.join(f'{k}={v}' for k,v in bot3)}"
+        )
 
-        except Exception as e:
-            log.error(f"A13 guidance computation failed: {e}")
-
-        # Sleep in small chunks so we can respond to signals
-        for _ in range(REFRESH_INTERVAL_S):
-            if not running:
-                break
-            await asyncio.sleep(1)
+    except Exception as e:
+        log.error(f"A13 guidance computation failed: {e}")
+        await db.close()
+        sys.exit(1)
 
     await db.close()
-    log.info("Arena 13 Feedback Controller stopped")
+    log.info("Arena 13 Feedback complete (single-shot)")
 
 
 if __name__ == "__main__":

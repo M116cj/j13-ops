@@ -136,6 +136,54 @@ class AlphaResult:
             "generation": self.generation,
         }
 
+    # ── V9 X7: round-trip serialization ────────────────────────────
+    def to_dict(self) -> dict:
+        """Full dict form suitable for JSON storage (JSONB / passport)."""
+        return {
+            "formula": self.formula,
+            "ast_json": self.ast_json,
+            "ic": float(self.ic),
+            "sharpe": float(self.sharpe),
+            "stability": float(self.stability),
+            "complexity": int(self.complexity),
+            "hash": self.hash,
+            "generation": int(self.generation),
+            "schema": "alpha_result.v1",
+        }
+
+    def serialize(self) -> str:
+        """Serialize the full AlphaResult to a JSON string."""
+        return json.dumps(self.to_dict(), default=str, ensure_ascii=False)
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "AlphaResult":
+        """Rebuild from a dict previously produced by to_dict()."""
+        if data is None:
+            raise ValueError("AlphaResult.from_dict: data is None")
+        return cls(
+            formula=str(data.get("formula", "")),
+            ast_json=list(data.get("ast_json") or data.get("ast") or []),
+            ic=float(data.get("ic", 0.0) or 0.0),
+            sharpe=float(data.get("sharpe", 0.0) or 0.0),
+            stability=float(data.get("stability", 0.0) or 0.0),
+            complexity=int(data.get("complexity", 0) or 0),
+            hash=str(data.get("hash", "") or ""),
+            generation=int(data.get("generation", 0) or 0),
+        )
+
+    @classmethod
+    def deserialize(cls, json_str: str) -> "AlphaResult":
+        """Inverse of serialize(). Accepts either raw dicts or JSON strings."""
+        if isinstance(json_str, dict):
+            return cls.from_dict(json_str)
+        if not isinstance(json_str, str) or not json_str.strip():
+            raise ValueError("AlphaResult.deserialize: expected non-empty JSON string")
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"AlphaResult.deserialize: invalid JSON ({exc})") from exc
+        return cls.from_dict(data)
+
 
 # ═══════════════════════════════════════════════════════════════════
 # GP Alpha Engine
@@ -328,10 +376,119 @@ class AlphaEngine:
         except:
             return [str(individual)]
 
-    def compile_alpha(self, ast_json: list) -> callable:
-        """Reconstruct a callable from stored AST JSON.
-        For live deployment: alpha_fn(close, high, low, volume, returns) -> signal array.
+    # ── V9 X7: AST -> callable reconstruction ─────────────────────
+    #
+    # The JSON AST produced by _tree_to_json() is a nested list:
+    #
+    #     ["add", "close", ["multiply", "close", "10.0"]]
+    #
+    # Leaves are either input names ("close","high","low","volume","returns")
+    # or stringified numeric constants. Inner nodes are [op_name, *args].
+    # We translate that into a plain Python function so it can be evaluated
+    # at live-trade time without depending on DEAP's PrimitiveTree objects
+    # (which do not survive cross-process / JSONB round-trips cleanly).
+
+    # Supported op names -> numpy-backed callables.
+    _AST_OP_TABLE: Dict[str, "callable"] = None  # type: ignore[assignment]
+
+    @classmethod
+    def _ast_op_table(cls) -> Dict[str, "callable"]:
+        if cls._AST_OP_TABLE is not None:
+            return cls._AST_OP_TABLE
+        table = {
+            "add": np.add,
+            "subtract": np.subtract,
+            "multiply": np.multiply,
+            "_protected_div": _protected_div,
+            "protected_div": _protected_div,
+            "_protected_log": _protected_log,
+            "protected_log": _protected_log,
+            "_neg": _neg, "neg": _neg,
+            "_abs": _abs, "abs": _abs,
+            "_sign": _sign, "sign": _sign,
+            "_tanh": _tanh, "tanh": _tanh,
+            "_clip": _clip, "clip": _clip,
+            "_rolling_mean": _rolling_mean, "rolling_mean": _rolling_mean,
+            "_rolling_std": _rolling_std, "rolling_std": _rolling_std,
+            "_ema": _ema, "ema": _ema,
+            "_delay": _delay, "delay": _delay,
+            "_delta": _delta, "delta": _delta,
+            "_ts_max": _ts_max, "ts_max": _ts_max,
+            "_ts_min": _ts_min, "ts_min": _ts_min,
+            "_rank": _rank, "rank": _rank,
+        }
+        cls._AST_OP_TABLE = table
+        return table
+
+    @classmethod
+    def ast_to_callable(cls, ast_json):
+        """Reconstruct a Python callable from a stored AST.
+
+        The returned function has signature:
+
+            f(close, high, low, volume, returns) -> np.ndarray
+
+        All inputs must be 1-D numpy arrays of identical length. The function
+        is pure (no DEAP / no global state), so it is safe to pickle and ship
+        to live-trading workers.
+
+        Accepts either the nested-list form produced by `_tree_to_json`, or
+        a JSON string of the same. Raises ValueError on malformed input.
         """
-        # For now, use eval-based reconstruction from formula string
-        # TODO: proper AST reconstruction
-        raise NotImplementedError("Use evolve() output directly for now")
+        if isinstance(ast_json, str):
+            try:
+                ast_json = json.loads(ast_json)
+            except json.JSONDecodeError as exc:
+                raise ValueError(f"ast_to_callable: invalid JSON ({exc})") from exc
+
+        ops = cls._ast_op_table()
+        inputs = ("close", "high", "low", "volume", "returns")
+
+        def _eval_node(node, env):
+            # Leaf: input name, numeric constant, or raw ndarray.
+            if isinstance(node, (int, float)):
+                return np.float64(node)
+            if isinstance(node, np.ndarray):
+                return node
+            if isinstance(node, str):
+                if node in env:
+                    return env[node]
+                # numeric constant stored as string?
+                try:
+                    return np.float64(node)
+                except ValueError as exc:
+                    raise ValueError(
+                        f"ast_to_callable: unknown terminal {node!r}"
+                    ) from exc
+            if isinstance(node, (list, tuple)):
+                if len(node) == 0:
+                    raise ValueError("ast_to_callable: empty node")
+                head = node[0]
+                args = [_eval_node(child, env) for child in node[1:]]
+                # Leaf wrapped as single-element list.
+                if len(node) == 1:
+                    return _eval_node(head, env)
+                fn = ops.get(head)
+                if fn is None:
+                    raise ValueError(f"ast_to_callable: unsupported op {head!r}")
+                try:
+                    return fn(*args)
+                except TypeError as exc:
+                    raise ValueError(
+                        f"ast_to_callable: op {head!r} arity mismatch ({exc})"
+                    ) from exc
+            raise ValueError(f"ast_to_callable: unsupported node type {type(node)!r}")
+
+        def _callable(close, high, low, volume, returns):
+            env = dict(zip(inputs, (close, high, low, volume, returns)))
+            out = _eval_node(ast_json, env)
+            if not isinstance(out, np.ndarray):
+                # Broadcast scalars to match close length.
+                out = np.full_like(close, float(out), dtype=np.float64)
+            return np.nan_to_num(out, nan=0.0, posinf=0.0, neginf=0.0)
+
+        return _callable
+
+    def compile_alpha(self, ast_json) -> "callable":
+        """Back-compat shim; prefer `ast_to_callable`."""
+        return self.ast_to_callable(ast_json)

@@ -60,8 +60,9 @@ A13_GUIDANCE_PATH = "/home/j13/j13-ops/zangetsu_v5/config/a13_guidance.json"
 _guidance_cache = {"weights": None, "cool_off": set(), "regime_boosts": {}, "explore_rate": EXPLORE_RATE, "loaded_at": 0}
 
 def load_a13_guidance(log=None):
-    """Load A13 feedback guidance. Returns guided weights or falls back to defaults."""
-    import os, time
+    """Load A13 feedback guidance. V9: always overwrite cache (no stale partial fields).
+    Cheap mtime check short-circuits if file unchanged."""
+    import os
     try:
         if not os.path.exists(A13_GUIDANCE_PATH):
             return
@@ -70,18 +71,20 @@ def load_a13_guidance(log=None):
             return  # Already loaded this version
         with open(A13_GUIDANCE_PATH, "r") as f:
             g = json.load(f)
-        if g.get("indicator_weights"):
-            _guidance_cache["weights"] = g["indicator_weights"]
-        if g.get("cool_off_hashes"):
-            _guidance_cache["cool_off"] = set(g["cool_off_hashes"])
-        if g.get("regime_boosts"):
-            _guidance_cache["regime_boosts"] = g["regime_boosts"]
+        # V9 FIX (Codex #3): unconditional overwrite to avoid stale fields when transitions clear lists
+        _guidance_cache["weights"] = g.get("indicator_weights") or None
+        _guidance_cache["cool_off"] = set(g.get("cool_off_hashes", []))
+        _guidance_cache["regime_boosts"] = g.get("regime_boosts", {})
+        _guidance_cache["mode"] = g.get("mode", "observe")  # V9 FIX (Codex #4)
+        _guidance_cache["period_preferences"] = g.get("period_preferences", {})
         _guidance_cache["explore_rate"] = max(g.get("diversity_floor", EXPLORE_RATE), 0.20)
         _guidance_cache["loaded_at"] = mtime
         if log:
-            top = sorted(_guidance_cache["weights"].items(), key=lambda x: -x[1])[:3]
-            log.info(f"A13 guidance loaded: {len(_guidance_cache['weights'])} weights, "
-                     f"{len(_guidance_cache['cool_off'])} cool-off, "
+            n_w = len(_guidance_cache["weights"]) if _guidance_cache["weights"] else 0
+            top = sorted((_guidance_cache["weights"] or {}).items(), key=lambda x: -x[1])[:3]
+            log.info(f"A13 guidance loaded: mode={_guidance_cache['mode']} weights={n_w} "
+                     f"cool_off={len(_guidance_cache['cool_off'])} "
+                     f"regime_boosts={len(_guidance_cache['regime_boosts'])} "
                      f"top: {', '.join(f'{k}={v}' for k,v in top)}")
     except Exception as e:
         if log:
@@ -473,7 +476,14 @@ async def main():
                 continue
             for period in period_choices:
                 try:
-                    vals = zi.compute(nm, {"period": period}, close, high, low, vol) if rust else np.zeros(len(close))
+                    # V9 X2: shm-first lookup, compute only if missing.
+                    try:
+                        from services.indicator_precompute import get_shared_indicator as _sgi_full
+                        vals = _sgi_full(sym, nm, period)
+                    except Exception:
+                        vals = None
+                    if vals is None:
+                        vals = zi.compute(nm, {"period": period}, close, high, low, vol) if rust else np.zeros(len(close))
                     mad = np.median(np.abs(vals - np.median(vals)))
                     if mad > 0:
                         indicator_cache[(nm, period)] = (vals, mad)
@@ -500,7 +510,15 @@ async def main():
                 continue
             for period in period_choices:
                 try:
-                    vals = zi.compute(nm, {"period": period}, qclose, qhigh, qlow, qvol) if rust else np.zeros(len(qclose))
+                    # V9 X2: shm-first lookup, fall back to compute.
+                    try:
+                        from services.indicator_precompute import get_shared_indicator as _sgi_quick
+                        _full = _sgi_quick(sym, nm, period)
+                        vals = _full[:len(qclose)] if _full is not None else None
+                    except Exception:
+                        vals = None
+                    if vals is None:
+                        vals = zi.compute(nm, {"period": period}, qclose, qhigh, qlow, qvol) if rust else np.zeros(len(qclose))
                     mad = np.median(np.abs(vals - np.median(vals)))
                     if mad > 0:
                         quick_cache[(nm, period)] = (vals, mad)
@@ -540,6 +558,7 @@ async def main():
     stats = {
         "bloom_hits": 0, "early_exits": 0, "quick_rejects": 0,
         "a2_prescreen_rejects": 0, "full_backtests": 0, "champions_inserted": 0,
+        "reject_few_trades": 0, "reject_low_wr": 0, "reject_neg_pnl": 0, "reject_low_score": 0,
     }
 
     log.info(
@@ -564,6 +583,8 @@ async def main():
 
     while running:
         round_number += 1
+        # V9 FIX (Codex #2): refresh A13 guidance every round (mtime-gated, cheap)
+        load_a13_guidance(log)
         # --- Checkpoint: save every 50 rounds ---
         if round_number % 50 == 0 and round_number > 0:
             try:
@@ -600,9 +621,8 @@ async def main():
             except Exception as e:
                 log.warning(f"Bloom refresh failed: {e}")
 
-            # ── A13 guidance refresh ──
-            load_a13_guidance(log)
-            # Add cool-off hashes to bloom
+            # V9 FIX (Codex #2): load_a13_guidance moved to every round (mtime-gated, cheap)
+            # Cool-off bloom sync stays in 200-round block since bloom is in-memory persistent
             for _ck in _guidance_cache.get("cool_off", set()):
                 if _ck not in bloom:
                     bloom.add(_ck)
@@ -668,11 +688,17 @@ async def main():
             else:
                 n_ind = 4
 
-            # A13 OBSERVE MODE: guidance loaded for logging only, base weights always used
+            # V9 FIX (Codex #4): respect A13 mode. Only use guided weights when soft/active.
+            _a13_mode = _guidance_cache.get("mode", "observe")
+            _guided = _guidance_cache.get("weights")
+            if _a13_mode in ("soft", "active") and _guided:
+                _active_weights = _guided
+            else:
+                _active_weights = INDICATOR_WEIGHTS
             if random.random() < EXPLORE_RATE:
                 names = sample_diverse_indicators(DIRECTIONAL, {x: 1.0 for x in DIRECTIONAL}, min(n_ind, len(DIRECTIONAL)))
             else:
-                names = sample_diverse_indicators(DIRECTIONAL, INDICATOR_WEIGHTS, n_ind)
+                names = sample_diverse_indicators(DIRECTIONAL, _active_weights, n_ind)
             periods = [random.choice(period_choices) for _ in names]
             # Safety: deduplicate indicator names
             seen = set()
@@ -721,7 +747,7 @@ async def main():
                 [c["name"] for c in configs], arrs_quick,
                 entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime,
             )
-            bt_q = backtester.run(signals_q, qclose, sym, cost_bps, 480, high=qhigh, low=qlow)
+            bt_q = backtester.run(signals_q, qclose, sym, cost_bps, 480, high=qhigh, low=qlow, sizes=_sz_q)
 
             if bt_q.total_trades < 10:
                 stats["quick_rejects"] += 1
@@ -737,19 +763,22 @@ async def main():
                 [c["name"] for c in configs], arrs_full,
                 entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime,
             )
-            bt = backtester.run(signals, close, sym, cost_bps, 480, high=high, low=low)
+            bt = backtester.run(signals, close, sym, cost_bps, 480, high=high, low=low, sizes=_sizes_full)
 
             if bt.total_trades < 30:
+                stats["reject_few_trades"] += 1
                 continue
 
             adjusted_wr = wilson_lower(bt.winning_trades, bt.total_trades)
 
             # Gate 1: Minimum WR (Wilson-adjusted)
-            if adjusted_wr < 0.40:
+            if adjusted_wr < 0.35:  # V9: lowered from 0.40 (88% reject rate)
+                stats["reject_low_wr"] += 1
                 continue
 
             # Gate 2: PnL floor
             if float(bt.net_pnl) < -0.3:
+                stats["reject_neg_pnl"] += 1
                 continue
 
             # ── O2: A2-aligned pre-screen — positive_count >= 2 ──
@@ -760,6 +789,8 @@ async def main():
 
             score = adjusted_wr * max(float(bt.net_pnl) + 1.0, 0.01)
 
+            if score <= best_score:
+                stats["reject_low_score"] += 1
             if score > best_score:
                 best_score = score
                 _matrix = np.column_stack(arrs_full)
@@ -805,7 +836,7 @@ async def main():
             [c["name"] for c in best_configs], best_arrs,
             entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime,
         )
-        bt_a2 = backtester.run(signals_a2, close, sym, cost_bps, 120, high=high, low=low)
+        bt_a2 = backtester.run(signals_a2, close, sym, cost_bps, 120, high=high, low=low, sizes=_sz_a2)
         _a2_pos = (float(bt_a2.net_pnl) > 0) + (float(bt_a2.sharpe_ratio) > 0) + (float(bt_a2.pnl_per_trade) > 0)
         if bt_a2.total_trades < 25 or _a2_pos < 2:
             stats["a2_prescreen_rejects"] += 1
@@ -859,7 +890,7 @@ async def main():
             """,
                 regime, best_champion["hash"], len(best_champion["configs"]),
                 best_score, best_champion["wilson_wr"], best_champion["pnl"],
-                best_champion["trades"], passport, "zv9",
+                best_champion["trades"], passport, "zv5_v9",
             )
         except Exception as e:
             log.error(f"DB: {e}")
