@@ -14,21 +14,7 @@ MAX_LOG_SIZE=$((50 * 1024 * 1024))  # 50MB
 MAX_ROTATIONS=2
 STALE_THRESHOLD=600  # 10 minutes — service considered unhealthy if log not updated
 
-# Systemd-managed services (prefer systemctl restart for these)
-SYSTEMD_SERVICES=(
-  arena-pipeline
-  arena23-orchestrator
-  arena45-orchestrator
-  console-api
-  dashboard-api
-)
 
-# Lockfile-to-systemd mapping
-declare -A LOCK_TO_SYSTEMD=(
-  [arena_pipeline_w0]=arena-pipeline
-  [arena23_orchestrator]=arena23-orchestrator
-  [arena45_orchestrator]=arena45-orchestrator
-)
 
 # Lockfile-to-log mapping (for health checks)
 declare -A LOCK_TO_LOG=(
@@ -89,15 +75,6 @@ check_log_activity() {
 # --- Restart a single service ---
 restart_service() {
   local name=$1
-  local systemd_unit=${LOCK_TO_SYSTEMD[$name]:-}
-
-  if [ -n "$systemd_unit" ]; then
-    # Prefer systemd restart if this service has a unit
-    echo "$(timestamp) WATCHDOG: restarting $name via systemd ($systemd_unit)"
-    sudo systemctl restart "$systemd_unit" 2>/dev/null
-    return $?
-  fi
-
   # Fallback: lockfile-based restart for A1 workers w1-w3 (not in systemd)
   local lock="$LOCK_DIR/${name}.lock"
   local log="${LOCK_TO_LOG[$name]:-$LOG_DIR/zangetsu_${name}.log}"
