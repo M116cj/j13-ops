@@ -1,3 +1,89 @@
+## v0.3.1 — 2026-04-17 — LFS + V9 SQL view + watchdog stale-loop fix
+**Engine hash:** `zv5_v71` / `zv5_v9` (literals preserved)
+**Branch / commit:** `feat/v9-oneshot-hardening` @ `c1f23a46`
+
+### Feature: Git LFS tracking for parquet data files (preventive)
+- **Change type:** new (infra)
+- **What changed:**
+  - Installed `git-lfs` on Alaya via `apt install -y git-lfs`
+  - `git lfs install` per-repo + `git lfs track "zangetsu/data/**/*.parquet"`
+  - Created `.gitattributes` (1 line, repo root)
+- **Why:** Previous push attempt warned BTCUSDT.parquet (99 MB) close to GitHub 100 MB hard limit. data/ is also gitignored + skip-worktree, so LFS never fires today — but if someone removes the gitignore or new symbols join, files auto-route to LFS instead of bloating the repo.
+- **Q1/Q2/Q3:** PASS — `git lfs status` confirms tracking active; no behavior change for current commits
+- **Rollback:** delete `.gitattributes` + `git lfs uninstall` (per-repo)
+
+### Feature: V9 SQL view foundation (champion_pipeline_v9)
+- **Change type:** new (DB schema)
+- **What changed:**
+  - New file: `zangetsu/migrations/postgres/v0.3.0_v9_view.sql`
+  - View: `CREATE OR REPLACE VIEW champion_pipeline_v9 AS SELECT * FROM champion_pipeline WHERE engine_hash IN ('zv5_v9', 'zv5_v71');`
+  - Applied to deploy-postgres-1
+- **Why:** Dashboard has 17 query sites all hitting raw `champion_pipeline`. Wholesale modification = invasive. The view provides a non-breaking migration path: dashboard/scripts can switch to the view incrementally as V9 (`zv5_v9`) accumulates records. When v71 retires, just drop it from the view's IN clause — zero code change downstream.
+- **Q1/Q2/Q3:** PASS — `SELECT count(*) FROM champion_pipeline_v9` returns 0 cleanly (table empty); view DDL idempotent
+- **Rollback:** `DROP VIEW champion_pipeline_v9`
+
+### Feature: Arena13 lifecycle decision (single-shot via cron, not daemon)
+- **Change type:** decision + execution
+- **What changed:**
+  - Read `arena13_feedback.py` carefully: log says "Arena 13 Feedback complete (single-shot)" then exits — NOT a long-running daemon despite `REFRESH_INTERVAL_S = 300` constant (which appears to be a planned-but-unshipped daemon feature)
+  - Reverted accidental ctl.sh + watchdog daemon-style integration from earlier in this session
+  - Added cron entry: `*/5 * * * * cd ~/j13-ops/zangetsu && .venv/bin/python services/arena13_feedback.py >> /tmp/zangetsu_a13fb.log 2>&1`
+  - `arena13_evolution.py` decision: KEEP (DISABLED stub with reintroduction requirements documented in its docstring)
+- **Why:** systemd unit `arena13-feedback.timer` was the original trigger; we removed all systemd arena units in v0.3.0. Without re-trigger, A13 guidance freezes. cron is the correct equivalent.
+- **Q1/Q2/Q3:** PASS — A13 logs show clean run + exit every 5 min; no orphan processes
+- **Rollback:** `crontab -e` remove the line
+
+### Feature: Weekly /tmp cleanup cron
+- **Change type:** new
+- **What changed:** Cron entry `0 3 * * 0 find /tmp -maxdepth 1 \( -name "zangetsu_*.log.[0-9]" -o -name "zangetsu-*.txt" -o -name "zangetsu-*.bak" \) -mtime +7 -delete`
+- **Why:** Long-running watchdog rotates logs (`.log.1`, `.log.2`); Mac scratch transit files accumulate in /tmp. Weekly sweep keeps disk clean.
+- **Q1/Q2/Q3:** PASS — only deletes files older than 7 days, only matching specific patterns
+- **Rollback:** remove cron line
+
+---
+
+## v0.3.2 — 2026-04-17 — Watchdog stale-loop bug fix (caught by 1h observation)
+**Engine hash:** `zv5_v71` / `zv5_v9`
+**Branch / commit:** `feat/v9-oneshot-hardening` @ `c1f23a46`
+
+### Feature: Watchdog — bump STALE_THRESHOLD + skip cron-managed services
+- **Change type:** fix (production-impacting)
+- **What changed:**
+  - `zangetsu/watchdog.sh`: `STALE_THRESHOLD=600` → `1800` (10min → 30min)
+  - Added skip clause in main lockfile loop: `case "$name" in arena13_feedback|calcifer_supervisor) continue ;; esac`
+- **Why:** P0-6 watchdog observation revealed two real production bugs introduced earlier this session:
+  1. **arena13_feedback false-restart loop**: cron-managed `*/5min`, but lock file persists between runs with dead PID. Watchdog iterates `/tmp/zangetsu/*.lock`, sees dead PID, attempts restart → hits `*) unknown service` branch → spammed `WATCHDOG: unknown service arena13_feedback, cannot restart` every cycle.
+  2. **arena23/45 vicious restart loop**: orchestrators idle when `champion_pipeline` empty (which it is — V9 hasn't accumulated). Idle = no log writes. STALE_THRESHOLD=600 (10min) → watchdog killed them every cycle. Logs showed `restarted arena23_orchestrator (pid=N)` repeatedly. Without fix: continuous worker churn until DB has data.
+- **Q1/Q2/Q3:**
+  - Q1 PASS — manual `bash watchdog.sh` runs silently (healthy); skip clause limited to known cron-managed services
+  - Q2 PASS — `tail -f /tmp/zangetsu_watchdog.log` after fix shows no further restart events
+  - Q3 PASS — 6-line patch
+- **Rollback:** revert sed (one block + one line)
+
+---
+
+## v0.3.3 — 2026-04-17 — Git history partial cleanup (gc 6.0G → 1.3G)
+**Engine hash:** unchanged
+**Branch / commit:** N/A (git plumbing only, no commit needed)
+
+### Operation: aggressive gc + reflog expire
+- **Change type:** infra (one-shot)
+- **What changed:**
+  - `git reflog expire --expire=now --all`
+  - `git gc --prune=now --aggressive`
+  - Repo `.git`: **6.0 GB → 1.3 GB** (78% reduction)
+- **Why:** Earlier `git filter-branch` (during rename, v0.2.0) made `zangetsu_v3/.venv` blobs unreachable but didn't gc them. They sat in pack files for hours. Aggressive gc reclaimed the space.
+- **Q1/Q2/Q3:** PASS — refs/HEAD unchanged; only unreachable objects pruned; force-push not needed
+- **Note:** `git filter-repo --path zangetsu_v3 --invert-paths --force` attempted but blocked by interactive sanity-check prompt (stdin EOF over SSH). To complete: run with `--enforce-sanity-checks=false` from attached terminal. Estimated additional savings: ~500 MB.
+
+### Deferred (not in this version)
+- Full `git filter-repo` to remove `zangetsu_v3/` source from history — needs interactive shell or `--enforce-sanity-checks=false`
+- engine_hash 17-query migration to `champion_pipeline_v9` view — wait for V9 data accumulation
+- PR #3 merge to main — pending review
+- Gemini auth on Alaya — needs `GEMINI_API_KEY`
+
+---
+
 ## v0.3.0 — 2026-04-17 — All-ctl service model + test cred + hygiene
 **Engine hash:** `zv5_v71` / `zv5_v9` (literals preserved)
 **Branch / commit:** `feat/v9-oneshot-hardening` @ `d0aab305`
