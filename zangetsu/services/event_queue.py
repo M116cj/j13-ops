@@ -41,7 +41,7 @@ from pgqueuer.db import AsyncpgDriver
 from pgqueuer.queries import Queries
 from pgqueuer.models import Job
 
-from config.settings import Settings
+from zangetsu.config.settings import Settings
 
 log = logging.getLogger(__name__)
 
@@ -179,8 +179,10 @@ class EventQueue:
             self._manager_task.cancel()
             try:
                 await self._manager_task
-            except (asyncio.CancelledError, Exception):  # noqa: BLE001
+            except asyncio.CancelledError:
                 pass
+            except Exception as e:
+                log.debug(f"event_queue manager_task shutdown error: {e}")
             self._manager_task = None
 
         if self._conn is not None and not self._conn.is_closed():
@@ -192,4 +194,51 @@ class EventQueue:
         log.info("EventQueue closed")
 
 
-__all__ = ["EventQueue", "DEFAULT_ENTRYPOINT"]
+async def notify_champion_ready(
+    stage: str,
+    champion_id: str,
+    *,
+    priority: int = 0,
+) -> bool:
+    """Fire-and-forget helper for upstream producers (e.g. Arena 1).
+
+    Opens a short-lived ``EventQueue``, enqueues one stage event, and closes
+    cleanly. Safe to call from code paths that are not yet wired into the
+    pipeline — any failure is caught and returned as ``False`` so the caller
+    can continue with its primary DB write without being blocked by the
+    event-queue being unavailable.
+
+    V9: intended usage is e.g. from ``arena_pipeline.py`` after a successful
+    champion INSERT::
+
+        await notify_champion_ready("A23", str(champion_id))
+
+    Actual integration is deferred to a later patch — A1 is not yet emitting.
+
+    Returns
+    -------
+    bool
+        ``True`` if the event was successfully enqueued, ``False`` otherwise.
+    """
+    if not stage or not champion_id:
+        log.debug("notify_champion_ready skipped: empty stage or champion_id")
+        return False
+
+    q: Optional["EventQueue"] = None
+    try:
+        q = EventQueue()
+        await q.enqueue(stage, champion_id, priority=priority)
+        return True
+    except Exception as exc:  # noqa: BLE001
+        log.warning("notify_champion_ready failed stage=%s champion=%s err=%s",
+                    stage, champion_id, exc)
+        return False
+    finally:
+        if q is not None:
+            try:
+                await q.close()
+            except Exception:  # noqa: BLE001
+                pass
+
+
+__all__ = ["EventQueue", "DEFAULT_ENTRYPOINT", "notify_champion_ready"]

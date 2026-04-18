@@ -26,6 +26,7 @@ from zangetsu.services.pidlock import acquire_lock
 
 from zangetsu.services.db_audit import log_transition
 from zangetsu.engine.components.signal_utils import generate_threshold_signals
+from zangetsu.services.signal_reconstructor import reconstruct_signal_from_passport
 from zangetsu.engine.components.data_preprocessor import enrich_data_cache
 from zangetsu.services.data_collector import merge_funding_to_1m, merge_oi_to_1m
 from pathlib import Path
@@ -44,6 +45,14 @@ from zangetsu.services.shared_utils import (
     ensure_db_connection,
     reap_expired_leases,
 )
+
+# ── V9: PGQueuer event-driven pickup (opt-in via A45_USE_PGQUEUER=1) ──
+try:
+    from zangetsu.services.event_queue import EventQueue
+    _EVENT_QUEUE_AVAILABLE = True
+except Exception:
+    EventQueue = None  # type: ignore[assignment]
+    _EVENT_QUEUE_AVAILABLE = False
 
 WORKER_ID = 'arena45'
 TRAIN_SPLIT_RATIO = 0.7
@@ -237,8 +246,8 @@ async def promote_candidate(champ, db, log, verbose=False):
     try:
         passport_data = json.loads(champ["passport"]) if champ["passport"] else {}
         config_hash = passport_data.get("arena1", {}).get("config_hash")
-    except (json.JSONDecodeError, TypeError):
-        pass
+    except (json.JSONDecodeError, TypeError) as e:
+        log.debug(f"passport parse failed for champ {champ.get('id')}: {e}")
     if config_hash:
         existing = await db.fetchval("""
             SELECT id FROM champion_pipeline
@@ -332,11 +341,19 @@ async def process_arena4(champ, data_cache, backtester, cost_model, rust_engine,
     names = [c["name"] for c in configs]
 
     # Generate signals using indicator-specific thresholds (same as Arena 1)
-    # FIXED BUG-3: use A2-optimized thresholds from passport (was hardcoded 0.55/0.30)
-    signals, _sizes_a4, _agr_a4 = generate_threshold_signals(
-        names, arrs,
-        entry_threshold=entry_thr, exit_threshold=exit_thr, min_hold=60, cooldown=cooldown, regime=regime,
-    )
+    # V10 BUG-3: use A2-optimized thresholds from passport (was hardcoded 0.55/0.30)
+    # V10 dispatcher: alpha_expression -> reconstruct; configs -> legacy voting
+    if passport.get("arena1", {}).get("alpha_expression"):
+        signals, _sizes_a4, _agr_a4 = reconstruct_signal_from_passport(
+            passport, close, high, low, d.get("open", np.zeros_like(close)), vol,
+            entry_threshold=entry_thr, exit_threshold=exit_thr,
+            min_hold=60, cooldown=cooldown, regime=regime,
+        )
+    else:
+        signals, _sizes_a4, _agr_a4 = generate_threshold_signals(
+            names, arrs,
+            entry_threshold=entry_thr, exit_threshold=exit_thr, min_hold=60, cooldown=cooldown, regime=regime,
+        )
 
     # Apply A3's TP strategy using shared_utils (handles long+short, tracks unrealized PnL)
     signals = apply_tp_strategy(signals, close, tp_strategy, tp_param)
@@ -482,6 +499,7 @@ async def get_deployable_by_regime(db):
         SELECT id, regime, elo_rating, quant_class, indicator_hash, passport, status
         FROM champion_pipeline
         WHERE status IN ('CANDIDATE', 'DEPLOYABLE')
+          AND (card_status IS NULL OR card_status NOT IN ('SEED','DISCOVERED'))
         ORDER BY regime, elo_rating DESC
     """)
     by_regime = {}
@@ -506,6 +524,7 @@ async def sync_active_cards(db):
             SELECT id
             FROM champion_pipeline
             WHERE status = 'DEPLOYABLE' AND regime = $1
+              AND (card_status IS NULL OR card_status NOT IN ('SEED','DISCOVERED'))
             ORDER BY elo_rating DESC NULLS LAST,
                      arena4_hell_wr DESC NULLS LAST,
                      arena3_sharpe DESC NULLS LAST,
@@ -624,11 +643,19 @@ async def run_elo_round(by_regime, data_cache, backtester, cost_model, rust_engi
                 continue
 
             elo_names = [c["name"] for c in configs]
-            # FIXED BUG-3: use A2-optimized thresholds from passport
-            signals, _sz_elo, _agr_elo = generate_threshold_signals(
-                elo_names, arrs,
-                entry_threshold=entry_thr, exit_threshold=exit_thr, min_hold=60, cooldown=cooldown, regime=regime,
-            )
+            # V10 BUG-3: use A2-optimized thresholds from passport
+            # V10 dispatcher: alpha_expression -> reconstruct; configs -> legacy voting
+            if passport.get("arena1", {}).get("alpha_expression"):
+                signals, _sz_elo, _agr_elo = reconstruct_signal_from_passport(
+                    passport, close, high, low, d.get("open", np.zeros_like(close)), vol,
+                    entry_threshold=entry_thr, exit_threshold=exit_thr,
+                    min_hold=60, cooldown=cooldown, regime=regime,
+                )
+            else:
+                signals, _sz_elo, _agr_elo = generate_threshold_signals(
+                    elo_names, arrs,
+                    entry_threshold=entry_thr, exit_threshold=exit_thr, min_hold=60, cooldown=cooldown, regime=regime,
+                )
 
             # Fix #3: Apply TP strategy to signals before backtest (matching A3/A4)
             signals = apply_tp_strategy(signals, close, tp_strategy, tp_param)
@@ -715,8 +742,8 @@ async def run_elo_round(by_regime, data_cache, backtester, cost_model, rust_engi
                             json.dumps({"arena5_evidence": {"wins": _mwins, "total": _mt}}),
                             _champ_ref["id"],
                         )
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        log.debug(f"A5 evidence accumulation update failed id={_champ_ref.get('id')}: {e}")
         # -- End A5 Evidence Accumulation --
 
         matches_played += 1
@@ -758,6 +785,7 @@ async def check_daily_reset(db, log):
             strategies = await db.fetch("""
                 SELECT id, elo_rating, status FROM champion_pipeline
                 WHERE status IN ('CANDIDATE', 'DEPLOYABLE') AND regime = $1
+                  AND (card_status IS NULL OR card_status NOT IN ('SEED','DISCOVERED'))
                 ORDER BY (CASE WHEN status = 'DEPLOYABLE' THEN 0 ELSE 1 END),
                          elo_rating DESC
             """, regime)
@@ -888,6 +916,26 @@ async def main():
 
     log.info("Arena 4+5 Orchestrator running (v9: shared_utils dedup + ATR/TP fixes)")
 
+    # ── V9: Optional PGQueuer LISTEN/NOTIFY pickup (opt-in) ──────
+    # Default OFF. A3 is not yet emitting notify events, so this is prep
+    # work only — the polling loop below remains the primary driver.
+    _use_pgqueuer = os.environ.get("A45_USE_PGQUEUER", "0") == "1"
+    _event_queue = None
+    if _use_pgqueuer and _EVENT_QUEUE_AVAILABLE:
+        try:
+            _event_queue = EventQueue()
+
+            async def _on_a45_event(stage: str, champion_id: str) -> None:
+                log.info(f"A45 pgqueuer wake stage={stage} champion={champion_id}")
+
+            asyncio.create_task(_event_queue.listen(_on_a45_event))
+            log.info("A45 PGQueuer listener started (prep mode, polling still primary)")
+        except Exception as e:
+            log.warning(f"A45 PGQueuer init failed, fallback to polling: {e}")
+            _event_queue = None
+    elif _use_pgqueuer and not _EVENT_QUEUE_AVAILABLE:
+        log.warning("A45_USE_PGQUEUER=1 but event_queue module unavailable; polling only")
+
     while running:
         try:
             _loop_iteration += 1
@@ -975,6 +1023,13 @@ async def main():
         except Exception as e:
             log.error(f"Loop error: {e}")
             await asyncio.sleep(2)
+
+    # V9: close PGQueuer listener if active
+    if _event_queue is not None:
+        try:
+            await _event_queue.close()
+        except Exception as e:
+            log.warning(f"A45 PGQueuer close error: {e}")
 
     await db.close()
     log.info(f"Stopped. a4_processed={a4_processed} a4_passed={a4_passed} a5_matches={a5_matches}")

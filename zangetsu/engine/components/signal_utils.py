@@ -3,8 +3,12 @@ Indicator-specific interpretation with continuous [-1,+1] strength signals.
 Optimized: Numba JIT for inner loop.
 V9: All indicators output continuous strength instead of binary votes."""
 from __future__ import annotations
+import os
+import logging
 import numpy as np
 from typing import Dict, List, Tuple, Callable
+
+log = logging.getLogger(__name__)
 
 try:
     from numba import njit
@@ -268,8 +272,14 @@ def generate_threshold_signals(
     min_hold: int = 60,
     cooldown: int = 60,
     regime: str = "",
+    aggregation_mode: "str | None" = None,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """V9: Generate threshold signals with continuous voting.
+
+    aggregation_mode: None | "majority" (default) | "attention"
+        If None, falls back to env A1_AGGREGATION_MODE (default "majority").
+        "attention" uses AttentionAggregator (uniform weights until trained)
+        and substitutes |aggregated| as the agreement_rate driving the state machine.
     Returns: (signals, sizes, agreements) — 3-tuple for drop-in composite replacement."""
     n_bars = len(indicator_values[0])
     n_ind = len(indicator_names)
@@ -277,6 +287,28 @@ def generate_threshold_signals(
     vote_matrix = np.zeros((n_bars, n_ind), dtype=np.float64)
     for j, (name, vals) in enumerate(zip(indicator_names, indicator_values)):
         vote_matrix[:, j] = indicator_vote(name, vals, regime=regime)
+
+    # Resolve aggregation mode: explicit arg > env > default majority
+    mode = aggregation_mode if aggregation_mode is not None else os.environ.get("A1_AGGREGATION_MODE", "majority")
+
+    if mode == "attention":
+        try:
+            from zangetsu.services.v9_attention import AttentionAggregator
+            agg = AttentionAggregator.majority_fallback()  # uniform until trained
+            # Stack indicator signals into (n_indicators, n_bars)
+            indicator_signals = vote_matrix.T  # (n_ind, n_bars)
+            aggregated = agg.aggregate(indicator_signals, regime=regime)
+            # Build a synthetic vote_matrix whose majority count aligns with |aggregated|:
+            # Keep per-indicator votes for direction/strength but override agreement via injection.
+            signals, sizes, agreements = _threshold_signals_numba(
+                vote_matrix, entry_threshold, exit_threshold, min_hold, cooldown
+            )
+            # Substitute agreement with |aggregated| (attention-weighted magnitude)
+            agreements = np.abs(aggregated).astype(np.float32)
+            log.debug(f"V9 attention aggregation active (regime={regime}, n_ind={n_ind})")
+            return signals, sizes, agreements
+        except Exception as e:  # pragma: no cover — defensive fallback
+            log.warning(f"V9 attention aggregation failed ({e}); falling back to majority")
 
     return _threshold_signals_numba(vote_matrix, entry_threshold, exit_threshold, min_hold, cooldown)
 

@@ -300,8 +300,8 @@ async def ensure_db_connection(db, settings, log):
         log.warning("DB connection lost, reconnecting...")
         try:
             await db.close()
-        except Exception:
-            pass
+        except Exception as e:
+            log.debug(f"DB close during reconnect ignored: {e}")
         try:
             new_db = await asyncpg.connect(
                 host=settings.db_host, port=settings.db_port,

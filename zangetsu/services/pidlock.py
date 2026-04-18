@@ -36,8 +36,8 @@ def acquire_lock(service_name: str) -> None:
         try:
             with open(_lock_path, "r") as f:
                 existing_pid = f.read().strip() or "unknown"
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[pidlock] could not read existing pid file: {e}", file=sys.stderr)
         print(
             f"[pidlock] {service_name}: another instance running (pid={existing_pid}). Exiting.",
             file=sys.stderr,
@@ -76,7 +76,7 @@ def _release_lock():
         try:
             fcntl.flock(_lock_fd.fileno(), fcntl.LOCK_UN)
             _lock_fd.close()
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[pidlock] cleanup flock/close ignored: {e}", file=sys.stderr)
         _lock_fd = None
     _lock_path = None

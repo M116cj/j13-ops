@@ -1,7 +1,7 @@
 {
   "version": 3,
   "mode": "observe",
-  "updated_at": "2026-04-17T11:18:32Z",
+  "updated_at": "2026-04-18T03:55:01Z",
   "indicator_weights": {
     "tsi": 2.0,
     "macd": 2.0,

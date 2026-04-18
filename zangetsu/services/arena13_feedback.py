@@ -106,6 +106,8 @@ async def compute_guidance(db, log):
         FROM champion_pipeline
         WHERE status IN ('CANDIDATE', 'DEPLOYABLE')
           AND passport->'arena1'->'configs' IS NOT NULL
+          AND (evolution_operator IS NULL OR (evolution_operator NOT LIKE 'cold_seed%' AND evolution_operator != 'gp_evolution'))
+          AND (engine_hash IS NULL OR engine_hash NOT LIKE '%_coldstart')
     """)
 
     survivor_ind_count = {}   # indicator_name -> count in survivors
@@ -129,6 +131,7 @@ async def compute_guidance(db, log):
         WHERE status = 'ARENA4_ELIMINATED'
           AND engine_hash = 'zv9'
           AND passport->'arena1'->'configs' IS NOT NULL
+          AND (evolution_operator IS NULL OR (evolution_operator NOT LIKE 'cold_seed%' AND evolution_operator != 'gp_evolution'))
     """)
 
     failure_ind_count = {}
@@ -192,6 +195,7 @@ async def compute_guidance(db, log):
           AND engine_hash = 'zv9'
           AND updated_at > NOW() - INTERVAL '{COOL_OFF_HOURS} hours'
           AND passport->'arena1'->>'config_hash' IS NOT NULL
+          AND (evolution_operator IS NULL OR (evolution_operator NOT LIKE 'cold_seed%' AND evolution_operator != 'gp_evolution'))
     """)
     cool_off = [f"{r['regime']}|{r['ch']}" for r in cool_off_rows if r["ch"]]
 
@@ -203,6 +207,8 @@ async def compute_guidance(db, log):
         FROM champion_pipeline
         WHERE status IN ('CANDIDATE', 'DEPLOYABLE')
           AND passport->'arena1'->'configs' IS NOT NULL
+          AND (evolution_operator IS NULL OR (evolution_operator NOT LIKE 'cold_seed%' AND evolution_operator != 'gp_evolution'))
+          AND (engine_hash IS NULL OR engine_hash NOT LIKE '%_coldstart')
         GROUP BY 1, 2
     """)
     regime_boosts = {}
@@ -224,6 +230,7 @@ async def compute_guidance(db, log):
           count(*) as cnt
         FROM champion_pipeline
         WHERE engine_hash = 'zv9' AND arena3_sharpe IS NOT NULL
+          AND (evolution_operator IS NULL OR (evolution_operator NOT LIKE 'cold_seed%' AND evolution_operator != 'gp_evolution'))
         GROUP BY 1, 2, 3
     """)
     tp_survival = {}

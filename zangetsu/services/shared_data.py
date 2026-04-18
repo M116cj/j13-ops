@@ -58,7 +58,7 @@ class SharedDataManager:
                     old.close()
                     old.unlink()
                 except FileNotFoundError:
-                    pass
+                    log.debug(f"No stale shm segment to unlink: {shm_name}")
 
                 shm = shared_memory.SharedMemory(name=shm_name, create=True, size=arr.nbytes)
                 shared_arr = np.ndarray(arr.shape, dtype=DTYPE, buffer=shm.buf)
@@ -115,6 +115,6 @@ class SharedDataManager:
             try:
                 shm.close()
                 shm.unlink()
-            except Exception:
-                pass
+            except Exception as e:
+                log.debug(f"shm cleanup failed for {name}: {e}")
         self._shm_blocks.clear()
