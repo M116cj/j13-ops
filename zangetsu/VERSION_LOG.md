@@ -1,3 +1,50 @@
+## v0.4.1 — 2026-04-18 — V10 post-deploy emergency fixes
+**Engine hash:** unchanged
+**Branch / commit:** `feat/v9-oneshot-hardening` @ (pending)
+
+### Feature: alpha_discovery.py INSERT column correctness + status fix
+- **Change type:** fix (production-impacting, caught by Round 3 adversarial sweep)
+- **What changed:**
+  - `services/alpha_discovery.py` INSERT statement:
+    - Added `alpha_hash` column (was omitted → UNIQUE constraint defeated with NULL)
+    - Pass `alpha.hash` as `$4` parameter
+    - Changed status from `'DEPLOYABLE'` → `'ARENA1_READY'` (was incorrectly bypassing pipeline)
+- **Why:** Round-3 Explore agent sweep caught 6 NULL alpha_hash rows created by v0.4.0 cron's first run. UNIQUE constraint on alpha_hash WHERE NOT NULL meant NULL rows accumulated unbounded. Status=DEPLOYABLE also wrong — discovered alphas must enter A1 pipeline for validation, not skip to deployment.
+- **Q1/Q2/Q3:**
+  - Q1 PASS — after fix, 3 test-run alphas inserted with valid `alpha_hash` and `status='ARENA1_READY'`
+  - Q2 PASS — 9 pre-fix NULL rows retired to LEGACY (not deleted, preserved for forensic)
+  - Q3 PASS — 3 sed operations on single file
+
+### Data fix: retire 9 NULL alpha_hash rows
+- **Change type:** data cleanup
+- **What changed:** `UPDATE champion_pipeline SET status='LEGACY' WHERE engine_hash='zv5_v10_alpha' AND card_status='DISCOVERED' AND alpha_hash IS NULL`
+- **Why:** Pre-fix cron runs inserted 9 rows with NULL alpha_hash. These can't be referenced by future dedup checks. Retiring preserves data without polluting active pipeline.
+
+### Round 3 Emergency: V9 workers were DEAD
+- **Change type:** fix (production-impacting, incident)
+- **What changed:** Re-ran `zangetsu_ctl.sh start` — 6 workers back online (4 A1 + A23 + A45)
+- **Why:** Between 03:00 UTC (watchdog: "all 8 services healthy") and 03:30 UTC (watchdog: "all 2 services healthy"), all 6 V9 workers died. Watchdog blind because pidlocks were cleanly removed (not stale-PID). My v0.4.0 report wrongly claimed "V9 untouched" — in reality workers died some time during the V10 deploy window.
+- **Lesson learned:** Watchdog presence-check is lockfile-based; if lockfile removed cleanly, watchdog doesn't restart. Need "expected services" tracker.
+- **Q1/Q2/Q3:** PASS — workers back, pipeline resumed
+
+### Adversarial sweep findings (documented, not fixed in this version)
+- **P1** 22 modified + 18 untracked files in repo (alpha_dedup, alpha_ensemble, alpha_quality_gates, factor_zoo, signal_reconstructor). Untracked includes critical V10 modules. Next commit should stage these.
+- **P1** Watchdog lockfile-only presence detection → misses services that die cleanly. Architectural fix needed in separate version.
+- **P2** `calcifer/calcifer.log` and `zangetsu/logs/engine.jsonl` tracked in git (shouldn't be). Add to .gitignore next commit.
+
+### Running V10 state (after all v0.4.1 fixes)
+```
+DISCOVERED + ARENA1_READY (valid alpha_hash): 13
+DISCOVERED + LEGACY (9 NULL + 1 original dupe):    10
+SEED + ARENA1_READY (Kakushadze 2016 batch):      851
+Total V10 alphas in pipeline: 874
+```
+
+### Deferred to next version
+- Commit all untracked V10 files (alpha_dedup/ensemble/quality_gates/factor_zoo/signal_reconstructor)
+- `.gitignore` calcifer.log + engine.jsonl
+- Watchdog presence-check architecture upgrade
+
 ## v0.4.0 — 2026-04-18 — V10 factor expression deployment (Path B isolated)
 **Engine hash:** V9 (zv5_v9, zv5_v71) + **V10 new (zv5_v10_alpha)**
 **Branch / commit:** `feat/v9-oneshot-hardening` @ (pending)
