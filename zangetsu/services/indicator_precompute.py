@@ -88,7 +88,7 @@ def _publish_array(shm_name: str, arr: np.ndarray) -> shared_memory.SharedMemory
         old.close()
         old.unlink()
     except FileNotFoundError:
-        pass
+        log.debug(f"No stale shm segment to unlink: {shm_name}")
 
     shm = shared_memory.SharedMemory(name=shm_name, create=True, size=arr.nbytes)
     view = np.ndarray(arr.shape, dtype=DTYPE, buffer=shm.buf)

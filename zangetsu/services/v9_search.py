@@ -160,8 +160,8 @@ class OptunaIndicatorSearch:
             for k, v in extra.items():
                 try:
                     trial.set_user_attr(k, v)
-                except Exception:
-                    pass
+                except Exception as e:
+                    log.debug(f"optuna set_user_attr failed ({k}): {e}")
 
     def warm_start_from_history(self, historical_trials: List[Dict]):
         """Pre-populate study with N failed historical trials to accelerate TPE convergence."""

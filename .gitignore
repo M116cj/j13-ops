@@ -24,3 +24,6 @@ zangetsu/data/funding/
 zangetsu/data/ohlcv/
 zangetsu/data/regimes/
 zangetsu/data/oi/
+zangetsu/logs/
+calcifer/calcifer.log
+zangetsu/.venv/

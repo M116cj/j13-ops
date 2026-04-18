@@ -1,7 +1,7 @@
 #!/bin/bash
 # Watchdog: auto-restart arena23 if not running
 PROC="arena23_orchestrator.py"
-LOG="/tmp/zv5_arena23.log"
+LOG="/tmp/zangetsu_arena23.log"
 
 if ! pgrep -f "$PROC" > /dev/null; then
     echo "$(date): arena23 not running, restarting..." >> /tmp/watchdog_arena23.log

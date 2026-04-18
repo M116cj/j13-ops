@@ -20,6 +20,11 @@ from typing import List, Optional
 import numpy as np
 import polars as pl
 
+try:
+    import requests
+except ImportError:
+    requests = None
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("data_collector")
 
@@ -34,6 +39,50 @@ DEFAULT_SYMBOLS = [
     "AVAXUSDT", "DOTUSDT", "FILUSDT",
     "1000PEPEUSDT", "1000SHIBUSDT", "GALAUSDT",
 ]
+
+
+def fetch_with_retry(url, params=None, max_retries=3):
+    """HTTP GET with exponential backoff. Returns parsed JSON on success.
+
+    Raises the last exception if all retries fail. Requires the requests package.
+    """
+    if requests is None:
+        raise RuntimeError("requests package not installed; cannot fetch_with_retry")
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            r = requests.get(url, params=params, timeout=30)
+            r.raise_for_status()
+            return r.json()
+        except Exception as e:
+            last_exc = e
+            if attempt == max_retries - 1:
+                log.error(f"Failed after {max_retries} retries: {e}")
+                raise
+            sleep_time = 2 ** attempt
+            log.warning(f"Attempt {attempt+1} failed: {e}, retry in {sleep_time}s")
+            time.sleep(sleep_time)
+    # Unreachable, but keep mypy happy.
+    if last_exc:
+        raise last_exc
+
+
+def _ccxt_call_with_retry(fn, *args, max_retries=3, label="ccxt", **kwargs):
+    """Call a ccxt method with exponential backoff on transient errors."""
+    last_exc = None
+    for attempt in range(max_retries):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as e:
+            last_exc = e
+            if attempt == max_retries - 1:
+                log.error(f"{label} failed after {max_retries} retries: {e}")
+                raise
+            sleep_time = 2 ** attempt
+            log.warning(f"{label} attempt {attempt+1} failed: {e}, retry in {sleep_time}s")
+            time.sleep(sleep_time)
+    if last_exc:
+        raise last_exc
 
 
 def _init_exchange():
@@ -57,9 +106,13 @@ async def fetch_funding_rate(symbol: str, since_ms: Optional[int] = None) -> pl.
     while True:
         try:
             # ccxt unified: fetchFundingRateHistory
-            rates = exchange.fetch_funding_rate_history(symbol, since=since, limit=limit)
+            rates = _ccxt_call_with_retry(
+                exchange.fetch_funding_rate_history,
+                symbol, since=since, limit=limit,
+                label=f"funding[{symbol}]",
+            )
         except Exception as e:
-            log.warning(f"  Funding API error for {symbol}: {e}")
+            log.warning(f"  Funding API error for {symbol} (after retries): {e}")
             break
 
         if not rates:
@@ -106,11 +159,14 @@ async def fetch_open_interest(symbol: str, since_ms: Optional[int] = None) -> pl
             kwargs = {"timeframe": "5m", "limit": limit}
             if since is not None:
                 kwargs["since"] = since
-            records = exchange.fetch_open_interest_history(
-                ccxt_symbol, **kwargs
+            records = _ccxt_call_with_retry(
+                exchange.fetch_open_interest_history,
+                ccxt_symbol,
+                label=f"oi[{symbol}]",
+                **kwargs,
             )
         except Exception as e:
-            log.warning(f"  OI API error for {symbol}: {e}")
+            log.warning(f"  OI API error for {symbol} (after retries): {e}")
             break
 
         if not records:
@@ -150,8 +206,8 @@ def _load_existing(path: Path, schema_cols: list) -> pl.DataFrame:
     if path.exists():
         try:
             return pl.read_parquet(path)
-        except Exception:
-            pass
+        except Exception as e:
+            log.warning(f"Corrupt/unreadable parquet at {path}: {e}")
     return None
 
 

@@ -16,8 +16,12 @@ Usage:
 """
 from __future__ import annotations
 
+import os
+import logging
 import numpy as np
 from typing import Dict
+
+log = logging.getLogger(__name__)
 
 try:
     from numba import njit
@@ -485,8 +489,15 @@ def enrich_data_cache(data_cache: Dict[str, Dict]) -> None:
                 continue
             d = sym_data[split_name]
             
-            # V9: Wavelet denoise OHLCV before indicator computation
-            denoise_ohlcv(d)
+            # V9: Wavelet denoise OHLCV before indicator computation (env-gated, default on)
+            if os.environ.get("ZV9_WAVELET_DENOISE", "1") == "1":
+                denoise_ohlcv(d)
+                try:
+                    _first_sym = next(iter(data_cache.keys()))
+                except StopIteration:
+                    _first_sym = None
+                if sym == _first_sym and split_name == "train":
+                    log.info(f"Wavelet denoising active for {sym}/{split_name}")
             
             close = d["close"]
             high = d["high"]

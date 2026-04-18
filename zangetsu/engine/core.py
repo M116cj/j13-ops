@@ -105,8 +105,8 @@ class ArenaEngine:
         for name in list(self._arena_tasks):
             try:
                 await self.stop_arena(name)
-            except Exception:
-                pass
+            except Exception as e:
+                self.log.debug("stop_arena during shutdown failed", arena=name, err=str(e))
         await self.health.stop()
         self.gpu.release_all()
         await self.db.close()

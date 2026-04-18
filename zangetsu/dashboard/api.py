@@ -1051,7 +1051,7 @@ def create_dashboard_app(engine) -> FastAPI:
                 SELECT status, count(*) as cnt,
                     round(avg(arena1_win_rate)::numeric,3) as avg_wr,
                     round(avg(arena1_pnl)::numeric,4) as avg_pnl
-                FROM champion_pipeline WHERE engine_hash='zv9'
+                FROM champion_pipeline WHERE engine_hash IN ('zv5_v9', 'zv5_v10_alpha', 'zv5_v71')
                 GROUP BY status ORDER BY cnt DESC
             """)
             total = sum(r['cnt'] for r in rows)
@@ -1065,7 +1065,7 @@ def create_dashboard_app(engine) -> FastAPI:
             }
             bloom_row = await engine.db.fetchrow("""
                 SELECT count(DISTINCT passport->'arena1'->>'config_hash') as unique_families
-                FROM champion_pipeline WHERE engine_hash='zv9'
+                FROM champion_pipeline WHERE engine_hash IN ('zv5_v9', 'zv5_v10_alpha', 'zv5_v71')
             """)
             unique = bloom_row['unique_families'] if bloom_row else 0
             return {

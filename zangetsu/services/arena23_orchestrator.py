@@ -33,6 +33,7 @@ from zangetsu.config.settings import Settings
 from zangetsu.config.cost_model import CostModel
 from zangetsu.engine.components.backtester import Backtester, BacktestResult
 from zangetsu.engine.components.signal_utils import generate_threshold_signals as _gen_threshold
+from zangetsu.services.signal_reconstructor import reconstruct_signal_from_passport
 from zangetsu.engine.components.data_preprocessor import enrich_data_cache
 from zangetsu.services.data_collector import merge_funding_to_1m, merge_oi_to_1m
 from pathlib import Path
@@ -44,6 +45,23 @@ from zangetsu.services.shared_utils import (
 )
 
 from zangetsu.engine.components.logger import StructuredLogger
+
+# ── V9: CUDA batch backtest (opt-out via A3_USE_CUDA=0) ──────────
+try:
+    from zangetsu.engine.components.cuda_backtest import batch_backtest, is_cuda_available
+    _CUDA_BACKTEST_AVAILABLE = True
+except Exception as _cuda_imp_err:  # noqa: BLE001
+    batch_backtest = None  # type: ignore[assignment]
+    is_cuda_available = lambda: False  # type: ignore[assignment]
+    _CUDA_BACKTEST_AVAILABLE = False
+
+# ── V9: PGQueuer event-driven pickup (opt-in via A23_USE_PGQUEUER=1) ──
+try:
+    from zangetsu.services.event_queue import EventQueue
+    _EVENT_QUEUE_AVAILABLE = True
+except Exception:
+    EventQueue = None  # type: ignore[assignment]
+    _EVENT_QUEUE_AVAILABLE = False
 
 # ── Rust engine ──────────────────────────────────────────────────
 try:
@@ -91,7 +109,7 @@ def recompute_normalized_matrix(
         period = cfg.get("period", 14)
         try:
             if RUST_ENGINE:
-                vals = zi.compute(name, {"period": period}, close, high, low, volume)
+                vals = zi.compute(name, {"period": period}, np.ascontiguousarray(close, dtype=np.float64), np.ascontiguousarray(high, dtype=np.float64), np.ascontiguousarray(low, dtype=np.float64), np.ascontiguousarray(volume, dtype=np.float64))
             else:
                 vals = np.zeros(len(close))
             arrays.append(np.asarray(vals, dtype=np.float64))
@@ -128,7 +146,7 @@ def recompute_raw_indicators(
         period = cfg.get("period", 14)
         try:
             if RUST_ENGINE:
-                vals = zi.compute(name, {"period": period}, close, high, low, volume)
+                vals = zi.compute(name, {"period": period}, np.ascontiguousarray(close, dtype=np.float64), np.ascontiguousarray(high, dtype=np.float64), np.ascontiguousarray(low, dtype=np.float64), np.ascontiguousarray(volume, dtype=np.float64))
             else:
                 vals = np.zeros(len(close))
             names.append(name)
@@ -181,6 +199,33 @@ async def is_duplicate_champion(db: asyncpg.Connection, champion_id: int, passpo
         except Exception:
             continue
     return False
+
+
+def _build_base_signal(
+    passport: dict,
+    close, high, low, volume,
+    names_v, arrs_v,
+    entry_thr: float, exit_thr: float,
+    regime: str,
+    open_arr=None,
+    min_hold: int = 60,
+    cooldown: int = 60,
+):
+    """V10 dispatcher — route to alpha reconstruction or V9 threshold voting."""
+    arena1 = passport.get('arena1', {}) if isinstance(passport, dict) else {}
+    if arena1.get('alpha_expression'):
+        import numpy as _np
+        _open = open_arr if open_arr is not None else _np.zeros_like(close)
+        return reconstruct_signal_from_passport(
+            passport, close, high, low, _open, volume,
+            entry_threshold=entry_thr, exit_threshold=exit_thr,
+            min_hold=min_hold, cooldown=cooldown, regime=regime,
+        )
+    return _gen_threshold(
+        names_v, arrs_v,
+        entry_threshold=entry_thr, exit_threshold=exit_thr,
+        min_hold=min_hold, cooldown=cooldown, regime=regime,
+    )
 
 
 async def pick_champion(db: asyncpg.Connection, from_status: str, to_status: str) -> dict | None:
@@ -312,7 +357,7 @@ async def process_arena2(
         a1_entry_thr = 0.60
     else:
         a1_entry_thr = 0.55
-    baseline_signals, baseline_sizes, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+    baseline_signals, baseline_sizes, _ = _build_base_signal(passport, close, high, low, volume, names_v, arrs_v, entry_thr=0.55, exit_thr=0.30, regime=regime)
     baseline_bt = backtester.run(baseline_signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=baseline_sizes)
     original_wr = float(baseline_bt.win_rate)
     original_pnl = float(baseline_bt.net_pnl)
@@ -322,7 +367,7 @@ async def process_arena2(
 
     # ── AD1: 2-indicator combos are AND gates — skip grid search ──
     if len(configs) <= 2:
-        signals, sizes_v, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+        signals, sizes_v, _ = _build_base_signal(passport, close, high, low, volume, names_v, arrs_v, entry_thr=0.55, exit_thr=0.30, regime=regime)
         bt = backtester.run(signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=sizes_v)
         pos_count = sum([bt.net_pnl > 0, bt.sharpe_ratio > 0, bt.pnl_per_trade > 0])
         if bt.total_trades >= 25 and pos_count >= 2:
@@ -376,7 +421,7 @@ async def process_arena2(
 
     def evaluate_pair(entry_thr: float, exit_thr: float):
         nonlocal best_score, best_wr, best_entry, best_exit, best_trades, best_result
-        signals, sizes_v, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+        signals, sizes_v, _ = _build_base_signal(passport, close, high, low, volume, names_v, arrs_v, entry_thr=0.55, exit_thr=0.30, regime=regime)
         bt = backtester.run(signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=sizes_v)
         if bt.total_trades < 25:
             return False  # Need >= 25 trades for reliable WR in threshold grid
@@ -521,7 +566,7 @@ async def process_arena3(
         return None
     names_v = [v[0] for v in valid]
     arrs_v = [v[1] for v in valid]
-    base_signals, base_sizes, _ = _gen_threshold(names_v, arrs_v, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+    base_signals, base_sizes, _ = _build_base_signal(passport, close_fit, high_fit, low_fit, vol_fit, names_v, arrs_v, entry_thr=0.55, exit_thr=0.30, regime=regime)
     atr_fit = compute_atr(high_fit, low_fit, close_fit, period=14)
 
     # Also prepare validation signals
@@ -529,8 +574,63 @@ async def process_arena3(
     valid_val = [(n, a) for n, a in zip(names_raw_val, arrays_raw_val) if np.median(np.abs(a - np.median(a))) > 0]
     names_val = [v[0] for v in valid_val]
     arrs_val = [v[1] for v in valid_val]
-    base_signals_val, base_sizes_val, _ = _gen_threshold(names_val, arrs_val, entry_threshold=0.55, exit_threshold=0.30, min_hold=60, cooldown=60, regime=regime)
+    base_signals_val, base_sizes_val, _ = _build_base_signal(passport, close_val, high_val, low_val, vol_val, names_val, arrs_val, entry_thr=0.55, exit_thr=0.30, regime=regime)
     atr_val = compute_atr(high_val, low_val, close_val, period=14)
+
+    # ── V9: Optional CUDA batch pre-scoring of ATR x TP grid ──
+    # Builds a params array (n_combos, 4) = [entry_thr, exit_thr, atr_mult, tp_param]
+    # and calls cuda_backtest.batch_backtest once. Result is used as an advisory
+    # hint (logged); the authoritative selection still comes from the sequential
+    # multi-objective loop below, which uses the full Backtester (Sharpe / expect /
+    # PnL optima on the real backtest path). Best-effort only: any failure is
+    # swallowed and the sequential path runs normally.
+    _cuda_hint_idx = None
+    _cuda_hint_params = None
+    try:
+        _use_cuda = (
+            _CUDA_BACKTEST_AVAILABLE
+            and is_cuda_available()
+            and os.environ.get("A3_USE_CUDA", "1") == "1"
+        )
+    except Exception:
+        _use_cuda = False
+    if _use_cuda:
+        try:
+            tp_param_grid = (
+                [("none", 0.0)]
+                + [("trailing", p) for p in TRAIL_PCTS]
+                + [("fixed", p) for p in FIXED_TARGETS]
+            )
+            combos = [
+                (atr_mult, tp_type, tp_param)
+                for atr_mult in ATR_STOP_MULTS
+                for (tp_type, tp_param) in tp_param_grid
+            ]
+            if len(combos) >= 8:
+                # Use base signal as the "entry_thr"/"exit_thr" proxy columns; the
+                # CUDA kernel only cares about the fourth column (tp_param) plus
+                # signal + atr + close. Pack placeholders for the first two.
+                params_arr = np.array(
+                    [[0.55, 0.30, float(atr_mult), float(tp_param)]
+                     for (atr_mult, _tp_type, tp_param) in combos],
+                    dtype=np.float32,
+                )
+                # base_signals here is np.int8 (long/short/flat); coerce safely
+                _sig_f32 = np.asarray(base_signals, dtype=np.float32)
+                pnls = batch_backtest(
+                    close_fit, params_arr, signal=_sig_f32, atr=atr_fit,
+                )
+                if pnls is not None and len(pnls) == len(combos):
+                    _cuda_hint_idx = int(np.argmax(pnls))
+                    _cuda_hint_params = combos[_cuda_hint_idx]
+                    log.debug(
+                        f"A3 CUDA batch hint id={champion_id} {symbol}: "
+                        f"combos={len(combos)} best_idx={_cuda_hint_idx} "
+                        f"atr={_cuda_hint_params[0]} tp={_cuda_hint_params[1]}({_cuda_hint_params[2]}) "
+                        f"pnl={float(pnls[_cuda_hint_idx]):.4f}"
+                    )
+        except Exception as _cuda_err:  # noqa: BLE001
+            log.debug(f"A3 CUDA batch failed, using sequential grid: {_cuda_err}")
 
     # ── Search across ATR multipliers x TP strategies (on train-inner) ──
     best_sharpe = -999.0
@@ -869,6 +969,29 @@ async def main():
 
     log.info("Service loop started")
 
+    # ── V9: Optional PGQueuer LISTEN/NOTIFY pickup (opt-in) ──────
+    # Default OFF. When A23_USE_PGQUEUER=1 we start an EventQueue listener
+    # in the background. A1 is not yet emitting notify events, so this is
+    # prep work only — the polling loop below remains the primary driver.
+    _use_pgqueuer = os.environ.get("A23_USE_PGQUEUER", "0") == "1"
+    _event_queue = None
+    if _use_pgqueuer and _EVENT_QUEUE_AVAILABLE:
+        try:
+            _event_queue = EventQueue()
+
+            async def _on_a23_event(stage: str, champion_id: str) -> None:
+                # Lightweight hint only: the polling loop will pick up the
+                # champion on its next iteration. We just log the wake-up.
+                log.info(f"A23 pgqueuer wake stage={stage} champion={champion_id}")
+
+            asyncio.create_task(_event_queue.listen(_on_a23_event))
+            log.info("A23 PGQueuer listener started (prep mode, polling still primary)")
+        except Exception as e:
+            log.warning(f"A23 PGQueuer init failed, fallback to polling: {e}")
+            _event_queue = None
+    elif _use_pgqueuer and not _EVENT_QUEUE_AVAILABLE:
+        log.warning("A23_USE_PGQUEUER=1 but event_queue module unavailable; polling only")
+
     while running:
         try:
             loop_iteration += 1
@@ -903,8 +1026,8 @@ async def main():
                             champion["id"],
                         )
                         await log_transition(db, champion["id"], "ARENA3_PROCESSING", "ARENA2_COMPLETE", worker_id=WORKER_ID, metadata={"reason": "error_rollback"})
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        log.debug(f"A3 error_rollback failed for champion {champion.get('id')}: {e}")
                 elapsed = time.time() - t0
                 if a3_processed <= 5 or a3_processed % 20 == 0:
                     log.info(f"A3 stats: processed={a3_processed} completed={a3_completed} ({elapsed:.1f}s)")
@@ -948,8 +1071,8 @@ async def main():
                             champion["id"],
                         )
                         await log_transition(db, champion["id"], "ARENA2_PROCESSING", "ARENA1_COMPLETE", worker_id=WORKER_ID, metadata={"reason": "error_rollback"})
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        log.debug(f"A2 error_rollback failed for champion {champion.get('id')}: {e}")
                 elapsed = time.time() - t0
                 if a2_processed <= 5 or a2_processed % 20 == 0:
                     log.info(f"A2 stats: processed={a2_processed} promoted={a2_promoted} rejected={a2_rejected} ({elapsed:.1f}s)")
@@ -968,6 +1091,13 @@ async def main():
         except Exception as e:
             log.error(f"Unexpected error: {e}\n{traceback.format_exc()}")
             await asyncio.sleep(5)
+
+    # V9: close PGQueuer listener if active
+    if _event_queue is not None:
+        try:
+            await _event_queue.close()
+        except Exception as e:
+            log.warning(f"A23 PGQueuer close error: {e}")
 
     await db.close()
     log.info(
