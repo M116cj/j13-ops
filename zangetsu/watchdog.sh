@@ -138,7 +138,7 @@ for lock in $LOCK_DIR/*.lock; do
 
   # Cron-managed services: lock file persists between runs, skip
   case "$name" in
-    arena13_feedback|calcifer_supervisor) continue ;;
+    arena13_feedback|calcifer_supervisor|alpha_discovery) continue ;;
   esac
 
   alive=false
