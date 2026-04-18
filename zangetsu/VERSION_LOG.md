@@ -1,3 +1,88 @@
+## v0.5.0 — 2026-04-18 — V10 core upgrade + single-track consolidation
+**Engine hash:** `zv5_v10_alpha` (V10 active) + `zv5_v71`/`zv5_v9` (archived labels)
+**Branch:** `main` @ `98a95e22` (single-track — feat deleted)
+
+### Feature: V10 GP Alpha Expression Engine core integration
+- **Change type:** major refactor (V9 → V10 paradigm shift)
+- **What changed (22 files, +12986/-1033 lines):**
+  - `services/arena_pipeline.py` (925-line rewrite): A1 workers now run per-symbol GP evolution (replaces V9 indicator-combo voting); INSERT engine_hash='zv5_v10_alpha'
+  - `engine/components/alpha_engine.py` (1197-line expansion): 166 primitives (5 OHLCV + 126 indicators + 35 operators)
+  - `services/arena23_orchestrator.py`, `arena45_orchestrator.py`: V10 alpha consumption
+  - `services/{indicator_precompute, data_collector, event_queue, shared_data, shared_utils, pidlock, arena13_feedback}`: plumbing updates for V10
+  - `engine/core.py`, `engine/components/{signal_utils, data_preprocessor}`: signal-generation updates
+  - `config/settings.py`, `config/a13_guidance.json`: V10-related config values
+  - `services/v9_search.py`: kept as legacy helper for A2/A3 side
+- **Why:** V10 doctrine "GP Alpha Expression Engine" replaces V9 "indicator voting" — 4 A1 workers already running V10 code on disk since pre-session (uncommitted), but git reflected V9. Commit closes runtime ↔ git drift; any future restart/reset now loads correct V10 from git.
+- **Q1/Q2/Q3:**
+  - Q1 PASS — V10 runtime proven to work (862 alphas in DB, DSR=1.0 PASS, alpha_discovery cron runs clean)
+  - Q2 PASS — all 18 modified files committed atomically; V9 snapshot preserved as immutable archive
+  - Q3 PASS — minimum changes (only staged pre-existing runtime state, no new edits)
+
+### Feature: V9 archive snapshot (immutable, in-project)
+- **Change type:** archive (per j13 workflow: 淘汰舊版本封存在專屬專案的封存庫)
+- **What changed:** New directory committed: `zangetsu/archive/v9_snapshot_20260418_030520/`
+  - `arena_pipeline.py` (V9 indicator-voting, 993 lines)
+  - `alpha_engine.py` (V9 pre-GP, 494 lines)
+  - `signal_utils.py`, `v9_attention.py`, `v9_search.py` (V9 reference)
+- **Why:** Per j13 rule "新版本出來之後直接進行部署，淘汰掉的舊版本進行封存": V10 deploys directly to main, V9 frozen at 2026-04-18 03:05:20 UTC as immutable snapshot inside project. Archive timestamp = pre-V10-seed moment (5 minutes before 03:10 seed of 851 Kakushadze alphas).
+- **Q1/Q2/Q3:**
+  - Q1 PASS — V9 core covered (arena_pipeline + alpha_engine are the two V9→V10 rewrites)
+  - Q2 PASS — MD5 verified: archived files ≠ live for V9→V10 rewrites, = live for unchanged helpers
+  - Q3 PASS — 5 files, 2365 frozen lines
+- **Rollback:** `git checkout 98a95e22~1` (pre-merge state) or cp archive files back to live paths
+
+### Feature: Single-track branch consolidation
+- **Change type:** workflow (per j13 "不要有任何分支,分支很容易污染後續")
+- **What changed:**
+  - Fast-forward push `feat/v9-oneshot-hardening` → `origin/main` (89abc946..98a95e22)
+  - Deleted `feat/v9-oneshot-hardening` (remote + local)
+  - Deleted local branches: `backup/pre-filter-zangetsu_v3`, `upgrade-v5`, `v5-paper-trading`, `v5.1-fitness-redesign`, `ops/ecosystem-upgrade-v5`, original old `main`
+  - **Remaining:** `main` (only, local + remote)
+  - **PR #3** automatically moved to MERGED state
+- **Why:** Branch sprawl was: 1 main (on origin), 1 feat (live dev), 5 legacy local. Violates single-track rule. Consolidation = main is canonical forever, every future commit goes direct to main.
+- **Q1/Q2/Q3:**
+  - Q1 PASS — feat was fast-forward of main, no merge conflicts, no force-push
+  - Q2 PASS — remote main now at 98a95e22 (12 commits ahead of pre-session); PR #3 MERGED
+  - Q3 PASS — `git push origin feat:main` one-shot operation
+
+### Feature: Dashboard engine_hash filter correction
+- **Change type:** fix
+- **What changed:** `zangetsu/dashboard/api.py` line 1054, 1068: `WHERE engine_hash='zv9'` → `WHERE engine_hash IN ('zv5_v9', 'zv5_v10_alpha', 'zv5_v71')`
+- **Why:** Prior filter used `'zv9'` label (no `zv5_` prefix); DB actually stores `zv5_v9` / `zv5_v10_alpha` / etc. Dashboard was returning 0 rows. Now shows V9 + V10 + V7.1 historical together.
+- **Q1/Q2/Q3:** PASS — safe IN list, no SQL injection surface
+- **Rollback:** sed reverse
+
+### Feature: Log file gitignore
+- **Change type:** infra cleanup
+- **What changed:**
+  - Added to `.gitignore`: `zangetsu/logs/`, `calcifer/calcifer.log`, `zangetsu/.venv/`
+  - `git rm --cached` on `zangetsu/logs/engine.jsonl` (11449 lines) + `calcifer/calcifer.log` (2880 lines)
+- **Why:** Log files churn at MB/hour. Should never be version-controlled.
+- **Q1/Q2/Q3:** PASS — `--cached` only, files stay on disk for services to write
+
+### Final V10 state (post v0.5.0)
+```
+Active V10 alphas:
+  DISCOVERED + ARENA1_READY (valid alpha_hash): 13 (growing every 30 min via cron)
+  SEED + ARENA1_READY (Kakushadze 2016):       851
+  Total active:                                 864
+
+Archived:
+  DISCOVERED LEGACY (NULL-hash retired):         10
+  zv5_v9_coldstart SEED LEGACY:                  13
+  V9 source snapshot (immutable):                 5 files in zangetsu/archive/
+
+Branch: main (single-track; feat/v9-oneshot-hardening deleted)
+Remote: origin/main @ 98a95e22
+PR #3: MERGED
+```
+
+### Deferred (not in this version)
+- Watchdog presence-check architecture (lockfile blindness to clean shutdown)
+- `zangetsu/config/a13_guidance.json` runtime updates (auto-written by A13 cron — expected churn)
+- `calcifer/maintenance_last.json` runtime updates (same — expected)
+- Dedicated `zangetsu-archive` GitHub repo (currently in-project archive suffices)
+
 ## v0.4.1 — 2026-04-18 — V10 post-deploy emergency fixes
 **Engine hash:** unchanged
 **Branch / commit:** `feat/v9-oneshot-hardening` @ (pending)
