@@ -132,7 +132,7 @@ async def discover_alphas_for_symbol(
                         card_status, passport, engine_hash, evolution_operator,
                         created_at, updated_at
                     ) VALUES (
-                        'DISCOVERED', $1, $4, 'ARENA1_READY', 1,
+                        'DISCOVERED', $1, $4, 'ARENA1_COMPLETE', 1,
                         $2, 0.5, 0.0, 0,
                         'DISCOVERED', $3::jsonb, 'zv5_v10_alpha', 'gp_evolution',
                         NOW(), NOW()

@@ -27,3 +27,6 @@ zangetsu/data/oi/
 zangetsu/logs/
 calcifer/calcifer.log
 zangetsu/.venv/
+zangetsu/config/a13_guidance.json
+zangetsu/docs/retros/
+calcifer/maintenance_last.json
