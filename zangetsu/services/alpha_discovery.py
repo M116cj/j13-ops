@@ -127,12 +127,12 @@ async def discover_alphas_for_symbol(
                 await conn.execute(
                     """
                     INSERT INTO champion_pipeline (
-                        regime, indicator_hash, status, n_indicators,
+                        regime, indicator_hash, alpha_hash, status, n_indicators,
                         arena1_score, arena1_win_rate, arena1_pnl, arena1_n_trades,
                         card_status, passport, engine_hash, evolution_operator,
                         created_at, updated_at
                     ) VALUES (
-                        'DISCOVERED', $1, 'DEPLOYABLE', 1,
+                        'DISCOVERED', $1, $4, 'ARENA1_READY', 1,
                         $2, 0.5, 0.0, 0,
                         'DISCOVERED', $3::jsonb, 'zv5_v10_alpha', 'gp_evolution',
                         NOW(), NOW()
@@ -142,6 +142,7 @@ async def discover_alphas_for_symbol(
                     indicator_hash,
                     float(abs(alpha.ic)),
                     json.dumps(passport),
+                    alpha.hash,
                 )
                 inserted += 1
             except Exception as e:
