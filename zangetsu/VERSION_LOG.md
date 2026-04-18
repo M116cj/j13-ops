@@ -1,3 +1,80 @@
+## v0.4.0 — 2026-04-18 — V10 factor expression deployment (Path B isolated)
+**Engine hash:** V9 (zv5_v9, zv5_v71) + **V10 new (zv5_v10_alpha)**
+**Branch / commit:** `feat/v9-oneshot-hardening` @ (pending)
+
+### Feature: V10 Alpha Expression Engine activated
+- **Change type:** deploy + fix
+- **What changed:**
+  - Fixed `services/alpha_discovery.py` two code-drift bugs:
+    - Line 5 docstring + line 137 INSERT: `zv5_v9_alpha` → `zv5_v10_alpha` (matches DB reality)
+    - Line 117: `alpha.to_passport_dict()` → `alpha.to_passport()` (actual method name)
+  - Added cron entry: `*/30 * * * * cd ~/j13-ops && nice -n 10 zangetsu/.venv/bin/python -m zangetsu.services.alpha_discovery >> /tmp/zangetsu_alpha_discovery.log 2>&1`
+  - `watchdog.sh` skip list extended: `alpha_discovery` joins `arena13_feedback|calcifer_supervisor` (cron-managed, not daemon)
+  - Verified end-to-end: manual run produced 3 new alphas for BTCUSDT (GP 15 gen × 80 pop, ~3 sec eval)
+- **Why:** V10 GP Alpha Expression Engine existed dormant since 2026-04-18 03:10 UTC (when 851 kakushadze_2016 seeds + 11 DISCOVERED rows were inserted), but alpha_discovery was never running due to two code-drift bugs. Path B strategy: keep V9 A1-A5 pipeline untouched, run V10 discovery isolated at `nice +10` every 30 min.
+- **Q1/Q2/Q3:**
+  - Q1 PASS — `nice +10` ensures no CPU contention with 4 A1 workers @ 100%; discovery runs ~3 sec; no DB write contention (inserts to separate engine_hash)
+  - Q2 PASS — v10_alpha_ic_analysis shows 862 alphas, 108 with IC > 0.05, top DSR = 1.0000
+  - Q3 PASS — 2 sed fixes + 1 cron + 1 watchdog line; zero V9 pipeline changes
+- **Rollback:** revert two sed fixes, remove cron line, revert watchdog skip
+
+### Feature: Schema constraints (V2 — Agent-3 adversarial finding)
+- **Change type:** fix (adversarial finding mitigation)
+- **What changed:** `zangetsu/migrations/postgres/v0.4.0_v2_constraints.sql`:
+  - `uniq_regime_indicator_hash_v9`: UNIQUE(regime, indicator_hash) WHERE alpha_hash IS NULL AND status != 'LEGACY' (V9 rows)
+  - `uniq_alpha_hash_v10`: UNIQUE(alpha_hash) WHERE alpha_hash IS NOT NULL AND status != 'LEGACY' (V10 rows)
+  - `chk_sane_metrics`: numeric bounds on win_rate [0,1], trades >=0, pnl [-10, 100], elo [-1000, 5000], n_indicators [0, 10]
+- **Why:** Agent-3 adversarial audit found `champion_pipeline` had ONLY PKEY + 2 status CHECKs. Any SSH+DB holder could plant `status='DEPLOYABLE'` bypassing all gates. Constraints lock the physical schema.
+- **Q1/Q2/Q3:**
+  - Q1 PASS — constraint apply surfaced real duplicate `alpha_hash=3ff11ef5fb27b838` (retired as LEGACY)
+  - Q2 PASS — indexes created, no drop on existing data
+  - Q3 PASS — migration idempotent with IF NOT EXISTS guards
+
+### Feature: V10 alpha status normalization
+- **Change type:** data fix
+- **What changed:**
+  - 11 DISCOVERED V10 alphas had `status='DEPLOYABLE'` (bypassing pipeline) → fixed to `status='ARENA1_READY'`
+  - 851 SEED V10 alphas had `status='DEPLOYABLE'` → fixed to `status='ARENA1_READY'`
+  - 1 duplicate alpha_hash row retired to `status='LEGACY'`
+- **Why:** Seeded alphas should enter A1 pipeline via `ARENA1_READY`, not skip to `DEPLOYABLE`. Previous seed script had wrong default.
+- **Q1/Q2/Q3:** PASS — no alpha lost (all reassigned, not deleted)
+- **Rollback:** UPDATE ... SET status='DEPLOYABLE' WHERE ...
+
+### V10 current inventory (post-deployment)
+- **862 total V10 alphas** (851 SEED + 11 DISCOVERED)
+  - All in `status='ARENA1_READY'` awaiting A1 evaluation
+  - `engine_hash='zv5_v10_alpha'` (distinct from V9's `zv5_v9`/`zv5_v71`)
+  - Regimes: MULTI (851), BULL_TREND (5), CONSOLIDATION (6)
+- **Quality baseline** (via v10_alpha_ic_analysis):
+  - Mean IC: 0.0374
+  - 333 alphas with IC > 0.02 (V9 MIN_IC_THRESHOLD)
+  - 108 alphas with IC > 0.05 (strong signals)
+  - Max IC: 0.4832
+  - Top alpha DSR: 1.0000 (PASS V10 gate 1)
+- **Discovery cadence:** every 30 min via cron, one symbol per run, GP 15 gen × 80 pop
+
+### Cron state (post-v0.4.0)
+```
+*/5 * * * *  watchdog.sh
+*/5 * * * *  arena13_feedback (single-shot)
+0 */6 * * *  daily_data_collect
+*/30 * * * * alpha_discovery (nice +10, NEW)
+45 * * * *   v10_alpha_ic_analysis (pre-existing)
+0 3 * * 0    /tmp cleanup
+```
+
+### Adversarial / code-drift issues caught this batch
+1. `to_passport_dict` vs `to_passport` (fatal, blocked all discovery)
+2. `zv5_v9_alpha` vs `zv5_v10_alpha` (silent drift, DB ignored discovery)
+3. Duplicate alpha_hash (UNIQUE caught, retired to LEGACY)
+4. Seed script defaulted status='DEPLOYABLE' (bypassing pipeline)
+
+### Deferred (not in this version)
+- Path A acceleration (V10 接線 V9 live ensemble) — wait 1 week observation
+- V1 train=test architectural fix — will propose separate PR after V10 proves out
+- Gemini/OpenAI auth on Alaya — needs API keys
+- PR #3 merge to main — wait 1 week from earlier commit cycle
+
 ## v0.3.4 — 2026-04-17 — Watchdog round 2: orchestrator stale-check skip
 **Engine hash:** `zv5_v71` / `zv5_v9`
 **Branch / commit:** `feat/v9-oneshot-hardening` @ `f8bc5701`
