@@ -45,4 +45,4 @@ A5_MAX_CONSECUTIVE_NEG_DAYS = 3
 # ── Execution / horizon ──────────────────────────────────────────────
 ALPHA_FORWARD_HORIZON = 60        # bars, matches alpha_signal.min_hold
 COST_BPS = 5.0                    # round-trip cost in basis points
-MAX_HOLD_BARS = 60                # align with forward horizon
+MAX_HOLD_BARS = 120                # 2x forward horizon; v0.7.2 horizon alignment

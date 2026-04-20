@@ -159,8 +159,6 @@ A2_STAGE1_PAIRS = [(0.60, 0.20), (0.65, 0.25), (0.70, 0.30), (0.75, 0.35), (0.80
 
 # Arena 3 grid
 ATR_STOP_MULTS = [2.0, 3.0, 4.0]  # v9: narrowed from 7 to 3 (tight stops never survive A4)
-MAX_HOLD_BARS_A2 = 120
-MAX_HOLD_BARS_A3 = 480
 
 # Arena 3 TP search params (v9: trimmed extremes to reduce overfitting degrees of freedom)
 TRAIL_PCTS = [0.003, 0.005, 0.008, 0.01, 0.015, 0.02]
@@ -263,6 +261,26 @@ def compute_trade_stats(bt: BacktestResult):
         avg_loss = 0.0
     return avg_win, avg_loss
 
+
+
+# v0.7.2 horizon alignment: per-strategy MAX_HOLD via lazy loader.
+# Orchestrators process rows from multiple strategies; each row's
+# strategy_id determines which thresholds.MAX_HOLD_BARS is used for
+# its A2/A3/A4 backtests.
+_STRATEGY_THRESHOLDS_CACHE = {}
+def _strategy_max_hold(strategy_id):
+    if strategy_id not in _STRATEGY_THRESHOLDS_CACHE:
+        if strategy_id == "j01":
+            from j01.config import thresholds as t
+        elif strategy_id == "j02":
+            from j02.config import thresholds as t
+        else:
+            raise RuntimeError(
+                f"Unknown strategy_id={strategy_id!r} in orchestrator. "
+                "Expected j01 or j02; refuse to proceed."
+            )
+        _STRATEGY_THRESHOLDS_CACHE[strategy_id] = int(t.MAX_HOLD_BARS)
+    return _STRATEGY_THRESHOLDS_CACHE[strategy_id]
 
 async def is_duplicate_champion(db: asyncpg.Connection, champion_id: int, passport: dict, log) -> bool:
     """Check if a champion with the same indicator combo already exists at a higher arena level."""
@@ -543,7 +561,7 @@ async def process_arena2(
     else:
         a1_entry_thr = 0.55
     baseline_signals, baseline_sizes, _ = _build_base_signal(passport, close, high, low, volume, names_v, arrs_v, entry_thr=0.55, exit_thr=0.30, regime=regime)
-    baseline_bt = backtester.run(baseline_signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=baseline_sizes)
+    baseline_bt = backtester.run(baseline_signals, close, symbol, cost_bps, _strategy_max_hold(champion.get('strategy_id', 'j01')), high=high, low=low, sizes=baseline_sizes)
     original_wr = float(baseline_bt.win_rate)
     original_pnl = float(baseline_bt.net_pnl)
     original_sharpe = float(baseline_bt.sharpe_ratio)
@@ -553,7 +571,7 @@ async def process_arena2(
     # ── AD1: 2-indicator combos are AND gates — skip grid search ──
     if len(configs) <= 2:
         signals, sizes_v, _ = _build_base_signal(passport, close, high, low, volume, names_v, arrs_v, entry_thr=0.55, exit_thr=0.30, regime=regime)
-        bt = backtester.run(signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=sizes_v)
+        bt = backtester.run(signals, close, symbol, cost_bps, _strategy_max_hold(champion.get('strategy_id', 'j01')), high=high, low=low, sizes=sizes_v)
         pos_count = sum([bt.net_pnl > 0, bt.sharpe_ratio > 0, bt.pnl_per_trade > 0])
         if bt.total_trades >= 25 and pos_count >= 2:
             # AD1+AD3: 2-indicator passthrough — auto-promote if economically valid
@@ -607,7 +625,7 @@ async def process_arena2(
     def evaluate_pair(entry_thr: float, exit_thr: float):
         nonlocal best_score, best_wr, best_entry, best_exit, best_trades, best_result
         signals, sizes_v, _ = _build_base_signal(passport, close, high, low, volume, names_v, arrs_v, entry_thr=0.55, exit_thr=0.30, regime=regime)
-        bt = backtester.run(signals, close, symbol, cost_bps, MAX_HOLD_BARS_A2, high=high, low=low, sizes=sizes_v)
+        bt = backtester.run(signals, close, symbol, cost_bps, _strategy_max_hold(champion.get('strategy_id', 'j01')), high=high, low=low, sizes=sizes_v)
         if bt.total_trades < 25:
             return False  # Need >= 25 trades for reliable WR in threshold grid
         pos = (bt.net_pnl > 0) + (bt.sharpe_ratio > 0) + (bt.pnl_per_trade > 0)
@@ -924,7 +942,7 @@ async def process_arena3(
     # If the base signal produces nothing positive at the widest stop,
     # no TP/ATR combo will save it. Skip the 39-combo grid entirely.
     _pf_bt = backtester.run(
-        base_signals, close_fit, symbol, cost_bps, MAX_HOLD_BARS_A3,
+        base_signals, close_fit, symbol, cost_bps, _strategy_max_hold(champion.get('strategy_id', 'j01')),
         high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=max(ATR_STOP_MULTS), sizes=base_sizes,
     )
     _pf_pos = (_pf_bt.net_pnl > 0) + (_pf_bt.sharpe_ratio > 0) + (_pf_bt.pnl_per_trade > 0) if _pf_bt and _pf_bt.total_trades >= 10 else 0
@@ -941,7 +959,7 @@ async def process_arena3(
     for atr_mult in ATR_STOP_MULTS:
         # ── Pool 2: No TP (expectancy-optimized) ──
         bt = backtester.run(
-            base_signals, close_fit, symbol, cost_bps, MAX_HOLD_BARS_A3,
+            base_signals, close_fit, symbol, cost_bps, _strategy_max_hold(champion.get('strategy_id', 'j01')),
             high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult, sizes=base_sizes,
         )
         if bt.total_trades >= 25:
@@ -962,7 +980,7 @@ async def process_arena3(
         for trail_pct in TRAIL_PCTS:
             trail_signals = apply_trailing_stop(base_signals, close_fit, trail_pct)
             bt = backtester.run(
-                trail_signals, close_fit, symbol, cost_bps, MAX_HOLD_BARS_A3,
+                trail_signals, close_fit, symbol, cost_bps, _strategy_max_hold(champion.get('strategy_id', 'j01')),
                 high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult, sizes=base_sizes,
             )
             if bt.total_trades >= 25:
@@ -983,7 +1001,7 @@ async def process_arena3(
         for target_pct in FIXED_TARGETS:
             target_signals = apply_fixed_target(base_signals, close_fit, target_pct)
             bt = backtester.run(
-                target_signals, close_fit, symbol, cost_bps, MAX_HOLD_BARS_A3,
+                target_signals, close_fit, symbol, cost_bps, _strategy_max_hold(champion.get('strategy_id', 'j01')),
                 high=high_fit, low=low_fit, atr=atr_fit, atr_stop_mult=atr_mult, sizes=base_sizes,
             )
             if bt.total_trades >= 25:
@@ -1033,7 +1051,7 @@ async def process_arena3(
         val_signals = base_signals_val
 
     bt_val = backtester.run(
-        val_signals, close_val, symbol, cost_bps, MAX_HOLD_BARS_A3,
+        val_signals, close_val, symbol, cost_bps, _strategy_max_hold(champion.get('strategy_id', 'j01')),
         high=high_val, low=low_val, atr=atr_val, atr_stop_mult=val_atr_mult, sizes=base_sizes_val,
     )
 

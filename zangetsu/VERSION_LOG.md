@@ -1,3 +1,17 @@
+## v0.7.2 — 2026-04-20 — Horizon alignment process-gap fix: MAX_HOLD_BARS moves to strategy config, default 120 (2x forward horizon)
+**Scope:** `j01/config/thresholds.py` + `j02/config/thresholds.py` (MAX_HOLD_BARS 60 -> 120 with inline justification), `services/arena_pipeline.py` (reads `_strategy_thresholds.MAX_HOLD_BARS` at worker startup, applied to both train + val backtest calls), `services/arena23_orchestrator.py` + `services/arena45_orchestrator.py` (strategy-thresholds lazy cache `_strategy_max_hold(row['strategy_id'])`, replaces module-level `MAX_HOLD_BARS_A2=120 / MAX_HOLD_BARS_A3=480 / A4_MAX_HOLD_BARS=480`), `docs/decisions/20260420-horizon-alignment-process-gap.md` (new ADR).
+
+> **主因：** v0.7.1 observation window 啟動 74 min，0 staging rows。深入調查：100% alphas 被 `arena_pipeline` 內部 `reject_val_neg_pnl` 擋下（W0 92%，W2 100%）。根因是 2026-04-20 早上 Patch G 半拉子修復 — 只把 fitness `_forward_returns` 從 1-bar 改 60-bar，但 7 處 backtest `max_hold` 硬編 480 沒跟著改（8× fitness horizon），alpha 在 60-bar edge 後被強制持倉至 480 bar，60-480 bar noise 積累 → 平倉 PnL 必負。
+
+### 不違反 governance rule #4
+- 未動 `j01/fitness.py` 或 `j02/fitness.py`；pre-commit fitness lock 不觸發
+- 不是 fitness 改動，是執行橫線對齊修復（process gap，rule #4 明文允許）
+
+### 預測
+1-2 hr 內：reject_val_neg_pnl 應從 100% 顯著下降；staging 開始有 rows；admission_validator 開始被呼叫；Calcifer RED -> YELLOW/GREEN。若 72h 後兩策略仍 0 DEPLOYABLE，**仍不調 fitness**，追 reject 其他分類 (val_sharpe / val_wr / val_few_trades)。
+
+---
+
 ## v0.7.1 — 2026-04-20 — Governance upgrade: physical split + staging + admission validator + 11-field provenance + dual-evidence VIEWs
 **Scope:** `engine/components/alpha_engine.py` (no change; re-verified), `engine/provenance.py` + `engine/patches.py` (new), `services/arena_pipeline.py` (staging INSERT + validator call + telemetry emit), `services/arena23_orchestrator.py` + `services/arena45_orchestrator.py` + `services/shared_utils.py` + `dashboard/api.py` + `live/main_loop.py` + `live/card_rotation.py` + `zangetsu_ctl.sh` + `calcifer/*.py` + `tests/test_integration.py` + `scripts/run_dashboard.py` + `scripts/v8_vs_v9_metrics.py` (bare `champion_pipeline` → `champion_pipeline_fresh`), `scripts/rescan_legacy_with_new_gates.py` + `services/seed_101_alphas*.py` + `services/alpha_discovery.py` + `services/factor_zoo.py` (DEPRECATED guard), `scripts/zangetsu_snapshot.sh` + `d-mail-miniapp/static/index.html` (dual-evidence health cards), `migrations/postgres/v0.7.1_governance.sql` + `rollback_v0.7.1.sql` (new), `scripts/verify_no_archive_reads.sh` + `.githooks/pre-commit` (new), `docs/decisions/20260420-governance-v0.7.1.md` (new ADR).
 

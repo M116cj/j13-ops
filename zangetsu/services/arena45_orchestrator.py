@@ -7,7 +7,7 @@ Arena 5: Continuous ELO tournament for CANDIDATE + DEPLOYABLE strategies (Swiss-
 
 v9: Arena 4 uses holdout data only — never sees train data from Arena 1/2/3.
 v9: Dual-tier CANDIDATE → DEPLOYABLE promotion gate (AD2).
-v9: A4 now faithfully replays A3's TP strategy + ATR params + max_hold=480 on holdout.
+v9: A4 now faithfully replays A3's TP strategy + ATR params + max_hold = _strategy_max_hold(champ.get('strategy_id', 'j01')) on holdout.
 v6c: A4 min_seg_trades=8, A5 same-symbol evidence accumulation for Wilson LB promotion, pool_size=2, A3 PnL pre-filter.
 v9: Deduplicated shared_utils (compute_indicators, compute_atr, wilson_lower,
     compute_config_hash, apply_trailing_stop, apply_fixed_target, apply_tp_strategy,
@@ -183,7 +183,6 @@ DIRECTIONAL = [
 ]
 
 
-A4_MAX_HOLD_BARS = 480  # Must match A3's MAX_HOLD_BARS_A3
 
 
 def normalize_with_passport(arrs, passport):
@@ -208,7 +207,7 @@ def normalize_with_passport(arrs, passport):
     return norm
 
 
-def backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_hold=480,
+def backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_hold,
                    atr=None, atr_stop_mult=None, sizes=None):
     """Run backtest on a data slice with optional ATR stop."""
     if len(signals) < 50:
@@ -221,6 +220,26 @@ def backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_
         kwargs["sizes"] = sizes[:len(signals)]
     return backtester.run(signals, close, symbol, cost_bps, max_hold, **kwargs)
 
+
+
+# v0.7.2 horizon alignment: per-strategy MAX_HOLD via lazy loader.
+# Orchestrators process rows from multiple strategies; each row's
+# strategy_id determines which thresholds.MAX_HOLD_BARS is used for
+# its A2/A3/A4 backtests.
+_STRATEGY_THRESHOLDS_CACHE = {}
+def _strategy_max_hold(strategy_id):
+    if strategy_id not in _STRATEGY_THRESHOLDS_CACHE:
+        if strategy_id == "j01":
+            from j01.config import thresholds as t
+        elif strategy_id == "j02":
+            from j02.config import thresholds as t
+        else:
+            raise RuntimeError(
+                f"Unknown strategy_id={strategy_id!r} in orchestrator. "
+                "Expected j01 or j02; refuse to proceed."
+            )
+        _STRATEGY_THRESHOLDS_CACHE[strategy_id] = int(t.MAX_HOLD_BARS)
+    return _STRATEGY_THRESHOLDS_CACHE[strategy_id]
 
 async def pick_arena3_complete(db):
     """Atomically pick one ARENA3_COMPLETE champion for processing."""
@@ -747,7 +766,7 @@ async def run_elo_round(by_regime, data_cache, backtester, cost_model, rust_engi
             exit_thr = arena2.get("exit_threshold", arena2.get("exit_thr", 0.40))
             cooldown = arena2.get("cooldown", 10)
 
-            # Fix #1: Use extract_a3_params — always returns max_hold=480
+            # Fix #1: Use extract_a3_params — always returns max_hold = _strategy_max_hold(champ.get('strategy_id', 'j01'))
             a3_params = extract_a3_params(passport)
             max_hold = a3_params["max_hold"]
             atr_stop_mult = a3_params["atr_stop_mult"]

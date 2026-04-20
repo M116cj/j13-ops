@@ -75,10 +75,16 @@ if STRATEGY_ID == "j01":
     from j01.fitness import fitness_fn as _strategy_fitness_fn
 elif STRATEGY_ID == "j02":
     from j02.fitness import fitness_fn as _strategy_fitness_fn
+    from j02.config import thresholds as _strategy_thresholds
 else:
     raise RuntimeError(
         f"Unknown STRATEGY_ID={STRATEGY_ID!r}. Supported: j01, j02."
     )
+if STRATEGY_ID == "j01":
+    from j01.config import thresholds as _strategy_thresholds  # noqa: E402
+# Horizon alignment (v0.7.2): backtest max_hold comes from strategy config,
+# not hardcoded 480. Must be >= min_hold and reasonable multiple of fitness horizon.
+_STRATEGY_MAX_HOLD = int(_strategy_thresholds.MAX_HOLD_BARS)
 
 
 TRAIN_SPLIT_RATIO = 0.7
@@ -732,7 +738,7 @@ async def main():
             # ── Backtest (unchanged Arena 1 gates) ──
             try:
                 bt = backtester.run(
-                    signals, close_f32, sym, cost_bps, 480,
+                    signals, close_f32, sym, cost_bps, _STRATEGY_MAX_HOLD,
                     high=high_f32, low=low_f32, sizes=sizes,
                 )
             except Exception as _be:
@@ -780,8 +786,7 @@ async def main():
                     sig_v,
                     d_val["close"].astype(np.float32),
                     sym,
-                    cost_bps,
-                    480,
+                    cost_bps, _STRATEGY_MAX_HOLD,
                     high=d_val["high"].astype(np.float32),
                     low=d_val["low"].astype(np.float32),
                     sizes=sz_v,
