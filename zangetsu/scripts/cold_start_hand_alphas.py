@@ -130,7 +130,7 @@ def evaluate_and_backtest(func, data_slice, indicator_cache_to_inject, engine,
     if alpha_values.size != data_slice["close"].size:
         # Broadcast scalar or mismatched size
         if alpha_values.size == 1:
-            alpha_values = np.full(data_slice["close"].size, float(alpha_values), dtype=np.float32)
+            alpha_values = np.full(data_slice["close"].size, float(alpha_values.item()), dtype=np.float32)
         elif alpha_values.size < data_slice["close"].size:
             padded = np.zeros(data_slice["close"].size, dtype=np.float32)
             padded[-alpha_values.size:] = alpha_values
@@ -316,7 +316,15 @@ async def run_for_strategy(strategy_id: str, args):
         get_git_commit, compute_grammar_hash, compute_config_hash, generate_run_id,
     )
     from zangetsu.engine.patches import PATCHES_APPLIED
-    git_sha, _ = get_git_commit()
+    if args.allow_dirty_tree:
+        import subprocess as _sp
+        try:
+            _sha = _sp.check_output(["git", "rev-parse", "HEAD"], cwd="/home/j13/j13-ops", text=True).strip()
+        except Exception:
+            _sha = "unknown"
+        git_sha = f"dirty:{_sha}"
+    else:
+        git_sha, _ = get_git_commit()
     provenance_base = {
         "engine_version": "zangetsu_v0.7.2",
         "git_commit": git_sha,
@@ -407,6 +415,8 @@ def main():
     parser.add_argument("--strategies", nargs="+", default=["j01", "j02"])
     parser.add_argument("--symbols", nargs="+", default=None)
     parser.add_argument("--limit-symbols", type=int, default=None)
+    parser.add_argument("--allow-dirty-tree", action="store_true",
+                        help="operator override for ad-hoc runs; stamps git_sha as dirty:<sha>")
     parser.add_argument("--dry-run-one", action="store_true",
                         help="Just test 1 formula x 1 symbol for smoke; no DB write")
     args = parser.parse_args()
