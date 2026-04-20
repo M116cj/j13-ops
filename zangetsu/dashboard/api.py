@@ -104,7 +104,7 @@ def create_dashboard_app(engine) -> FastAPI:
         try:
             row = await eng.db.fetchrow(
                 "SELECT EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at))) as span_s, "
-                "count(*) as cnt FROM champion_pipeline WHERE status != 'LEGACY'"
+                "count(*) as cnt FROM champion_pipeline_fresh WHERE status != 'LEGACY'"
             )
             if row and row["span_s"] and row["span_s"] > 0:
                 return round(row["cnt"] / (float(row["span_s"]) / 3600), 1)
@@ -121,31 +121,31 @@ def create_dashboard_app(engine) -> FastAPI:
     async def pipeline_overview():
         async def _fetch():
             rows = await engine.db.fetch(
-                "SELECT status, count(*) as cnt FROM champion_pipeline "
+                "SELECT status, count(*) as cnt FROM champion_pipeline_fresh "
                 "WHERE status NOT LIKE 'LEGACY%%' GROUP BY status ORDER BY cnt DESC"
             )
             by_status = {r["status"]: r["cnt"] for r in rows}
             total = sum(by_status.values())
             deployable = by_status.get("DEPLOYABLE", 0)
             active_row = await engine.db.fetchrow(
-                """SELECT count(*) AS cnt FROM champion_pipeline
+                """SELECT count(*) AS cnt FROM champion_pipeline_fresh
                    WHERE status = 'DEPLOYABLE'
                      AND card_status IN ('ACTIVE', 'CHALLENGED', 'DRAINING', 'HANDOVER')"""
             )
             active_cards = int(active_row["cnt"] or 0) if active_row else 0
             _urow = await engine.db.fetchrow(
                 "SELECT count(DISTINCT passport->'arena1'->>'config_hash') as cnt "
-                "FROM champion_pipeline WHERE status NOT LIKE 'LEGACY%%' "
+                "FROM champion_pipeline_fresh WHERE status NOT LIKE 'LEGACY%%' "
                 "AND passport->'arena1'->>'config_hash' IS NOT NULL"
             )
             unique = _urow["cnt"] if _urow else 0
             _nrow = await engine.db.fetchrow(
-                "SELECT count(*) as cnt FROM champion_pipeline "
+                "SELECT count(*) as cnt FROM champion_pipeline_fresh "
                 "WHERE status NOT LIKE 'LEGACY%%' AND created_at > NOW() - INTERVAL '1 hour'"
             )
             new_1h = _nrow["cnt"] if _nrow else 0
             _crow = await engine.db.fetchrow(
-                "SELECT count(*) as cnt FROM champion_pipeline WHERE status = 'CANDIDATE'"
+                "SELECT count(*) as cnt FROM champion_pipeline_fresh WHERE status = 'CANDIDATE'"
             )
             candidate = _crow["cnt"] if _crow else 0
             return {
@@ -174,7 +174,7 @@ def create_dashboard_app(engine) -> FastAPI:
                 raise HTTPException(status_code=503, detail=overview)
             recent = await engine.db.fetchrow(
                 """SELECT EXTRACT(EPOCH FROM (NOW() - MAX(created_at))) AS age_s
-                   FROM champion_pipeline WHERE status != 'LEGACY'"""
+                   FROM champion_pipeline_fresh WHERE status != 'LEGACY'"""
             )
             age_s = float(recent["age_s"]) if recent and recent["age_s"] is not None else None
             return {
@@ -205,7 +205,7 @@ def create_dashboard_app(engine) -> FastAPI:
                        passport->'arena2'->>'optimized_entry_threshold' as opt_entry,
                        passport->'arena2'->>'optimized_exit_threshold' as opt_exit,
                        n_indicators
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE status IN ('DEPLOYABLE', 'CANDIDATE') AND elo_rating IS NOT NULL
                 ORDER BY elo_rating DESC LIMIT 50
             """)
@@ -244,7 +244,7 @@ def create_dashboard_app(engine) -> FastAPI:
         async def _fetch():
             rows = await engine.db.fetch("""
                 SELECT regime, indicator_hash, elo_rating, quant_class, arena1_win_rate, card_status
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE status = 'DEPLOYABLE' AND card_status IN ('ACTIVE', 'CHALLENGED')
                 ORDER BY regime, elo_rating DESC
             """)
@@ -279,7 +279,7 @@ def create_dashboard_app(engine) -> FastAPI:
                     count(*) FILTER (WHERE status = 'ELO_RETIRED') as retired,
                     round(max(arena1_win_rate)::numeric, 3) as best_wr,
                     round(max(elo_rating) FILTER (WHERE status = 'DEPLOYABLE')::numeric, 1) as top_elo
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE status NOT LIKE 'LEGACY%%'
             """)
             r = rows[0] if rows else {}
@@ -311,7 +311,7 @@ def create_dashboard_app(engine) -> FastAPI:
             db_status = "ok"
             db_details: dict = {}
             try:
-                row = await engine.db.fetchrow("SELECT count(*) as total FROM champion_pipeline")
+                row = await engine.db.fetchrow("SELECT count(*) as total FROM champion_pipeline_fresh")
                 db_details = {"total_rows": row["total"]}
             except Exception as e:
                 db_status = "error"
@@ -373,7 +373,7 @@ def create_dashboard_app(engine) -> FastAPI:
             rows = await engine.db.fetch("""
                 SELECT id, indicator_hash, regime, arena1_win_rate, arena1_pnl,
                        arena1_n_trades, elo_rating, quant_class
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE status = 'DEPLOYABLE'
                 ORDER BY elo_rating DESC LIMIT $1
             """, k)
@@ -439,7 +439,7 @@ def create_dashboard_app(engine) -> FastAPI:
                            round(avg(arena1_win_rate)::numeric, 3) as avg_wr,
                            round(max(arena1_win_rate)::numeric, 3) as best_wr,
                            round(avg(n_indicators)::numeric, 1) as avg_indicators
-                    FROM champion_pipeline WHERE arena1_completed_at IS NOT NULL
+                    FROM champion_pipeline_fresh WHERE arena1_completed_at IS NOT NULL
                 """)
                 r = rows[0] if rows else {}
                 return {"name": "arena1", "total": r.get("total", 0), "completed": r.get("completed", 0),
@@ -451,7 +451,7 @@ def create_dashboard_app(engine) -> FastAPI:
                            count(*) FILTER (WHERE status = 'ARENA2_REJECTED') as rejected,
                            round(avg(arena2_win_rate)::numeric, 3) as avg_wr,
                            round(avg(arena2_n_trades)::numeric, 0) as avg_trades
-                    FROM champion_pipeline WHERE arena2_completed_at IS NOT NULL OR status LIKE 'ARENA2%%'
+                    FROM champion_pipeline_fresh WHERE arena2_completed_at IS NOT NULL OR status LIKE 'ARENA2%%'
                 """)
                 r = rows[0] if rows else {}
                 return {"name": "arena2", "total": r.get("total", 0), "rejected": r.get("rejected", 0),
@@ -462,7 +462,7 @@ def create_dashboard_app(engine) -> FastAPI:
                            round(avg(arena3_sharpe)::numeric, 3) as avg_sharpe,
                            round(avg(arena3_expectancy)::numeric, 4) as avg_expectancy,
                            round(avg(arena3_pnl)::numeric, 4) as avg_pnl
-                    FROM champion_pipeline WHERE arena3_completed_at IS NOT NULL
+                    FROM champion_pipeline_fresh WHERE arena3_completed_at IS NOT NULL
                 """)
                 r = rows[0] if rows else {}
                 return {"name": "arena3", "total": r.get("total", 0),
@@ -475,7 +475,7 @@ def create_dashboard_app(engine) -> FastAPI:
                            count(*) FILTER (WHERE status = 'ARENA4_ELIMINATED') as eliminated,
                            round(avg(arena4_hell_wr)::numeric, 3) as avg_hell_wr,
                            round(avg(arena4_variability)::numeric, 3) as avg_variability
-                    FROM champion_pipeline WHERE arena4_completed_at IS NOT NULL OR status LIKE 'ARENA4%%'
+                    FROM champion_pipeline_fresh WHERE arena4_completed_at IS NOT NULL OR status LIKE 'ARENA4%%'
                 """)
                 r = rows[0] if rows else {}
                 return {"name": "arena4", "total": r.get("total", 0), "eliminated": r.get("eliminated", 0),
@@ -490,7 +490,7 @@ def create_dashboard_app(engine) -> FastAPI:
                            count(*) FILTER (WHERE elo_rating > 1600) as elite,
                            count(*) FILTER (WHERE elo_rating BETWEEN 1400 AND 1600) as mid,
                            count(*) FILTER (WHERE elo_rating < 1400) as low
-                    FROM champion_pipeline WHERE status = 'DEPLOYABLE' AND elo_rating IS NOT NULL
+                    FROM champion_pipeline_fresh WHERE status = 'DEPLOYABLE' AND elo_rating IS NOT NULL
                 """)
                 r = rows[0] if rows else {}
                 return {"name": "arena5", "total": r.get("total", 0),
@@ -504,7 +504,7 @@ def create_dashboard_app(engine) -> FastAPI:
                            count(*) FILTER (WHERE evolution_operator = 'param_tune') as param_tunes,
                            max(generation) as max_gen,
                            round(avg(generation)::numeric, 1) as avg_gen
-                    FROM champion_pipeline WHERE evolution_operator IS NOT NULL
+                    FROM champion_pipeline_fresh WHERE evolution_operator IS NOT NULL
                 """)
                 r = rows[0] if rows else {}
                 return {"name": "arena13", "total": r.get("total", 0),
@@ -555,7 +555,7 @@ def create_dashboard_app(engine) -> FastAPI:
                 SELECT id, indicator_hash, regime, elo_rating, quant_class,
                        arena1_win_rate, arena1_pnl, arena1_n_trades, card_status,
                        arena2_win_rate, arena3_sharpe, arena3_pnl, arena4_hell_wr, status
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE elo_rating IS NOT NULL
                 ORDER BY elo_rating DESC
             """)
@@ -614,11 +614,11 @@ def create_dashboard_app(engine) -> FastAPI:
                 SELECT id, indicator_hash, regime, round(arena1_win_rate::numeric,3) as wr,
                        arena1_n_trades as trades, round(arena1_pnl::numeric,4) as pnl,
                        round(arena1_score::numeric,4) as score, created_at
-                FROM champion_pipeline WHERE status NOT LIKE 'LEGACY%%'
+                FROM champion_pipeline_fresh WHERE status NOT LIKE 'LEGACY%%'
                 ORDER BY arena1_score DESC LIMIT 30
             """)
             recent = await engine.db.fetchrow(
-                "SELECT count(*) as cnt FROM champion_pipeline "
+                "SELECT count(*) as cnt FROM champion_pipeline_fresh "
                 "WHERE status='ARENA1_COMPLETE' AND created_at > NOW() - INTERVAL '1 hour'"
             )
             return {
@@ -642,14 +642,14 @@ def create_dashboard_app(engine) -> FastAPI:
             promoted = await engine.db.fetch("""
                 SELECT id, indicator_hash, regime, round(arena1_win_rate::numeric,3) as a1_wr,
                        round(arena2_win_rate::numeric,3) as a2_wr, arena2_n_trades as trades
-                FROM champion_pipeline WHERE status IN ('ARENA2_COMPLETE','ARENA3_COMPLETE','ARENA4_ELIMINATED','DEPLOYABLE')
+                FROM champion_pipeline_fresh WHERE status IN ('ARENA2_COMPLETE','ARENA3_COMPLETE','ARENA4_ELIMINATED','DEPLOYABLE')
                 AND arena2_win_rate IS NOT NULL ORDER BY arena2_win_rate DESC LIMIT 30
             """)
             rejected = await engine.db.fetchrow(
-                "SELECT count(*) as cnt FROM champion_pipeline WHERE status='ARENA2_REJECTED'"
+                "SELECT count(*) as cnt FROM champion_pipeline_fresh WHERE status='ARENA2_REJECTED'"
             )
             total = await engine.db.fetchrow(
-                "SELECT count(*) as cnt FROM champion_pipeline WHERE status LIKE 'ARENA2%%' OR arena2_win_rate IS NOT NULL"
+                "SELECT count(*) as cnt FROM champion_pipeline_fresh WHERE status LIKE 'ARENA2%%' OR arena2_win_rate IS NOT NULL"
             )
             return {
                 "promoted": [
@@ -676,7 +676,7 @@ def create_dashboard_app(engine) -> FastAPI:
                        round(arena3_expectancy::numeric,4) as expectancy, round(arena3_pnl::numeric,4) as pnl,
                        passport->'arena3'->>'atr_multiplier' as atr_mult,
                        passport->'arena3'->>'half_kelly' as kelly
-                FROM champion_pipeline WHERE arena3_pnl IS NOT NULL
+                FROM champion_pipeline_fresh WHERE arena3_pnl IS NOT NULL
                 ORDER BY arena3_sharpe DESC NULLS LAST LIMIT 30
             """)
             return {
@@ -698,15 +698,15 @@ def create_dashboard_app(engine) -> FastAPI:
     async def arena4_detail():
         async def _fetch():
             eliminated = await engine.db.fetchrow(
-                "SELECT count(*) as cnt FROM champion_pipeline WHERE status='ARENA4_ELIMINATED'"
+                "SELECT count(*) as cnt FROM champion_pipeline_fresh WHERE status='ARENA4_ELIMINATED'"
             )
             passed = await engine.db.fetchrow(
-                "SELECT count(*) as cnt FROM champion_pipeline WHERE status IN ('DEPLOYABLE','ELO_ACTIVE','ELO_RETIRED')"
+                "SELECT count(*) as cnt FROM champion_pipeline_fresh WHERE status IN ('DEPLOYABLE','ELO_ACTIVE','ELO_RETIRED')"
             )
             rows = await engine.db.fetch("""
                 SELECT id, regime, round(arena4_hell_wr::numeric,3) as hell_wr,
                        round(arena4_variability::numeric,3) as variability, quant_class
-                FROM champion_pipeline WHERE status='DEPLOYABLE' ORDER BY elo_rating DESC LIMIT 20
+                FROM champion_pipeline_fresh WHERE status='DEPLOYABLE' ORDER BY elo_rating DESC LIMIT 20
             """)
             elim_cnt = eliminated["cnt"] if eliminated else 0
             pass_cnt = passed["cnt"] if passed else 0
@@ -733,13 +733,13 @@ def create_dashboard_app(engine) -> FastAPI:
             rows = await engine.db.fetch("""
                 SELECT id, regime, round(elo_rating::numeric,1) as elo, quant_class, card_status,
                        round(arena1_win_rate::numeric,3) as wr, elo_consecutive_first as streak
-                FROM champion_pipeline WHERE status='DEPLOYABLE'
+                FROM champion_pipeline_fresh WHERE status='DEPLOYABLE'
                 ORDER BY elo_rating DESC LIMIT 30
             """)
             by_regime = await engine.db.fetch("""
                 SELECT regime, count(*) as cnt, round(max(elo_rating)::numeric,1) as top_elo,
                        round(avg(elo_rating)::numeric,1) as avg_elo
-                FROM champion_pipeline WHERE status='DEPLOYABLE' GROUP BY regime ORDER BY top_elo DESC
+                FROM champion_pipeline_fresh WHERE status='DEPLOYABLE' GROUP BY regime ORDER BY top_elo DESC
             """)
             return {
                 "strategies": [
@@ -766,11 +766,11 @@ def create_dashboard_app(engine) -> FastAPI:
             rows = await engine.db.fetch("""
                 SELECT id, regime, parent_hash, generation, evolution_operator,
                        round(arena1_win_rate::numeric,3) as wr, round(arena1_pnl::numeric,4) as pnl
-                FROM champion_pipeline WHERE evolution_operator != 'random' AND generation > 0
+                FROM champion_pipeline_fresh WHERE evolution_operator != 'random' AND generation > 0
                 ORDER BY created_at DESC LIMIT 20
             """)
             stats = await engine.db.fetchrow(
-                "SELECT count(*) as evolved FROM champion_pipeline WHERE status='EVOLVED'"
+                "SELECT count(*) as evolved FROM champion_pipeline_fresh WHERE status='EVOLVED'"
             )
             return {
                 "evolved_total": stats["evolved"] if stats else 0,
@@ -797,7 +797,7 @@ def create_dashboard_app(engine) -> FastAPI:
                 SELECT MAX(created_at) as last_champion,
                        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '5 minutes') as recent_5m,
                        COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour') as recent_1h
-                FROM champion_pipeline WHERE status NOT LIKE 'LEGACY%%'
+                FROM champion_pipeline_fresh WHERE status NOT LIKE 'LEGACY%%'
             """)
             last = row["last_champion"] if row else None
             ago_s = 0
@@ -845,7 +845,7 @@ def create_dashboard_app(engine) -> FastAPI:
             try:
                 row = await engine.db.fetchrow(
                     "SELECT MAX(created_at) as last_champion "
-                    "FROM champion_pipeline WHERE status NOT LIKE 'LEGACY%%'"
+                    "FROM champion_pipeline_fresh WHERE status NOT LIKE 'LEGACY%%'"
                 )
                 last = row["last_champion"] if row else None
                 if last:
@@ -1016,7 +1016,7 @@ def create_dashboard_app(engine) -> FastAPI:
                     (passport->'arena4'->'holdout_full'->>'wr')::float as h_wr,
                     (passport->'arena4'->'holdout_full'->>'pnl')::float as h_pnl,
                     (passport->'arena4'->'holdout_full'->>'trades')::int as h_trades
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE status IN ('CANDIDATE','DEPLOYABLE') AND status NOT LIKE 'LEGACY%%'
                 ORDER BY (passport->'arena4'->'holdout_full'->>'wr')::float DESC NULLS LAST
             """)
@@ -1068,7 +1068,7 @@ def create_dashboard_app(engine) -> FastAPI:
                     (passport->'arena4'->'holdout_full'->>'trades')::int as h_trades,
                     (passport->'arena4'->'holdout_full'->>'sharpe')::float as h_sharpe,
                     passport->'arena1'->'indicator_names' as inds
-                FROM champion_pipeline WHERE status IN ('CANDIDATE','DEPLOYABLE') AND status NOT LIKE 'LEGACY%%'
+                FROM champion_pipeline_fresh WHERE status IN ('CANDIDATE','DEPLOYABLE') AND status NOT LIKE 'LEGACY%%'
             """)
 
             families = [{
@@ -1102,19 +1102,19 @@ def create_dashboard_app(engine) -> FastAPI:
         async def _fetch():
             _urow = await engine.db.fetchrow(
                 "SELECT count(DISTINCT passport->'arena1'->>'config_hash') as cnt "
-                "FROM champion_pipeline WHERE status NOT LIKE 'LEGACY%%' "
+                "FROM champion_pipeline_fresh WHERE status NOT LIKE 'LEGACY%%' "
                 "AND passport->'arena1'->>'config_hash' IS NOT NULL"
             )
             unique = _urow["cnt"] if _urow else 0
             _trow = await engine.db.fetchrow(
-                "SELECT count(*) as cnt FROM champion_pipeline WHERE status NOT LIKE 'LEGACY%%'"
+                "SELECT count(*) as cnt FROM champion_pipeline_fresh WHERE status NOT LIKE 'LEGACY%%'"
             )
             total = _trow["cnt"] if _trow else 0
             unique = unique or 0
             total = total or 0
             top_retried = await engine.db.fetchrow(
                 "SELECT passport->'arena1'->>'config_hash' as hash, count(*) as cnt "
-                "FROM champion_pipeline WHERE status NOT LIKE 'LEGACY%%' "
+                "FROM champion_pipeline_fresh WHERE status NOT LIKE 'LEGACY%%' "
                 "AND passport->'arena1'->>'config_hash' IS NOT NULL "
                 "GROUP BY passport->'arena1'->>'config_hash' ORDER BY cnt DESC LIMIT 1"
             )
@@ -1182,7 +1182,7 @@ def create_dashboard_app(engine) -> FastAPI:
         async def _fetch():
             rows = await engine.db.fetch("""
                 SELECT status, count(*) as cnt
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE status NOT LIKE 'LEGACY%%'
                 GROUP BY status
                 ORDER BY cnt DESC
@@ -1235,7 +1235,7 @@ def create_dashboard_app(engine) -> FastAPI:
                 SELECT status, count(*) as cnt,
                     round(avg(arena1_win_rate)::numeric,3) as avg_wr,
                     round(avg(arena1_pnl)::numeric,4) as avg_pnl
-                FROM champion_pipeline WHERE engine_hash IN ('zv5_v9', 'zv5_v10_alpha', 'zv5_v71')
+                FROM champion_pipeline_fresh WHERE engine_hash IN ('zv5_v9', 'zv5_v10_alpha', 'zv5_v71')
                 GROUP BY status ORDER BY cnt DESC
             """)
             total = sum(r['cnt'] for r in rows)
@@ -1249,7 +1249,7 @@ def create_dashboard_app(engine) -> FastAPI:
             }
             bloom_row = await engine.db.fetchrow("""
                 SELECT count(DISTINCT passport->'arena1'->>'config_hash') as unique_families
-                FROM champion_pipeline WHERE engine_hash IN ('zv5_v9', 'zv5_v10_alpha', 'zv5_v71')
+                FROM champion_pipeline_fresh WHERE engine_hash IN ('zv5_v9', 'zv5_v10_alpha', 'zv5_v71')
             """)
             unique = bloom_row['unique_families'] if bloom_row else 0
             return {

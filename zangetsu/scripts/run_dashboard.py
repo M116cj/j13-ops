@@ -44,13 +44,13 @@ async def pipeline_status():
     cur = conn.cursor()
     cur.execute("SELECT state, entered_at, metadata FROM pipeline_state ORDER BY entered_at DESC LIMIT 1")
     row = cur.fetchone()
-    cur.execute("SELECT count(*) FROM champion_pipeline")
+    cur.execute("SELECT count(*) FROM champion_pipeline_fresh")
     total = cur.fetchone()[0]
-    cur.execute("SELECT count(*) FROM champion_pipeline WHERE status='DEPLOYABLE'")
+    cur.execute("SELECT count(*) FROM champion_pipeline_fresh WHERE status='DEPLOYABLE'")
     deployable = cur.fetchone()[0]
-    cur.execute("SELECT count(*) FROM champion_pipeline WHERE is_active_card=true")
+    cur.execute("SELECT count(*) FROM champion_pipeline_fresh WHERE is_active_card=true")
     active = cur.fetchone()[0]
-    cur.execute("SELECT status, count(*) FROM champion_pipeline GROUP BY status ORDER BY status")
+    cur.execute("SELECT status, count(*) FROM champion_pipeline_fresh GROUP BY status ORDER BY status")
     by_status = dict(cur.fetchall())
     conn.close()
     return {
@@ -72,7 +72,7 @@ async def elo_leaderboard():
         SELECT id, regime, status, elo, quant_class,
                passport->'arena1'->>'base_win_rate' as wr,
                is_active_card
-        FROM champion_pipeline
+        FROM champion_pipeline_fresh
         WHERE elo IS NOT NULL
         ORDER BY elo DESC LIMIT 20
     """)
@@ -90,7 +90,7 @@ async def active_cards():
         SELECT id, regime, elo, quant_class,
                passport->'arena1'->>'base_win_rate' as wr,
                status
-        FROM champion_pipeline
+        FROM champion_pipeline_fresh
         WHERE is_active_card = true
         ORDER BY elo DESC
     """)
@@ -114,11 +114,11 @@ async def arena_status():
     """)
     arena_rows = cur.fetchall()
 
-    cur.execute("SELECT status, count(*) FROM champion_pipeline GROUP BY status")
+    cur.execute("SELECT status, count(*) FROM champion_pipeline_fresh GROUP BY status")
     status_counts = dict(cur.fetchall())
 
     cur.execute("""
-        SELECT status, max(elo) FROM champion_pipeline
+        SELECT status, max(elo) FROM champion_pipeline_fresh
         WHERE elo IS NOT NULL GROUP BY status
     """)
     best_scores = dict(cur.fetchall())

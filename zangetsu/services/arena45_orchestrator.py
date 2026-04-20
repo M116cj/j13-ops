@@ -230,10 +230,10 @@ async def pick_arena3_complete(db):
     # (e.g. zv5_v10_beta) consistently across SQL and Python call sites.
     n_prefiltered = await db.fetchval("""
         WITH to_filter AS (
-            SELECT id FROM champion_pipeline
+            SELECT id FROM champion_pipeline_fresh
             WHERE status = 'ARENA3_COMPLETE' AND COALESCE(arena3_pnl, 0) <= 0 AND (engine_hash IS NULL OR engine_hash NOT LIKE 'zv5_v10%')
         )
-        UPDATE champion_pipeline cp
+        UPDATE champion_pipeline_fresh cp
         SET status = 'ARENA4_ELIMINATED',
             arena4_completed_at = NOW(),
             passport = passport || '{"arena4_elimination_reason": "a3_pnl_nonpositive"}'::jsonb,
@@ -243,10 +243,10 @@ async def pick_arena3_complete(db):
         RETURNING cp.id
     """)
     row = await db.fetchrow("""
-        UPDATE champion_pipeline
-        SET status = 'ARENA4_PROCESSING', worker_id = $1, lease_until = NOW() + INTERVAL '15 minutes', updated_at = NOW()
+        UPDATE champion_pipeline_fresh
+        SET status = 'ARENA4_PROCESSING', worker_id_str = $1, lease_until = NOW() + INTERVAL '15 minutes', updated_at = NOW()
         WHERE id = (
-            SELECT id FROM champion_pipeline
+            SELECT id FROM champion_pipeline_fresh
             WHERE status = 'ARENA3_COMPLETE'
             ORDER BY arena3_pnl DESC
             LIMIT 1
@@ -262,7 +262,7 @@ async def pick_arena3_complete(db):
 async def arena4_pass(db, champ_id, quant_class, hell_wr, variability, extra_passport):
     """Mark champion as CANDIDATE (dual-tier: must pass promotion gate for DEPLOYABLE)."""
     await db.execute("""
-        UPDATE champion_pipeline
+        UPDATE champion_pipeline_fresh
         SET status = 'CANDIDATE',
             quant_class = $1,
             arena4_hell_wr = $2,
@@ -280,7 +280,7 @@ async def arena4_pass(db, champ_id, quant_class, hell_wr, variability, extra_pas
 async def arena4_fail(db, champ_id, reason, hell_wr, variability):
     """Mark champion as ARENA4_ELIMINATED."""
     await db.execute("""
-        UPDATE champion_pipeline
+        UPDATE champion_pipeline_fresh
         SET status = 'ARENA4_ELIMINATED',
             arena4_hell_wr = $1,
             arena4_variability = $2,
@@ -359,7 +359,7 @@ async def promote_candidate(champ, db, log, verbose=False):
     if dedup_key:
         json_field = "alpha_hash" if dedup_kind == "v10" else "config_hash"
         existing = await db.fetchval(f"""
-            SELECT id FROM champion_pipeline
+            SELECT id FROM champion_pipeline_fresh
             WHERE status = 'DEPLOYABLE' AND id != $1 AND regime = $3
             AND passport::jsonb -> 'arena1' ->> '{json_field}' = $2
             LIMIT 1
@@ -376,7 +376,7 @@ async def promote_candidate(champ, db, log, verbose=False):
 
     # All gates passed — PROMOTE to DEPLOYABLE
     await db.execute("""
-        UPDATE champion_pipeline SET status = 'DEPLOYABLE', deployable_tier = 'fresh', updated_at = NOW()
+        UPDATE champion_pipeline_fresh SET status = 'DEPLOYABLE', deployable_tier = 'fresh', updated_at = NOW()
         WHERE id = $1
     """, champ_id)
     await log_transition(db, champ_id, "CANDIDATE", "DEPLOYABLE", worker_id=WORKER_ID,
@@ -608,7 +608,7 @@ async def get_deployable_by_regime(db):
     """Get CANDIDATE + DEPLOYABLE champions grouped by regime for ELO matching."""
     rows = await db.fetch("""
         SELECT id, regime, elo_rating, quant_class, indicator_hash, passport, status
-        FROM champion_pipeline
+        FROM champion_pipeline_fresh
         WHERE status IN ('CANDIDATE', 'DEPLOYABLE')
           AND (card_status IS NULL OR card_status NOT IN ('SEED','DISCOVERED'))
         ORDER BY regime, elo_rating DESC
@@ -625,7 +625,7 @@ async def get_deployable_by_regime(db):
 async def sync_active_cards(db):
     """Keep exactly one ACTIVE card per regime — only DEPLOYABLE can be ACTIVE."""
     regimes = await db.fetch(
-        "SELECT DISTINCT regime FROM champion_pipeline WHERE status = 'DEPLOYABLE'"
+        "SELECT DISTINCT regime FROM champion_pipeline_fresh WHERE status = 'DEPLOYABLE'"
     )
     for row in regimes:
         regime = row["regime"]
@@ -633,7 +633,7 @@ async def sync_active_cards(db):
         leaders = await db.fetch(
             """
             SELECT id
-            FROM champion_pipeline
+            FROM champion_pipeline_fresh
             WHERE status = 'DEPLOYABLE' AND regime = $1
               AND (card_status IS NULL OR card_status NOT IN ('SEED','DISCOVERED'))
             ORDER BY elo_rating DESC NULLS LAST,
@@ -649,7 +649,7 @@ async def sync_active_cards(db):
         # Reset all DEPLOYABLE + CANDIDATE cards in this regime to INACTIVE
         await db.execute(
             """
-            UPDATE champion_pipeline
+            UPDATE champion_pipeline_fresh
             SET card_status = 'INACTIVE', updated_at = NOW()
             WHERE status IN ('DEPLOYABLE', 'CANDIDATE') AND regime = $1 AND COALESCE(card_status, 'INACTIVE') != 'INACTIVE'
             """,
@@ -657,7 +657,7 @@ async def sync_active_cards(db):
         )
         await db.execute(
             """
-            UPDATE champion_pipeline
+            UPDATE champion_pipeline_fresh
             SET card_status = 'ACTIVE', updated_at = NOW()
             WHERE id = $1
             """,
@@ -833,11 +833,11 @@ async def run_elo_round(by_regime, data_cache, backtester, cost_model, rust_engi
         new_elo_b = max(A5_MIN_ELO, min(A5_MAX_ELO, new_elo_b))
 
         await db.execute(
-            "UPDATE champion_pipeline SET elo_rating=$1, arena5_last_tested=NOW(), updated_at=NOW() WHERE id=$2",
+            "UPDATE champion_pipeline_fresh SET elo_rating=$1, arena5_last_tested=NOW(), updated_at=NOW() WHERE id=$2",
             new_elo_a, champ_a["id"],
         )
         await db.execute(
-            "UPDATE champion_pipeline SET elo_rating=$1, arena5_last_tested=NOW(), updated_at=NOW() WHERE id=$2",
+            "UPDATE champion_pipeline_fresh SET elo_rating=$1, arena5_last_tested=NOW(), updated_at=NOW() WHERE id=$2",
             new_elo_b, champ_b["id"],
         )
 
@@ -854,7 +854,7 @@ async def run_elo_round(by_regime, data_cache, backtester, cost_model, rust_engi
                 _mwins = int(round(_mw * _mt))
                 try:
                     await db.execute(
-                        "UPDATE champion_pipeline SET passport = jsonb_set("
+                        "UPDATE champion_pipeline_fresh SET passport = jsonb_set("
                         "jsonb_set(passport, '{arena5_evidence,wins}', "
                         "to_jsonb(COALESCE((passport->'arena5_evidence'->>'wins')::int, 0) + $1)), "
                         "'{arena5_evidence,total}', "
@@ -865,7 +865,7 @@ async def run_elo_round(by_regime, data_cache, backtester, cost_model, rust_engi
                 except Exception:
                     try:
                         await db.execute(
-                            "UPDATE champion_pipeline SET passport = passport || $1::jsonb, "
+                            "UPDATE champion_pipeline_fresh SET passport = passport || $1::jsonb, "
                             "updated_at = NOW() WHERE id = $2",
                             json.dumps({"arena5_evidence": {"wins": _mwins, "total": _mt}}),
                             _champ_ref["id"],
@@ -902,7 +902,7 @@ async def check_daily_reset(db, log):
         log.info("Daily reset starting")
 
         regimes = await db.fetch(
-            "SELECT DISTINCT regime FROM champion_pipeline WHERE status IN ('CANDIDATE', 'DEPLOYABLE')"
+            "SELECT DISTINCT regime FROM champion_pipeline_fresh WHERE status IN ('CANDIDATE', 'DEPLOYABLE')"
         )
 
         total_retired = 0
@@ -911,7 +911,7 @@ async def check_daily_reset(db, log):
             regime = row["regime"]
             # Rank by status (DEPLOYABLE first) then ELO
             strategies = await db.fetch("""
-                SELECT id, elo_rating, status FROM champion_pipeline
+                SELECT id, elo_rating, status FROM champion_pipeline_fresh
                 WHERE status IN ('CANDIDATE', 'DEPLOYABLE') AND regime = $1
                   AND (card_status IS NULL OR card_status NOT IN ('SEED','DISCOVERED'))
                 ORDER BY (CASE WHEN status = 'DEPLOYABLE' THEN 0 ELSE 1 END),
@@ -921,14 +921,14 @@ async def check_daily_reset(db, log):
             for i, s in enumerate(strategies):
                 if i >= A5_KEEP_PER_REGIME:
                     await db.execute("""
-                        UPDATE champion_pipeline
+                        UPDATE champion_pipeline_fresh
                         SET status = 'ELO_RETIRED', elo_rating = 0, card_status = 'INACTIVE', updated_at = NOW()
                         WHERE id = $1
                     """, s["id"])
                     total_retired += 1
                 else:
                     await db.execute("""
-                        UPDATE champion_pipeline
+                        UPDATE champion_pipeline_fresh
                         SET arena5_last_tested = NULL, card_status = 'INACTIVE', updated_at = NOW()
                         WHERE id = $1
                     """, s["id"])
@@ -1087,7 +1087,7 @@ async def main():
             # Priority 0: Batch-promote all eligible CANDIDATE → DEPLOYABLE
             # Run verbose on first sweep, then only on newly-arrived CANDIDATEs
             candidates = await db.fetch("""
-                SELECT * FROM champion_pipeline WHERE status = 'CANDIDATE'
+                SELECT * FROM champion_pipeline_fresh WHERE status = 'CANDIDATE'
             """)
             # Periodic promotion re-check every 500 A5 matches (not just first sweep)
             if candidates and (not _candidate_sweep_done or a5_matches - _last_promotion_check >= 50):
@@ -1108,7 +1108,7 @@ async def main():
                 await process_arena4(champ, data_cache, backtester, cost_model, rust_engine, db, log)
                 a4_processed += 1
                 elapsed = time.time() - t0
-                row = await db.fetchrow("SELECT * FROM champion_pipeline WHERE id=$1", champ["id"])
+                row = await db.fetchrow("SELECT * FROM champion_pipeline_fresh WHERE id=$1", champ["id"])
                 if row and row["status"] == "CANDIDATE":
                     a4_passed += 1
                     # Immediately try to promote the new CANDIDATE

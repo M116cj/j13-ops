@@ -42,6 +42,26 @@ from zangetsu.services.bloom_service import (
 
 # V10: GP alpha engine imports (replace V9SearchCoordinator)
 from zangetsu.engine.components.alpha_engine import AlphaEngine
+from zangetsu.engine.provenance import build_bundle, DirtyTreeError, ProvenanceBundle
+
+# v0.7.1 governance: process-local telemetry counters flushed periodically
+_telemetry_counters = {
+    "compile_success_count": 0,
+    "compile_exception_count": 0,
+    "evaluate_success_count": 0,
+    "evaluate_exception_count": 0,
+    "indicator_terminal_call_count": 0,
+    "indicator_terminal_exception_count": 0,
+    "cache_hit_count": 0,
+    "cache_miss_count": 0,
+    "nan_inf_count": 0,
+    "zero_variance_count": 0,
+    "admitted_count": 0,
+    "rejected_count": 0,
+}
+_provenance_bundle: ProvenanceBundle | None = None
+_last_telemetry_flush_ts = 0.0
+
 from zangetsu.engine.components.alpha_signal import generate_alpha_signals
 from zangetsu.engine.components.indicator_bridge import build_indicator_cache
 
@@ -75,6 +95,45 @@ _guidance_cache = {
     "explore_rate": 0.50,
     "loaded_at": 0,
 }
+
+
+def _get_or_build_provenance(engine, worker_id: int, seed: int):
+    global _provenance_bundle
+    if _provenance_bundle is None:
+        from zangetsu.config.settings import Settings
+        settings_obj = Settings()
+        _provenance_bundle = build_bundle(
+            strategy_id=STRATEGY_ID,
+            worker_id=worker_id,
+            seed=seed,
+            operator_names=engine._operator_names,
+            indicator_terminal_names=engine._indicator_terminal_names,
+            settings_obj=settings_obj,
+        )
+    return _provenance_bundle
+
+
+async def _flush_telemetry(db):
+    global _last_telemetry_flush_ts, _telemetry_counters
+    import time as _t
+    now = _t.time()
+    if _last_telemetry_flush_ts > 0 and (now - _last_telemetry_flush_ts) < 300:
+        return
+    if _provenance_bundle is None:
+        return
+    rows = [
+        (_provenance_bundle.run_id, _provenance_bundle.worker_id, STRATEGY_ID, k, float(v))
+        for k, v in _telemetry_counters.items()
+    ]
+    try:
+        await db.executemany(
+            "INSERT INTO engine_telemetry (run_id, worker_id, strategy_id, metric_name, value) VALUES ($1, $2, $3, $4, $5)",
+            rows,
+        )
+        _last_telemetry_flush_ts = now
+        # Keep running counters (don't reset) — VIEWs look at last 1h window
+    except Exception as _e:  # noqa: BLE001
+        pass
 
 
 def load_a13_guidance(log=None):
@@ -803,18 +862,27 @@ async def main():
 
             indicator_hash = f"zv10_{alpha_hash}_{sym}"
 
+            # v0.7.1 governance: INSERT goes to staging, then validator
+            _pb = _get_or_build_provenance(engine, worker_id, int(os.environ.get("A1_WORKER_SEED", str(worker_id))))
             try:
-                await db.execute(
+                staging_id = await db.fetchval(
                     """
-                    INSERT INTO champion_pipeline (
+                    INSERT INTO champion_pipeline_staging (
                         regime, indicator_hash, alpha_hash, status, n_indicators,
                         arena1_score, arena1_win_rate, arena1_pnl, arena1_n_trades,
-                        passport, engine_hash, arena1_completed_at, strategy_id
+                        passport, engine_hash, arena1_completed_at, strategy_id,
+                        engine_version, git_commit, config_hash, grammar_hash,
+                        fitness_version, patches_applied, run_id, worker_id,
+                        seed, epoch
                     ) VALUES (
                         $1, $2, $3, 'ARENA1_COMPLETE', $4,
                         $5, $6, $7, $8,
-                        $9::jsonb, 'zv5_v10_alpha', NOW(), $10
+                        $9::jsonb, 'zv5_v10_alpha', NOW(), $10,
+                        $11, $12, $13, $14,
+                        $15, $16, $17, $18,
+                        $19, $20
                     )
+                    RETURNING id
                     """,
                     regime,
                     indicator_hash,
@@ -826,7 +894,26 @@ async def main():
                     int(bt.total_trades),
                     json.dumps(passport),
                     STRATEGY_ID,
+                    _pb.engine_version,
+                    _pb.git_commit,
+                    _pb.config_hash,
+                    _pb.grammar_hash,
+                    _pb.fitness_version,
+                    _pb.patches_applied,
+                    _pb.run_id,
+                    _pb.worker_id,
+                    _pb.seed,
+                    _pb.epoch,
                 )
+                # Promote through validator
+                verdict = await db.fetchval(
+                    "SELECT admission_validator($1)", staging_id,
+                )
+                if verdict == "admitted":
+                    _telemetry_counters["admitted_count"] += 1
+                elif verdict.startswith("rejected:"):
+                    _telemetry_counters["rejected_count"] += 1
+                await _flush_telemetry(db)
             except Exception as e:
                 log.error(f"DB insert failed ({alpha_hash}): {e}")
                 continue

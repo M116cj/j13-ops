@@ -278,7 +278,7 @@ async def is_duplicate_champion(db: asyncpg.Connection, champion_id: int, passpo
     # across engines would falsely block V10 champions. Literal is a static string
     # (no user input), no SQL injection surface.
     rows = await db.fetch("""
-        SELECT id, status, arena1_score, passport FROM champion_pipeline
+        SELECT id, status, arena1_score, passport FROM champion_pipeline_fresh
         WHERE id != $1
           AND status NOT IN ('ARENA1_COMPLETE', 'ARENA2_REJECTED', 'ARENA3_REJECTED')
           AND status NOT LIKE 'LEGACY%'
@@ -331,10 +331,10 @@ async def pick_champion(db: asyncpg.Connection, from_status: str, to_status: str
     V9: rank by arena1_score × regime_confidence (5-factor MarketState tiebreaker).
     Falls back to arena1_score alone if confidence missing."""
     row = await db.fetchrow(f"""
-        UPDATE champion_pipeline
-        SET status = $1, worker_id = $2, lease_until = NOW() + INTERVAL '{LEASE_MINUTES} minutes', updated_at = NOW()
+        UPDATE champion_pipeline_fresh
+        SET status = $1, worker_id_str = $2, lease_until = NOW() + INTERVAL '{LEASE_MINUTES} minutes', updated_at = NOW()
         WHERE id = (
-            SELECT id FROM champion_pipeline
+            SELECT id FROM champion_pipeline_fresh
             WHERE status = $3
             ORDER BY
                 arena1_score *
@@ -376,7 +376,7 @@ async def release_champion(db: asyncpg.Connection, champion_id: int, status: str
         idx += 1
 
     params.append(champion_id)
-    query = f"UPDATE champion_pipeline SET {', '.join(sets)} WHERE id = ${idx}"
+    query = f"UPDATE champion_pipeline_fresh SET {', '.join(sets)} WHERE id = ${idx}"
     await db.execute(query, *params)
     # Audit trail
     await log_transition(db, champion_id, "PROCESSING", status, worker_id=WORKER_ID)
@@ -1298,7 +1298,7 @@ async def main():
                     log.error(f"A3 error id={champion['id']}: {e}\n{traceback.format_exc()}")
                     try:
                         await db.execute(
-                            "UPDATE champion_pipeline SET status = 'ARENA2_COMPLETE', worker_id = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1",
+                            "UPDATE champion_pipeline_fresh SET status = 'ARENA2_COMPLETE', worker_id_str = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1",
                             champion["id"],
                         )
                         await log_transition(db, champion["id"], "ARENA3_PROCESSING", "ARENA2_COMPLETE", worker_id=WORKER_ID, metadata={"reason": "error_rollback"})
@@ -1343,7 +1343,7 @@ async def main():
                     log.error(f"A2 error id={champion['id']}: {e}\n{traceback.format_exc()}")
                     try:
                         await db.execute(
-                            "UPDATE champion_pipeline SET status = 'ARENA1_COMPLETE', worker_id = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1",
+                            "UPDATE champion_pipeline_fresh SET status = 'ARENA1_COMPLETE', worker_id_str = NULL, lease_until = NULL, updated_at = NOW() WHERE id = $1",
                             champion["id"],
                         )
                         await log_transition(db, champion["id"], "ARENA2_PROCESSING", "ARENA1_COMPLETE", worker_id=WORKER_ID, metadata={"reason": "error_rollback"})

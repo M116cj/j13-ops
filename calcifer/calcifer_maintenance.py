@@ -178,7 +178,7 @@ def zangetsu_status():
     rc2, db = run(
         "docker exec deploy-postgres-1 psql -U zangetsu -d zangetsu -t -c "
         "\"SELECT 'champions=' || count(*) || ' deployable=' || "
-        "count(*) FILTER (WHERE status='DEPLOYABLE') FROM champion_pipeline\""
+        "count(*) FILTER (WHERE status='DEPLOYABLE') FROM champion_pipeline_fresh\""
     )
     return True, f"services:\n{services}\ndb:\n{db}"
 

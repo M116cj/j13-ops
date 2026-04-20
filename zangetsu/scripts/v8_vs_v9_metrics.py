@@ -35,7 +35,7 @@ TRACKED_HASHES: Sequence[str] = ("zv5_v6", "zv5_v71", "zv5_v9")
 
 def fetch_engine_hashes(cur) -> List[str]:
     cur.execute(
-        "SELECT DISTINCT engine_hash FROM champion_pipeline "
+        "SELECT DISTINCT engine_hash FROM champion_pipeline_fresh "
         "WHERE engine_hash IS NOT NULL ORDER BY engine_hash"
     )
     return [r[0] for r in cur.fetchall()]
@@ -44,7 +44,7 @@ def fetch_engine_hashes(cur) -> List[str]:
 def per_engine_counts(cur, engine_hash: str) -> Dict[str, int]:
     cur.execute(
         """
-        SELECT status, COUNT(*) FROM champion_pipeline
+        SELECT status, COUNT(*) FROM champion_pipeline_fresh
         WHERE engine_hash = %s
         GROUP BY status
         """,
@@ -59,7 +59,7 @@ def insert_rate_per_5min(cur, engine_hash: str) -> Optional[float]:
         """
         SELECT COUNT(*)::float,
                EXTRACT(EPOCH FROM (MAX(created_at) - MIN(created_at)))::float
-        FROM champion_pipeline
+        FROM champion_pipeline_fresh
         WHERE engine_hash = %s
         """,
         (engine_hash,),
@@ -85,7 +85,7 @@ def avg_metrics(cur, engine_hash: str) -> Dict[str, Optional[float]]:
             AVG(arena2_win_rate),
             AVG(arena3_sharpe),   AVG(arena3_expectancy), AVG(arena3_pnl),
             AVG(arena4_hell_wr),  AVG(arena4_variability)
-        FROM champion_pipeline
+        FROM champion_pipeline_fresh
         WHERE engine_hash = %s
         """,
         (engine_hash,),
@@ -104,7 +104,7 @@ def regime_distribution(cur, engine_hash: str) -> List[Tuple[str, int]]:
     cur.execute(
         """
         SELECT COALESCE(regime, '(null)') AS regime, COUNT(*)
-        FROM champion_pipeline
+        FROM champion_pipeline_fresh
         WHERE engine_hash = %s
         GROUP BY regime
         ORDER BY COUNT(*) DESC

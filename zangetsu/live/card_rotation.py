@@ -75,13 +75,13 @@ class CardRotator:
                 WITH deployed AS (
                     SELECT id, regime,
                            (passport->'arena5'->>'elo_rating')::float AS elo
-                    FROM champion_pipeline
+                    FROM champion_pipeline_fresh
                     WHERE status = 'DEPLOYED'
                 ),
                 challengers AS (
                     SELECT id, regime,
                            (passport->'arena5'->>'elo_rating')::float AS elo
-                    FROM champion_pipeline
+                    FROM champion_pipeline_fresh
                     WHERE status = 'DEPLOYABLE'
                 )
                 SELECT d.regime, d.id AS old_id, c.id AS new_id,
@@ -114,7 +114,7 @@ class CardRotator:
             # Phase 1: Stop old card from opening new positions
             async with self._db.acquire() as conn:
                 await conn.execute(
-                    "UPDATE champion_pipeline SET status='RETIRING' WHERE id=$1",
+                    "UPDATE champion_pipeline_fresh SET status='RETIRING' WHERE id=$1",
                     old_id,
                 )
             event.status = "RETIRING"
@@ -135,11 +135,11 @@ class CardRotator:
             async with self._db.acquire() as conn:
                 async with conn.transaction():
                     await conn.execute(
-                        "UPDATE champion_pipeline SET status='RETIRED' WHERE id=$1",
+                        "UPDATE champion_pipeline_fresh SET status='RETIRED' WHERE id=$1",
                         old_id,
                     )
                     await conn.execute(
-                        "UPDATE champion_pipeline SET status='DEPLOYED' WHERE id=$1",
+                        "UPDATE champion_pipeline_fresh SET status='DEPLOYED' WHERE id=$1",
                         new_id,
                     )
             event.status = "COMPLETED"
@@ -159,7 +159,7 @@ class CardRotator:
             try:
                 async with self._db.acquire() as conn:
                     await conn.execute(
-                        "UPDATE champion_pipeline SET status='DEPLOYED' "
+                        "UPDATE champion_pipeline_fresh SET status='DEPLOYED' "
                         "WHERE id=$1 AND status='RETIRING'", old_id,
                     )
             except Exception:

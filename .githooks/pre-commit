@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+# ============================================================
+# pre-commit hook — fitness lock (governance rule #4)
+# ------------------------------------------------------------
+# If any file under j01/ or j02/ named fitness.py is in the
+# staged diff, reject the commit UNLESS a matching decision
+# record exists in zangetsu/docs/decisions/ with today's date.
+# ============================================================
+set -u
+
+# Pre-flight: only run if we're in the zangetsu monorepo
+REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || echo "")
+[ -z "$REPO_ROOT" ] && exit 0
+
+changed_fitness=$(git diff --cached --name-only | grep -E '^(j01|j02)/fitness\.py$' || true)
+if [ -z "$changed_fitness" ]; then
+    exit 0
+fi
+
+today=$(date -u +%Y%m%d)
+# Any ADR from today with "recovery" / "fitness" in its name unlocks fitness edits.
+has_adr=$(git diff --cached --name-only \
+    | grep -E "^zangetsu/docs/decisions/${today}-.*\.(md|MD)$" \
+    | grep -iE 'fitness|recovery|epoch[_-]b' || true)
+
+if [ -z "$has_adr" ]; then
+    echo ""
+    echo "BLOCKED: fitness.py changes require a matching decision record."
+    echo ""
+    echo "Files being changed:"
+    echo "$changed_fitness"
+    echo ""
+    echo "v0.7.1 governance rule #4: fitness is locked until Epoch B"
+    echo "recovery is proven by dual-evidence (outcome + process)."
+    echo "To modify fitness, include in this same commit:"
+    echo "  zangetsu/docs/decisions/${today}-*-fitness-*.md"
+    echo "  or"
+    echo "  zangetsu/docs/decisions/${today}-*-recovery-*.md"
+    echo ""
+    exit 1
+fi
+
+echo "pre-commit fitness_lock: decision record present — allowing edit."
+exit 0

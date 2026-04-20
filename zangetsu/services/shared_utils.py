@@ -347,13 +347,13 @@ async def reap_expired_leases(db, log, lease_minutes: int = 15):
         rows = await db.fetch("""
             WITH expired AS (
                 SELECT id, status
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE status LIKE '%_PROCESSING'
                   AND lease_until IS NOT NULL
                   AND lease_until < NOW() - INTERVAL '1 minute' * $1
                 FOR UPDATE SKIP LOCKED
             )
-            UPDATE champion_pipeline cp
+            UPDATE champion_pipeline_fresh cp
             SET status = CASE expired.status
                     WHEN 'ARENA2_PROCESSING' THEN 'ARENA1_COMPLETE'
                     WHEN 'ARENA3_PROCESSING' THEN 'ARENA2_COMPLETE'

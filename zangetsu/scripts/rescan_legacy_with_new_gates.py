@@ -9,7 +9,37 @@ Usage:
     python scripts/rescan_legacy_with_new_gates.py [--limit N] [--symbol BTCUSDT]
 """
 
+
+
+
 from __future__ import annotations
+
+
+# ============================================================
+# DEPRECATED — DO NOT USE
+# ------------------------------------------------------------
+# v0.7.1 governance ruling (2026-04-20):
+#   Epoch A (legacy archive) rows MUST NOT participate in ranking,
+#   promotion, deployment, or any downstream selection. This script's
+#   original intent — rescoring legacy alphas under new gates — is
+#   explicitly forbidden because the legacy pool is a biased sample
+#   produced under indicator-disabled GP, not a valid search-space
+#   snapshot.
+#
+#   The script is retained here for archaeology only. Any attempt to
+#   run it requires the explicit flag --i-know-archive-is-frozen and
+#   will refuse to write back to the DB regardless.
+# ============================================================
+import sys as _sys
+if "--i-know-archive-is-frozen" not in _sys.argv:
+    print("REFUSED: rescan_legacy_with_new_gates.py is DEPRECATED (v0.7.1).")
+    print("Legacy pool MUST NOT be re-ranked per governance rule #1.")
+    print("If you truly know what you are doing, pass --i-know-archive-is-frozen.")
+    _sys.exit(2)
+else:
+    _sys.argv.remove("--i-know-archive-is-frozen")
+    print("WARNING: rescan running with deprecation flag bypassed.")
+    print("This script will NOT write to DB in v0.7.1 mode; observe only.")
 
 import argparse
 import asyncio
@@ -249,16 +279,8 @@ async def rescan(limit: Optional[int], symbol: str) -> None:
                 final = result["final"]
                 if final == "deployable_historical":
                     counts["passed"] += 1
-                    await pool.execute("""
-                        UPDATE champion_pipeline
-                        SET status = 'DEPLOYABLE',
-                            deployable_tier = 'historical',
-                            passport = passport || $2::jsonb,
-                            updated_at = NOW()
-                        WHERE id = $1
-                    """, row["id"], json.dumps({
-                        "rescan_2026_04_20": result["gates"],
-                    }))
+                    # v0.7.1 governance: write-back blocked. Observe only.
+                    log.info("[DEPRECATED rescan, would-write-blocked] id=%s verdict=%s", row["id"], result["final"])
                     log.info("PASS id=%s regime=%s", row["id"], row["regime"])
                 elif final == "arena2_rejected":
                     counts["rejected_a2"] += 1

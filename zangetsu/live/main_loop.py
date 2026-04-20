@@ -1,7 +1,7 @@
 """Live trading main loop — subscribe to WS feed, process bars, manage cards.
 
 Orchestrates the live trading flow:
-  1. Load active (DEPLOYED) cards from champion_pipeline
+  1. Load active (DEPLOYED) cards from champion_pipeline_fresh
   2. Subscribe to Binance Futures WS feed
   3. On each completed bar: detect regime → match card → compute signal → paper trade
   4. Every 5 min: check for card rotations
@@ -23,7 +23,7 @@ _RELOAD_INTERVAL = 300  # 5 minutes
 
 @dataclass
 class ActiveCard:
-    """A deployed strategy card loaded from champion_pipeline."""
+    """A deployed strategy card loaded from champion_pipeline_fresh."""
     card_id: int
     regime: str
     strategy_config: Dict[str, Any]
@@ -75,11 +75,11 @@ class LiveLoop:
         self._error_count = 0
 
     async def _load_cards(self) -> None:
-        """Load active (DEPLOYED) cards from champion_pipeline."""
+        """Load active (DEPLOYED) cards from champion_pipeline_fresh."""
         async with self._db.acquire() as conn:
             rows = await conn.fetch("""
                 SELECT id, regime, passport, status
-                FROM champion_pipeline
+                FROM champion_pipeline_fresh
                 WHERE status = 'DEPLOYED'
                 ORDER BY regime, (passport->'arena5'->>'elo_rating')::float DESC
             """)

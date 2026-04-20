@@ -275,7 +275,7 @@ async def _insert_seed(db, metrics, sym, regime, engine):
     try:
         await db.execute(
             """
-            INSERT INTO champion_pipeline (
+            INSERT INTO champion_pipeline_fresh (
                 regime, indicator_hash, alpha_hash, status, n_indicators,
                 arena1_score, arena1_win_rate, arena1_pnl, arena1_n_trades,
                 passport, engine_hash, arena1_completed_at

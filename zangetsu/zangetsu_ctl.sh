@@ -162,11 +162,11 @@ case "${1:-status}" in
     echo ""
     echo "=== Pipeline Stats ==="
     $PSQL_CMD "
-      SELECT 'v6_total:    ' || count(*) FROM champion_pipeline WHERE engine_hash LIKE 'zv5_%'
-      UNION ALL SELECT 'candidates:  ' || count(*) FROM champion_pipeline WHERE status='CANDIDATE'
-      UNION ALL SELECT 'deployable:  ' || count(*) FROM champion_pipeline WHERE status='DEPLOYABLE'
-      UNION ALL SELECT 'a1_queue:    ' || count(*) FROM champion_pipeline WHERE status='ARENA1_COMPLETE'
-      UNION ALL SELECT 'a3_queue:    ' || count(*) FROM champion_pipeline WHERE status='ARENA3_COMPLETE'
+      SELECT 'v6_total:    ' || count(*) FROM champion_pipeline_fresh WHERE engine_hash LIKE 'zv5_%'
+      UNION ALL SELECT 'candidates:  ' || count(*) FROM champion_pipeline_fresh WHERE status='CANDIDATE'
+      UNION ALL SELECT 'deployable:  ' || count(*) FROM champion_pipeline_fresh WHERE status='DEPLOYABLE'
+      UNION ALL SELECT 'a1_queue:    ' || count(*) FROM champion_pipeline_fresh WHERE status='ARENA1_COMPLETE'
+      UNION ALL SELECT 'a3_queue:    ' || count(*) FROM champion_pipeline_fresh WHERE status='ARENA3_COMPLETE'
     " 2>/dev/null
     ;;
 
@@ -292,14 +292,14 @@ case "${1:-status}" in
     if $db_ok; then
       $PSQL_CMD "
         SELECT status || ': ' || count(*)
-        FROM champion_pipeline
+        FROM champion_pipeline_fresh
         WHERE status LIKE '%PROCESSING%'
           AND updated_at < NOW() - INTERVAL '30 minutes'
         GROUP BY status
       " 2>/dev/null
       stuck=$($PSQL_CMD "
         SELECT count(*)
-        FROM champion_pipeline
+        FROM champion_pipeline_fresh
         WHERE status LIKE '%PROCESSING%'
           AND updated_at < NOW() - INTERVAL '30 minutes'
       " 2>/dev/null | tr -d ' ')
@@ -353,7 +353,7 @@ case "${1:-status}" in
     $PSQL_CMD "
       SELECT id, status, worker_id,
              ROUND(EXTRACT(EPOCH FROM (NOW() - updated_at))/60) || 'min ago' AS age
-      FROM champion_pipeline
+      FROM champion_pipeline_fresh
       WHERE status LIKE '%PROCESSING%'
         AND updated_at < NOW() - INTERVAL '${age_minutes} minutes'
       ORDER BY updated_at
@@ -361,7 +361,7 @@ case "${1:-status}" in
 
     count=$($PSQL_CMD "
       SELECT count(*)
-      FROM champion_pipeline
+      FROM champion_pipeline_fresh
       WHERE status LIKE '%PROCESSING%'
         AND updated_at < NOW() - INTERVAL '${age_minutes} minutes'
     " 2>/dev/null | tr -d ' ')
@@ -397,7 +397,7 @@ case "${1:-status}" in
       to="${mapping##*:}"
 
       affected=$($PSQL_CMD "
-        UPDATE champion_pipeline
+        UPDATE champion_pipeline_fresh
         SET status = '$to', worker_id = NULL, updated_at = NOW()
         WHERE status = '$from'
           AND updated_at < NOW() - INTERVAL '${age_minutes} minutes'

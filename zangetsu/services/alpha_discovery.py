@@ -9,6 +9,24 @@ These discovered alphas are:
 - NOT entered into ELO rotation (card_status filter)
 - Available for future integration into signal generation
 """
+# ============================================================
+# DEPRECATED in v0.7.1 (2026-04-20 governance)
+# ------------------------------------------------------------
+# This module wrote directly to `champion_pipeline` before the
+# physical split. Under v0.7.1:
+#   - Writes must go through champion_pipeline_staging +
+#     admission_validator(); direct INSERT to fresh is blocked
+#     by DB trigger.
+#   - Any use of this module as an entry point must pass the
+#     explicit flag --i-know-deprecated-v071.
+# ============================================================
+import sys as _sys  # noqa: E402
+if __name__ == "__main__" and "--i-know-deprecated-v071" not in _sys.argv:
+    print("REFUSED: this module is DEPRECATED in v0.7.1.")
+    print("Legacy seeding / discovery paths are frozen per governance rule #1.")
+    print("Pass --i-know-deprecated-v071 only if you have an explicit ADR.")
+    _sys.exit(2)
+
 from __future__ import annotations
 
 import sys

@@ -20,7 +20,7 @@ async def test_db():
     # 1. INSERT a test champion
     print("\n1. INSERT test champion")
     await conn.execute("""
-        INSERT INTO champion_pipeline
+        INSERT INTO champion_pipeline_fresh
         (regime, indicator_hash, status, n_indicators, passport, engine_hash)
         VALUES ($1, $2, $3, $4, $5::jsonb, $6)
     """, "BULL_TREND", "test_hash_001", "ARENA1_READY", 3,
@@ -30,7 +30,7 @@ async def test_db():
     # 2. READ it back
     print("\n2. SELECT test champion")
     row = await conn.fetchrow(
-        "SELECT * FROM champion_pipeline WHERE indicator_hash = $1",
+        "SELECT * FROM champion_pipeline_fresh WHERE indicator_hash = $1",
         "test_hash_001"
     )
     print(f"  OK: id={row['id']}, status={row['status']}, regime={row['regime']}")
@@ -40,20 +40,20 @@ async def test_db():
     # 3. UPDATE status (simulate arena progression)
     print("\n3. UPDATE status ARENA1_READY -> ARENA1_PROCESSING")
     await conn.execute("""
-        UPDATE champion_pipeline
+        UPDATE champion_pipeline_fresh
         SET status = 'ARENA1_PROCESSING',
             worker_id = 'test_worker',
             lease_until = NOW() + INTERVAL '5 minutes',
             updated_at = NOW()
         WHERE id = $1
     """, champion_id)
-    row = await conn.fetchrow("SELECT status, worker_id FROM champion_pipeline WHERE id = $1", champion_id)
+    row = await conn.fetchrow("SELECT status, worker_id FROM champion_pipeline_fresh WHERE id = $1", champion_id)
     print(f"  OK: status={row['status']}, worker={row['worker_id']}")
 
     # 4. UPDATE with arena1 results
     print("\n4. UPDATE with arena1 results")
     await conn.execute("""
-        UPDATE champion_pipeline SET
+        UPDATE champion_pipeline_fresh SET
             status = 'ARENA1_COMPLETE',
             arena1_score = $1,
             arena1_win_rate = $2,
@@ -66,7 +66,7 @@ async def test_db():
     """, 0.85, 0.62, 0.0045, 47,
         json.dumps({"arena1": {"score": 0.85, "win_rate": 0.62}}),
         champion_id)
-    row = await conn.fetchrow("SELECT status, arena1_score, arena1_win_rate FROM champion_pipeline WHERE id = $1", champion_id)
+    row = await conn.fetchrow("SELECT status, arena1_score, arena1_win_rate FROM champion_pipeline_fresh WHERE id = $1", champion_id)
     print(f"  OK: status={row['status']}, score={row['arena1_score']}, wr={row['arena1_win_rate']}")
 
     # 5. Test audit log
@@ -108,7 +108,7 @@ async def test_db():
     print("\n7. Test CHECK constraint: valid_status")
     try:
         await conn.execute("""
-            UPDATE champion_pipeline SET status = 'INVALID_STATUS' WHERE id = $1
+            UPDATE champion_pipeline_fresh SET status = 'INVALID_STATUS' WHERE id = $1
         """, champion_id)
         print("  FAIL: Should have rejected invalid status!")
     except Exception as e:
@@ -120,7 +120,7 @@ async def test_db():
     print("\n8. Test CHECK constraint: valid_card_status")
     try:
         await conn.execute("""
-            UPDATE champion_pipeline SET card_status = 'INVALID_CARD' WHERE id = $1
+            UPDATE champion_pipeline_fresh SET card_status = 'INVALID_CARD' WHERE id = $1
         """, champion_id)
         print("  FAIL: Should have rejected invalid card_status!")
     except Exception as e:
@@ -131,14 +131,14 @@ async def test_db():
     # 9. Cleanup
     print("\n9. Cleanup test data")
     await conn.execute("DELETE FROM pipeline_audit_log WHERE champion_id = $1", champion_id)
-    await conn.execute("DELETE FROM champion_pipeline WHERE indicator_hash = 'test_hash_001'")
-    remaining = await conn.fetchval("SELECT count(*) FROM champion_pipeline WHERE indicator_hash = 'test_hash_001'")
+    await conn.execute("DELETE FROM champion_pipeline_fresh WHERE indicator_hash = 'test_hash_001'")
+    remaining = await conn.fetchval("SELECT count(*) FROM champion_pipeline_fresh WHERE indicator_hash = 'test_hash_001'")
     print(f"  OK: Cleaned up, remaining test rows: {remaining}")
 
     # 10. Index verification
     print("\n10. Verify indexes are used")
     explain = await conn.fetchval(
-        "EXPLAIN SELECT * FROM champion_pipeline WHERE status = 'DEPLOYABLE' AND regime = 'BULL_TREND'"
+        "EXPLAIN SELECT * FROM champion_pipeline_fresh WHERE status = 'DEPLOYABLE' AND regime = 'BULL_TREND'"
     )
     print(f"  Query plan: {explain}")
     uses_index = "Index" in explain or "index" in explain

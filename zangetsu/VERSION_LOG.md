@@ -1,3 +1,58 @@
+## v0.7.1 — 2026-04-20 — Governance upgrade: physical split + staging + admission validator + 11-field provenance + dual-evidence VIEWs
+**Scope:** `engine/components/alpha_engine.py` (no change; re-verified), `engine/provenance.py` + `engine/patches.py` (new), `services/arena_pipeline.py` (staging INSERT + validator call + telemetry emit), `services/arena23_orchestrator.py` + `services/arena45_orchestrator.py` + `services/shared_utils.py` + `dashboard/api.py` + `live/main_loop.py` + `live/card_rotation.py` + `zangetsu_ctl.sh` + `calcifer/*.py` + `tests/test_integration.py` + `scripts/run_dashboard.py` + `scripts/v8_vs_v9_metrics.py` (bare `champion_pipeline` → `champion_pipeline_fresh`), `scripts/rescan_legacy_with_new_gates.py` + `services/seed_101_alphas*.py` + `services/alpha_discovery.py` + `services/factor_zoo.py` (DEPRECATED guard), `scripts/zangetsu_snapshot.sh` + `d-mail-miniapp/static/index.html` (dual-evidence health cards), `migrations/postgres/v0.7.1_governance.sql` + `rollback_v0.7.1.sql` (new), `scripts/verify_no_archive_reads.sh` + `.githooks/pre-commit` (new), `docs/decisions/20260420-governance-v0.7.1.md` (new ADR).
+
+> **主因：** v0.7.0 在單一表混裝 Epoch A（indicator-disabled legacy）+ Epoch B（fresh GP）資料。j13 指示這是制度斷點，須物理分離 + staged admission + 11-field provenance + 雙證據 adjudication + fitness lock。
+
+### 物理隔離（DB schema v0.7.1）
+- `champion_pipeline` → `champion_legacy_archive`（1564 rows，read-only triggers）
+- 新建 `champion_pipeline_fresh`（Epoch B 已 admission 的 alpha；只能由 validator 寫入）
+- 新建 `champion_pipeline_staging`（pre-admission 暫存；admission_state ∈ pending/admitted/rejected/pending_validator_error）
+- 新建 `champion_pipeline_rejected`（rejected row forensics）
+- 新建 `engine_telemetry`（time-series metric；14 種 metric_name CHECK）
+
+### 三閘 admission（`admission_validator(BIGINT)` plpgsql function）
+- Gate 1 Structural: alpha_hash 格式 (^[0-9a-f]{16}$)
+- Gate 2 Provenance: epoch='B_full_space'（11 欄 NOT NULL DB 強制）
+- Gate 3 Post-write: arena1_score finite
+- 失敗路由：rejected + 複製到 rejected 表；validator 自身異常 → pending_validator_error 留 staging
+
+### 11 欄 Provenance（`zangetsu/engine/provenance.py`）
+engine_version / git_commit / git_ref_type / config_hash / grammar_hash / fitness_version / patches_applied[] / run_id / worker_id / seed / epoch / created_ts
+- `get_git_commit` dirty tree 直接 raise（workers 拒絕啟動）
+- `compute_grammar_hash` 決定性測試通過（6c9def...）
+- `fitness_version` 讀 fitness.py 檔案 sha256 → 任何 fitness 改動 hash 變
+
+### 雙證據 VIEWs
+- `fresh_pool_outcome_health`：indicator_alpha_ratio_pct / distinct_indicators / avg_depth / avg_nodes / deployable_count per strategy
+- `fresh_pool_process_health`：8 個 process metrics per strategy，從過去 1h `engine_telemetry` 計算
+
+### 5 條硬規則執行層
+1. Archive readonly triggers（INSERT/UPDATE/DELETE RAISE）
+2. `fresh_insert_guard` trigger + `zangetsu.admission_active` session-var 機制
+3. 11 欄 NOT NULL DB constraint
+4. `.githooks/pre-commit` 偵測 fitness.py 改動 → 拒 commit 除非同 PR 有 ADR
+5. `verify_no_archive_reads.sh` 在 `zangetsu_ctl.sh start` pre-flight 掃描
+
+### 查詢路徑切換（29 處 + dashboard + shared_utils + live + calcifer + tests + ctl.sh）
+全部從 bare `champion_pipeline` 切到 `champion_pipeline_fresh`。Deprecated 檔案（rescan, seed_*, alpha_discovery, factor_zoo）加 `--i-know-deprecated-v071` 硬 flag。
+
+### Miniapp
+card-j01 + card-j02 加 outcome + process 兩個 sub-block，15s 自動刷新。
+
+### 驗收
+- archive rows 1564（保留）；fresh rows 0（bake pending）
+- archive trigger 測試：直接 INSERT raise ✓
+- fresh_insert_guard 測試：直接 INSERT raise ✓
+- verify_no_archive_reads.sh exit 0 ✓
+- provenance.py smoke test 通過 ✓
+
+### 延後項目（v0.7.2 → v0.9.0）
+- v0.7.2: 閾值實測 + adjudication threshold 寫入 `config/adjudication_thresholds.json`
+- v0.8.0: arena23/45 orchestrator 完全接管 `arena_gates.py` 模組；V9 indicator-combo 分支刪除
+- v0.9.0: A5 live paper-trade shadow service
+
+---
+
 ## v0.7.0 — 2026-04-20 — Engine split: Zangetsu becomes neutral training engine; J01 + J02 strategies spawn
 **Scope:** `engine/components/alpha_engine.py` + `services/arena_pipeline.py` + `services/holdout_splits.py` + `zangetsu_ctl.sh` + `scripts/zangetsu_snapshot.sh` + `migrations/postgres/v0.7.0_strategy_id.sql` (new) + `config/sql/zangetsu_status_view.sql` + `README.md` + `CLAUDE.md` + `docs/decisions/20260420-engine-split.md` (new). Sibling projects created: `../j01/` (harmonic K=2) + `../j02/` (ICIR K=5). Miniapp `d-mail-miniapp/static/index.html` + `server.py` gain J01/J02 cards.
 
