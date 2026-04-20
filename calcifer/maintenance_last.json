@@ -1,5 +1,5 @@
 {
-  "start": "2026-04-19T16:00:00.835390+00:00",
+  "start": "2026-04-20T04:01:06.233639+00:00",
   "tasks": {
     "docker_prune": {
       "status": "OK",
@@ -13,28 +13,28 @@
     },
     "redis_health": {
       "status": "OK",
-      "duration_s": 0.2,
-      "output": "magi: used_memory_human:1.62M\nmaxmemory_policy:noeviction\n# Keyspace\ndb0:keys=3,expires=1,avg_ttl=1898431,subexpiry=0\nakasha: used_memory_human:1.40M"
+      "duration_s": 0.1,
+      "output": "magi: used_memory_human:970.80K\nmaxmemory_policy:noeviction\n# Keyspace\ndb0:keys=3,expires=1,avg_ttl=1831168,subexpiry=0\nakasha: used_memory_human:1.02M"
     },
     "akasha_compact": {
       "status": "OK",
       "duration_s": 0.0,
-      "output": "{\"deleted\": 48, \"status\": \"ok\"}"
+      "output": "{\"deleted\": 34, \"status\": \"ok\"}"
     },
     "log_rotation": {
       "status": "OK",
-      "duration_s": 0.1,
-      "output": "rotation: \nsizes: 38M\t/home/j13/j13-ops/zangetsu/logs"
+      "duration_s": 0.5,
+      "output": "rotation: \nsizes: 39M\t/home/j13/j13-ops/zangetsu/logs"
     },
     "backup_verify": {
       "status": "OK",
       "duration_s": 0.0,
-      "output": "pg:\n-rw-rw-r-- 1 j13 j13 824K Apr 17 17:16 /home/j13/backups/postgres/zangetsu-20260417_091626.sql.gz\n-rw-rw-r-- 1 j13 j13 1.2M Apr 18 10:00 /home/j13/backups/postgres/zangetsu-20260418_020001.sql.gz\n-rw-rw-r-- 1 j13 j13 2.2M Apr 19 10:00 /home/j13/backups/postgres/zangetsu-20260419_020001.sql.gz\nredis:\n-rw------- 1 j13 j13 2.7K Apr 17 17:16 /home/j13/backups/redis/magi-20260417_091627.rdb\n-rw------- 1 j13 j13 1.9K Apr 18 11:00 /home/j13/backups/redis/magi-20260418_030001.rdb\n-rw------- 1 j13 j13 2.1K Apr 19 11:00 /home/j13/backups/redis/magi-20260419_030001.rdb\nfresh_pg_24h=4"
+      "output": "pg:\n-rw-rw-r-- 1 j13 j13 1.2M Apr 18 10:00 /home/j13/backups/postgres/zangetsu-20260418_020001.sql.gz\n-rw-rw-r-- 1 j13 j13 2.2M Apr 19 10:00 /home/j13/backups/postgres/zangetsu-20260419_020001.sql.gz\n-rw-rw-r-- 1 j13 j13 2.2M Apr 20 10:00 /home/j13/backups/postgres/zangetsu-20260420_020001.sql.gz\nredis:\n-rw------- 1 j13 j13 1.9K Apr 18 11:00 /home/j13/backups/redis/magi-20260418_030001.rdb\n-rw------- 1 j13 j13 2.1K Apr 19 11:00 /home/j13/backups/redis/magi-20260419_030001.rdb\n-rw------- 1 j13 j13 2.1K Apr 20 11:00 /home/j13/backups/redis/magi-20260420_030001.rdb\nfresh_pg_24h=4"
     },
     "disk_memory_gpu": {
       "status": "OK",
       "duration_s": 0.0,
-      "output": "disk:\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/nvme1n1p2  915G   83G  786G  10% /\n/dev/nvme1n1p2  915G   83G  786G  10% /\n/dev/nvme1n1p2  915G   83G  786G  10% /\nmem:\ntotal        used        free      shared  buff/cache   available\nMem:            31Gi       9.6Gi       1.9Gi       242Mi        16Gi        21Gi\ngpu: 0 %, 4 MiB, 12288 MiB, 47\nload: 00:00:02 up 6 days, 11:58,  2 users,  load average: 4.68, 4.40, 4.44"
+      "output": "disk:\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/nvme1n1p2  915G   69G  801G   8% /\n/dev/nvme1n1p2  915G   69G  801G   8% /\n/dev/nvme1n1p2  915G   69G  801G   8% /\nmem:\ntotal        used        free      shared  buff/cache   available\nMem:            31Gi       2.0Gi        27Gi        39Mi       2.2Gi        29Gi\ngpu: NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.\n\nno GPU\nload: 12:01:07 up 0 min,  0 user,  load average: 1.27, 0.27, 0.09"
     },
     "zangetsu_status": {
       "status": "OK",
@@ -42,6 +42,6 @@
       "output": "services:\narena-pipeline: inactive\narena23-orchestrator: inactive\narena45-orchestrator: inactive\narena13-feedback.timer: inactive\ndashboard-api: active\nconsole-api: active\ndb:\nchampions=1564 deployable=0"
     }
   },
-  "end": "2026-04-19T16:00:02.206486+00:00",
-  "duration_s": 1.4
+  "end": "2026-04-20T04:01:07.987242+00:00",
+  "duration_s": 1.8
 }

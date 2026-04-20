@@ -14,6 +14,16 @@ PSQL_CMD="docker exec deploy-postgres-1 psql -U zangetsu -d zangetsu -t -c"
 cd "$BASE"
 mkdir -p "$LOCK_DIR"
 
+# Load project secrets (DB password etc.) before spawning services.
+# Services require os.environ[ZV5_DB_PASSWORD] with no fallback.
+if [ -f "$BASE/secret/.env" ]; then
+  set -a
+  . "$BASE/secret/.env"
+  set +a
+else
+  echo "FATAL: $BASE/secret/.env missing — services will crash on import"; exit 1
+fi
+
 start_if_not_running() {
   local name=$1 lock=$2 cmd=$3 log=$4
   if [ -f "$lock" ] && kill -0 "$(cat "$lock" 2>/dev/null)" 2>/dev/null; then
@@ -35,12 +45,23 @@ case "${1:-status}" in
     find . -name '*.nbc' -not -path './.venv/*' -delete 2>/dev/null
     echo "Starting Zangetsu V9 services ($A1_WORKERS A1 workers)..."
 
-    # A1 Workers
+    # A1 workers split across strategy tracks (v0.7.0 engine split):
+    #   w0, w1 -> J01 (harmonic K=2)
+    #   w2, w3 -> J02 (ICIR K=5)
+    # Each worker exports STRATEGY_ID; arena_pipeline.py reads it to
+    # import the right strategy project's fitness_fn.
     for i in $(seq 0 $((A1_WORKERS - 1))); do
+      if [ $i -lt 2 ]; then
+        STRATEGY=j01
+        LANE=baseline
+      else
+        STRATEGY=j02
+        LANE=exploration
+      fi
       start_if_not_running \
-        "A1-W$i" \
+        "A1-W$i-${STRATEGY}" \
         "$LOCK_DIR/arena_pipeline_w${i}.lock" \
-        "env A1_WORKER_ID=$i A1_WORKER_COUNT=$A1_WORKERS A1_LANE=$(if [ $i -lt 2 ]; then echo baseline; elif [ $i -lt 4 ]; then echo guided; else echo exploration; fi) $VENV services/arena_pipeline.py" \
+        "env STRATEGY_ID=${STRATEGY} A1_WORKER_ID=$i A1_WORKER_COUNT=$A1_WORKERS A1_LANE=$LANE $VENV services/arena_pipeline.py" \
         "$LOG_DIR/zangetsu_a1_w${i}.log"
     done
 

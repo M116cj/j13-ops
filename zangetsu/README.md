@@ -1,36 +1,61 @@
-# Zangetsu — Alpha Discovery Pipeline
+# Zangetsu — Alpha Discovery Engine
 
-Genetic-programming alpha discovery for Sub-Account A (Sharpe Quant Class).
-Live on Alaya. Managed by the five-agent team (Claude lead, Gemini adversary,
-Codex executor, Calcifer infra, Markl research).
+Neutral training engine for GP-based alpha discovery. Strategies plug in
+via a `fitness_fn` contract and get access to the full data pipeline,
+indicator engine, arena gates, and deployment infrastructure.
 
-## Quick pointers
+Zangetsu itself does **not** own a fitness function — it is
+strategy-agnostic. Strategy projects (currently `j01`, `j02`) live as
+sibling packages at the `j13-ops/` root and contribute their fitness at
+worker startup time.
 
-| Aim                    | See                                   |
-|------------------------|----------------------------------------|
-| Project constitution   | `../CLAUDE.md` §17 (global)            |
-| Project-level rules    | [`CLAUDE.md`](./CLAUDE.md)             |
-| Version history        | [`VERSION_LOG.md`](./VERSION_LOG.md)   |
-| Canonical `*_status` VIEW | [`config/sql/zangetsu_status_view.sql`](./config/sql/zangetsu_status_view.sql) |
-| Decisions (dated)      | [`docs/decisions/`](./docs/decisions/) |
-| Retros (per /team run) | [`docs/retros/`](./docs/retros/)       |
-| Architecture XML       | [`docs/arch/`](./docs/arch/)           |
-| Arena A1→A5 orchestrators | [`services/`](./services/)          |
-| GP engine              | [`engine/components/`](./engine/components/) |
-| Secrets template       | [`secret.example/`](./secret.example/) |
-| Real secrets           | `secret/` (gitignored, 700/600)        |
+## Strategies built on this engine
 
-## Pipeline (A1 → A5)
+| Project | Fitness | Status |
+|---------|---------|--------|
+| [`../j01/`](../j01/) | Harmonic K=2 (sign-gated) | v0.1.0 live on workers w0, w1 |
+| [`../j02/`](../j02/) | ICIR K=5 + sign gate | v0.1.0 live on workers w2, w3 |
 
-A1 GP evolve → A2 OOS PnL gate → A3 time-segment stability → A4 regime
-stability → A5 real-world validation (live paper-trade shadow). Only
-`tier=live_proven` DEPLOYABLE alphas auto-enter the active pool.
+Adding a new strategy `jNN` requires:
+1. `jNN/fitness.py` with a `fitness_fn(alpha, forward_returns, height) -> float`.
+2. `jNN/config/sql/jNN_status_view.sql` (§17.1 single-truth VIEW).
+3. `jNN/CLAUDE.md` + `VERSION_LOG.md` + `README.md` + `docs/decisions/`.
+4. Bump the worker split in `zangetsu/zangetsu_ctl.sh`.
+5. Add a VIEW query + miniapp card in `zangetsu/scripts/zangetsu_snapshot.sh`
+   and `d-mail-miniapp/static/index.html`.
 
-See `docs/decisions/20260420-arena-reconstruction.md` for the current gate
-specifications.
+## Engine pointers
 
-## Running locally
+| Aim                        | See                                   |
+|----------------------------|----------------------------------------|
+| Project constitution       | `../CLAUDE.md` §17 (global)           |
+| Engine rules               | [`CLAUDE.md`](./CLAUDE.md)             |
+| Version history            | [`VERSION_LOG.md`](./VERSION_LOG.md)   |
+| Decision records           | [`docs/decisions/`](./docs/decisions/) |
+| Retros (per /team run)     | [`docs/retros/`](./docs/retros/)       |
+| Architecture XML           | [`docs/arch/`](./docs/arch/)           |
+| Research archive           | [`docs/research/`](./docs/research/)   |
+| Engine-rollup VIEW         | [`config/sql/zangetsu_status_view.sql`](./config/sql/zangetsu_status_view.sql) |
+| GP framework               | [`engine/components/alpha_engine.py`](./engine/components/alpha_engine.py) |
+| Arena gates (shared)       | [`services/arena_gates.py`](./services/arena_gates.py) |
+| Holdout / regime helpers   | [`services/holdout_splits.py`](./services/holdout_splits.py), [`services/regime_tagger.py`](./services/regime_tagger.py) |
+| Launcher                   | [`zangetsu_ctl.sh`](./zangetsu_ctl.sh) |
+| Watchdog                   | [`watchdog.sh`](./watchdog.sh)         |
+| Secrets template           | [`secret.example/`](./secret.example/) |
+| Real secrets               | `secret/` (gitignored, 700/600)        |
+
+## Pipeline
+
+A1 GP evolve (strategy-specific fitness) → A2 OOS PnL gate →
+A3 time-segment stability → A4 regime stability →
+A5 real-world validation (14-day live paper-trade shadow — v0.8.0 roadmap).
+
+Only alphas with `deployable_tier = 'live_proven'` may auto-enter the
+active trading pool. `historical` and `fresh` require j13 explicit
+approval.
+
+## Running
 
 Zangetsu is not designed to run on macOS. Development happens in `scratch/`
-sandboxes; production runs under systemd on Alaya. Bring-up steps live in
-`deploy/` and `zangetsu_ctl.sh`.
+sandboxes on Mac; production runs under cron+watchdog on Alaya. See
+[`deploy/`](./deploy/) and [`zangetsu_ctl.sh`](./zangetsu_ctl.sh).

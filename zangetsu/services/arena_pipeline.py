@@ -45,6 +45,21 @@ from zangetsu.engine.components.alpha_engine import AlphaEngine
 from zangetsu.engine.components.alpha_signal import generate_alpha_signals
 from zangetsu.engine.components.indicator_bridge import build_indicator_cache
 
+# Strategy-specific fitness injection (v0.7.0 engine split).
+# STRATEGY_ID env must be set by the launcher (zangetsu_ctl.sh) to
+# select which strategy project supplies the fitness function. Engine
+# (zangetsu) is neutral; strategies (j01=harmonic, j02=icir, ...) own
+# their own fitness contract.
+STRATEGY_ID = os.environ.get("STRATEGY_ID", "j01")
+if STRATEGY_ID == "j01":
+    from j01.fitness import fitness_fn as _strategy_fitness_fn
+elif STRATEGY_ID == "j02":
+    from j02.fitness import fitness_fn as _strategy_fitness_fn
+else:
+    raise RuntimeError(
+        f"Unknown STRATEGY_ID={STRATEGY_ID!r}. Supported: j01, j02."
+    )
+
 
 TRAIN_SPLIT_RATIO = 0.7
 
@@ -598,7 +613,7 @@ async def main():
         # 126 indicator terminals are not silently pruned to zeros by GP tournament
         # selection (was the latent cause of V10 path producing 0 A4-passing alphas).
         try:
-            engine = AlphaEngine(indicator_cache=symbol_indicator_cache.get(sym, {}))
+            engine = AlphaEngine(indicator_cache=symbol_indicator_cache.get(sym, {}), fitness_fn=_strategy_fitness_fn)
             alphas = engine.evolve(
                 close_f64, high_f64, low_f64, vol_f64, returns_f64,
                 n_gen=N_GEN, pop_size=POP_SIZE, top_k=TOP_K,
@@ -794,11 +809,11 @@ async def main():
                     INSERT INTO champion_pipeline (
                         regime, indicator_hash, alpha_hash, status, n_indicators,
                         arena1_score, arena1_win_rate, arena1_pnl, arena1_n_trades,
-                        passport, engine_hash, arena1_completed_at
+                        passport, engine_hash, arena1_completed_at, strategy_id
                     ) VALUES (
                         $1, $2, $3, 'ARENA1_COMPLETE', $4,
                         $5, $6, $7, $8,
-                        $9::jsonb, 'zv5_v10_alpha', NOW()
+                        $9::jsonb, 'zv5_v10_alpha', NOW(), $10
                     )
                     """,
                     regime,
@@ -810,6 +825,7 @@ async def main():
                     float(bt.net_pnl),
                     int(bt.total_trades),
                     json.dumps(passport),
+                    STRATEGY_ID,
                 )
             except Exception as e:
                 log.error(f"DB insert failed ({alpha_hash}): {e}")

@@ -1,61 +1,68 @@
-# Zangetsu — Project-level CLAUDE.md
+# Zangetsu Engine — Project-level CLAUDE.md
 # Extends (never contradicts) ~/.claude/CLAUDE.md. Per global §14.
 
 ## Scope
 
-Alpha discovery pipeline for Sub-Account A (Sharpe Quant Class).
-Primary goal: produce at least one DEPLOYABLE alpha per month that
-shows stable PnL / win-rate / trade-count under live market conditions.
+Neutral alpha-discovery training engine. Zangetsu provides the shared
+infrastructure; strategy projects (`j01`, `j02`, future `jNN`) sit on
+top and contribute their own fitness functions and threshold bundles.
 
-## Hard rules (this project)
+## Hard rules (this engine)
 
-1. No code path may read a password/API key with a fallback default.
-   Use `os.environ['KEY']` exclusively; let a missing key raise.
-2. All DB/Redis/LLM secrets live in `secret/` (gitignored).
-   `secret.example/` is the committed schema — update both together.
-3. Any "done / deployed / version bumped" claim must be verified against
-   `SELECT * FROM zangetsu_status;` — global §17.1. Inline count queries
-   or git-commit-message claims are not acceptable.
-4. Service restart check (global §17.6) is mandatory before any version
-   bump: `systemctl show <svc> ActiveEnterTimestamp >= source mtime`.
-5. `feat(zangetsu/vX.Y)` commits may only be emitted by
-   `bin/bump_version.py` (global §17.5). Manual version-bump commits are
-   rejected by the pre-commit hook.
+1. Zangetsu never imports from a strategy project. The dependency flows
+   one way: strategy imports engine. Violations break the clean split.
+2. `alpha_engine._evaluate` delegates scoring to a strategy-provided
+   `fitness_fn` callable injected at `AlphaEngine.__init__`. No fitness
+   lives in engine code. If a PR adds a fitness constant/formula under
+   `zangetsu/`, it's rejected.
+3. Every production process must have `STRATEGY_ID` env set. Arena
+   pipeline startup raises on missing / unknown value.
+4. Any row write to `champion_pipeline` must include `strategy_id`.
+   Engine-level SQL (arena23/45 SELECT/UPDATE) must preserve
+   `strategy_id` — never reset or reassign.
+5. Engine version bumps (`feat(zangetsu/vX.Y)`) follow global §17.5 via
+   `bin/bump_version.py` + Calcifer witness + decision record.
+6. Engine-level VIEW `zangetsu_engine_status` aggregates across
+   strategies; it is the monitoring surface for Calcifer / watchdog.
+   Per-strategy monitoring reads `{strategy}_status` VIEW (§17.1).
 
 ## DEPLOYABLE tiers
 
-`champion_pipeline.deployable_tier` ∈ { `historical`, `fresh`, `live_proven` }.
-Only `live_proven` may auto-enter `card_status='ACTIVE'`. The others are
-watchlist items and require j13 explicit approve.
+The tier schema (`historical / fresh / live_proven`) lives on the engine
+(DB column + CHECK constraint). Strategies inherit the tier semantics.
+A strategy may tighten promotion criteria (e.g. J02 plans a DSR filter on
+live_proven) but cannot relax the schema.
 
-## Arena layout (post-2026-04-20 reconstruction)
+## Arena gate logic
 
-| Gate | Data              | Check                                                        |
-|------|-------------------|--------------------------------------------------------------|
-| A1   | training window   | GP fitness = mean(IC_early) × mean(IC_late) − |diff|; same sign |
-| A2   | holdout first 1/3 | trades ≥ 25 ∧ total PnL > 0                                  |
-| A3   | holdout mid 1/3, 5 segments | ≥ 4/5 segments with WR > 0.45 ∧ PnL > 0            |
-| A4   | holdout last 1/3, regime-tagged | train regime WR > 0.40 ∧ ≥ 1 other regime WR > 0.40 |
-| A5   | 14-day live paper-trade shadow | WR > 0.45 ∧ total PnL > 0 ∧ max_consecutive_neg_days < 3 |
+| Gate | Home | Shared? |
+|------|------|---------|
+| A1   | engine + strategy | engine provides GP loop; strategy provides `fitness_fn` |
+| A2   | engine (`services/arena_gates.arena2_pass`) | yes |
+| A3   | engine (`services/arena_gates.arena3_pass` + `build_a3_segments`) | yes |
+| A4   | engine (`services/arena_gates.arena4_pass`) | yes |
+| A5   | engine (shadow service — v0.8.0 roadmap) | yes |
 
-See `docs/decisions/20260420-arena-reconstruction.md` for full rationale.
+Strategies may parameterize gates via `jNN/config/thresholds.py` but
+cannot replace the gate implementation.
 
-## Folder conventions (this project, consistent with global §18)
+## Folder conventions (this engine)
 
-- `config/` — parameters, no hardcoded magic numbers. SQL in `config/sql/`.
-- `engine/` — pure algorithm (no IO).
-- `services/` — long-running orchestrators (systemd-managed).
-- `live/` — realtime data subscription and execution.
-- `dashboard/`, `console/` — HTTP API surfaces.
-- `scripts/` — one-shot tools (seed / analysis / migration helpers).
-- `tests/` — pytest. Smoke tests required for every `vX.Y` bump.
-- `docs/decisions/` — dated ADRs, Traditional Chinese.
-- `docs/retros/` — dated retros, one per /team session.
-- `docs/arch/` — draw.io XML.
-- `docs/refactor-history/` — historical spec/meeting notes kept for archaeology.
-- `archive/` — frozen snapshots of prior versions, read-only.
-- `migrations/postgres/` — versioned SQL migrations.
-- `secret/` — gitignored runtime credentials.
-- `secret.example/` — committed template.
-- `scratch/` — local experiments (global §17.8 reaper applies).
-- `data/`, `logs/`, `.venv/`, `graphify-out/` — gitignored.
+- `engine/components/` — pure algorithms (no IO)
+- `services/` — long-running orchestrators (systemd)
+- `live/` — realtime data subscription + execution
+- `dashboard/`, `console/` — HTTP API
+- `scripts/` — one-shot tools (seed / analysis / migration)
+- `tests/` — pytest
+- `docs/decisions/` — ADRs (Traditional Chinese)
+- `docs/retros/` — per-`/team` retros
+- `docs/arch/` — draw.io XML
+- `docs/research/` — non-deletable research archives (per global §11)
+- `docs/refactor-history/` — archival spec/meeting notes
+- `migrations/postgres/` — versioned schema migrations
+- `secret/` — gitignored credentials
+- `secret.example/` — committed template
+- `archive/` — frozen prior-version snapshots (read-only)
+- `scratch/` — experiments (global §17.8 reaper applies)
+- `data/`, `logs/`, `.venv/`, `graphify-out/`, `.pytest_cache/`,
+  `__pycache__/` — gitignored

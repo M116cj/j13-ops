@@ -327,13 +327,19 @@ class AlphaEngine:
         self,
         indicator_cache: Optional[Dict[str, np.ndarray]] = None,
         seed: Optional[int] = None,
+        fitness_fn: Optional[Callable[[np.ndarray, np.ndarray, int], float]] = None,
     ) -> None:
+        # fitness_fn is required for .evolve(); optional for pure
+        # compile_ast / signal reconstruction (orchestrator signal
+        # path does not invoke the GP loop). Strategy projects (j01,
+        # j02, ...) own their fitness_fn and inject it here.
         if not HAS_DEAP:
             raise ImportError("DEAP is required for AlphaEngine; pip install deap")
         if seed is not None:
             random.seed(int(seed))
             np.random.seed(int(seed))
         self.indicator_cache: Dict[str, np.ndarray] = dict(indicator_cache or {})
+        self._fitness_fn = fitness_fn
         self.pset: Any = None
         self.toolbox: Any = None
         self._indicator_terminal_names: List[str] = []
@@ -567,7 +573,15 @@ class AlphaEngine:
         volume: np.ndarray,
         forward_returns: np.ndarray,
     ) -> Tuple[float]:
-        """Evaluate an alpha tree. Returns (fitness,) for DEAP."""
+        # Thin wrapper. Compiles the individual, coerces to a clean
+        # float32 alpha vector, then delegates scoring to the
+        # strategy-provided fitness_fn. The fitness_fn contract is:
+        #   fitness_fn(alpha, forward_returns, height) -> float
+        if self._fitness_fn is None:
+            raise RuntimeError(
+                "AlphaEngine.evolve() requires fitness_fn at construction time. "
+                "Strategy projects (j01/j02/...) must inject their own fitness."
+            )
         try:
             func = self.toolbox.compile(expr=individual)
             raw = func(close, high, low, open_arr, volume)
@@ -579,9 +593,8 @@ class AlphaEngine:
             ).astype(np.float32)
             if float(np.std(alpha)) < 1e-10:
                 return (0.0,)
-            ic, _ = self._compute_ic(alpha, forward_returns)
-            penalty = 0.001 * float(individual.height)
-            return (abs(ic) - penalty,)
+            score = self._fitness_fn(alpha, forward_returns, int(individual.height))
+            return (float(score),)
         except Exception as e:  # noqa: BLE001
             log.debug("evaluate failed: %s", e)
             return (0.0,)
@@ -592,17 +605,8 @@ class AlphaEngine:
 
     @staticmethod
     def _forward_returns(close: np.ndarray) -> np.ndarray:
-        """Cumulative forward return over ALPHA_FORWARD_HORIZON bars.
-
-        Patch G 2026-04-20: changed from 1-bar to horizon-matched (default 60)
-        to align GP fitness with execution min_hold. Prior state caused 99.7%
-        val_neg_pnl rejection across 30d: GP evolved 1-bar predictors whose
-        edge dissipated within 2-3 bars of the forced 60-bar hold, converting
-        winning signals into mean-reversion losers. Outcome §17.1: 0 DEPLOYABLE.
-
-        Configurable via env ALPHA_FORWARD_HORIZON (must match the min_hold
-        used by alpha_to_signal in the production signal path). Default 60.
-        """
+        # Cumulative forward return over ALPHA_FORWARD_HORIZON bars.
+        # Must match the min_hold used downstream in alpha_to_signal.
         import os as _os
         horizon = max(1, int(_os.environ.get('ALPHA_FORWARD_HORIZON', '60')))
         fr = np.zeros_like(close, dtype=np.float32)

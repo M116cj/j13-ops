@@ -1,3 +1,106 @@
+## v0.7.0 — 2026-04-20 — Engine split: Zangetsu becomes neutral training engine; J01 + J02 strategies spawn
+**Scope:** `engine/components/alpha_engine.py` + `services/arena_pipeline.py` + `services/holdout_splits.py` + `zangetsu_ctl.sh` + `scripts/zangetsu_snapshot.sh` + `migrations/postgres/v0.7.0_strategy_id.sql` (new) + `config/sql/zangetsu_status_view.sql` + `README.md` + `CLAUDE.md` + `docs/decisions/20260420-engine-split.md` (new). Sibling projects created: `../j01/` (harmonic K=2) + `../j02/` (ICIR K=5). Miniapp `d-mail-miniapp/static/index.html` + `server.py` gain J01/J02 cards.
+
+> **主因：** v0.6.0 單一 fitness 被 Gemini 對抗審查找出 zombie alpha 風險；三個 research agent 交叉驗證後，共識是**同時跑多個 fitness 策略**比在一個策略內精修更正確。j13 決策升級 Zangetsu 為中性訓練引擎，J01（harmonic K=2）+ J02（ICIR K=5）各自是獨立策略項目共用引擎。
+
+### Engine 層改動（zangetsu/）
+- `alpha_engine.AlphaEngine.__init__` 加 `fitness_fn: Optional[Callable[[np.ndarray, np.ndarray, int], float]]` 參數；`_evaluate` 改為 thin wrapper delegate 到注入的 fitness_fn。舊 buggy 公式**整段刪除**。
+- `services/holdout_splits.py` 加 `split_into_k_folds(bars, k)` 供 J02 及未來多-fold 策略用。
+- `services/arena_pipeline.py` 讀 `STRATEGY_ID` env → 動態 `from {j01|j02}.fitness import fitness_fn` → 傳給 `AlphaEngine()`；INSERT 寫 `strategy_id` 欄位。
+- `zangetsu_ctl.sh` 改 4 workers 切 2+2：w0/w1 → `STRATEGY_ID=j01`，w2/w3 → `STRATEGY_ID=j02`。
+- `scripts/zangetsu_snapshot.sh` 讀三個 VIEW（engine + j01 + j02）輸出 `tiers` + `strategies.{j01,j02}` 結構到 `/tmp/zangetsu_live.json`。
+
+### DB schema（migrations/postgres/v0.7.0_strategy_id.sql）
+- `champion_pipeline` 加 `strategy_id text NOT NULL DEFAULT 'j01'`，CHECK `∈ {j01, j02, zangetsu_legacy}`。
+- 舊 V9 engine_hash rows 自動 backfill 為 `zangetsu_legacy`。
+- 三個 VIEW：`zangetsu_engine_status`（跨策略 rollup）、`j01_status`、`j02_status`。原 `zangetsu_status` 保留做 backward-compat。
+- 新增 index `(strategy_id, status)` + `(strategy_id, deployable_tier) WHERE status = 'DEPLOYABLE'`。
+
+### Miniapp（`d-mail-miniapp/`）
+- `static/index.html` 加兩張卡 `card-j01` + `card-j02`，`loadZangetsu()` 改為渲染三卡（engine rollup + j01 + j02）。
+- Polling 15s 不變，讀同一個 `/api/zangetsu/live`。
+
+### 新增的 sibling projects
+- `../j01/` — harmonic K=2 fitness + 完整 project skeleton（CLAUDE.md, VERSION_LOG, README, fitness.py, config/thresholds.py, config/sql/j01_status_view.sql, secret.example/, docs/decisions, docs/retros）
+- `../j02/` — ICIR K=5 fitness + 完整 project skeleton
+
+### Q1/Q2/Q3
+見 `docs/decisions/20260420-engine-split.md`。
+
+### 驗收
+- `SELECT strategy_id, COUNT(*) FROM champion_pipeline GROUP BY 1` → `j01: 1551`, `zangetsu_legacy: 13`, `j02: 0`（fresh 產出 bake 中）。
+- `SELECT * FROM j01_status;` + `j02_status;` + `zangetsu_engine_status;` 全可查，結構正確。
+- 6 workers 新 PID + env 驗證：w0/w1 有 `STRATEGY_ID=j01`，w2/w3 有 `STRATEGY_ID=j02`。
+- fitness_fn 獨立 import smoke test 通過（j01 = 0.9731, j02 = 0.9711 on synthetic strong alpha）。
+- 新 workers mtime 在 process start 前（§17.6 satisfied）。
+
+### 延後項目（下個 session 清理）
+- J02 A5 post-hoc DSR 濾器（j02 v0.2.0）
+- `arena_gates.py` 模組完全接管 arena23/45 inline 邏輯（zangetsu v0.7.1）
+- arena23 V9 indicator-combo 分支刪除（依賴上一項）
+- 3-way holdout split 深度整合到 orchestrator data_cache（zangetsu v0.8.0）
+- A5 live paper-trade shadow service（zangetsu v0.8.0）
+
+---
+
+## v0.6.0 — 2026-04-20 — Arena 5-gate 重構 + DEPLOYABLE tier 制 + secret/ 遷移 + repo history 密碼清洗
+**Scope:** `engine/components/alpha_engine.py` + `services/{arena23,arena45}_orchestrator.py` + `services/{arena_gates,holdout_splits,regime_tagger}.py` (new) + `scripts/rescan_legacy_with_new_gates.py` (new) + `config/sql/zangetsu_status_view.sql` (new) + `migrations/postgres/v0.6.0_deployable_tier.sql` (new) + `secret/` 遷移 + `zangetsu_ctl.sh` env-load 補丁
+
+> **主因：** 30 天 0 DEPLOYABLE。根因 A1 fitness 單段 |IC| + 執行 60-bar 持倉錯配 → 99.7% val_neg_pnl。§17 憲法採用後要求單一真相 VIEW + 分層 DEPLOYABLE 證據等級。j13 2026-04-20 指令：「訓練的冠軍要確保真實狀況下穩定 pnl/勝率/交易次數」。
+
+### A1 fitness 改寫（`engine/components/alpha_engine.py:_evaluate`）
+舊：`fitness = abs(spearman_ic(alpha, forward_returns)) - 0.001*height`（單段 |IC|）
+新：split 訓練窗為兩半，要求 `sign(ic_early) == sign(ic_late)`，
+    `fitness = |ic_early|*|ic_late| - ||ic_early|-|ic_late|| - 0.001*height`
+`_forward_returns` 60-bar 維持（對齊 `alpha_to_signal.min_hold`），docstring 簡化為單行。
+
+### 新 Arena gate 模組（`services/arena_gates.py`）
+純函數 `arena2_pass / arena3_pass / arena4_pass` + `build_a3_segments`，
+搭配 `services/holdout_splits.py`（3-split + N-段）與 `services/regime_tagger.py`
+（bull/bear/chop + RegimeParams）。Rescan 腳本與未來 A5 shadow 共用。
+
+### DEPLOYABLE tier 制（`migrations/postgres/v0.6.0_deployable_tier.sql`）
+`champion_pipeline.deployable_tier ∈ {historical, fresh, live_proven}`（CHECK + index）。
+`zangetsu_status` VIEW 重建並拆三欄；`deployable_count` 保留做 backward-compat 彙總。
+`config/sql/zangetsu_status_view.sql` 為 canonical VIEW 定義（§17.1）。
+
+### Rescan 腳本（`scripts/rescan_legacy_with_new_gates.py`）
+讀取 LEGACY / ARENA2_REJECTED / ARENA4_ELIMINATED 含 passport 的 champion，
+用新 A2/A3/A4 在 BTCUSDT holdout 3-split 上重評，通過者標 tier=historical。
+2026-04-20 全池 1564 個跑完：0 pass，851 個 passport AST 引用已不存在的 primitive，
+legacy 池技術上死。第一顆 DEPLOYABLE 必須靠 tier=fresh（新 GP 產出）。
+
+### arena45 DSR 清理
+刪：`deflated_sharpe_ratio` import、`A4_MIN_DSR/A4_MIN_TRIALS_FOR_DSR` 常數、
+DSR 計算 block、`dsr_pass` 失敗 reason、passport 內 `dsr/dsr_num_trials`。
+CANDIDATE→DEPLOYABLE SQL 加 `deployable_tier = "fresh"`。
+
+### secret 遷移（本版同步）
+`/etc/zangetsu/zangetsu.env` → `zangetsu/secret/.env`（700/600）。
+`secret.example/.env.example` 進 repo 當欄位骨架。
+4 個 systemd live unit + 8 個 deploy/ 模板 `EnvironmentFile=` 全更。
+`zangetsu_ctl.sh` 加 `set -a; . secret/.env; set +a` 啟動前載入。
+
+### Miniapp（`d-mail-miniapp/`）
+`scripts/zangetsu_snapshot.sh` 加 `tiers` block（讀 `zangetsu_status` VIEW）。
+`static/index.html` 新增 `card-zangetsu` 顯示三 tier、candidate、active、
+champions_last_1h、last_live 年齡、recent errors，15s poll。
+
+### 其他
+- arena23 V9 indicator-combo 分支本次**未刪**（處理歷史 V9 passport，下個 session 單獨 Q1 清理）。
+- V9 `_v10_alpha_to_signal` 舊 stub（arena23 line 67）亦未刪，同理。
+- 3-way holdout split 未深度整合到 arena23/arena45 的 `data_cache` 建構；
+  新 gate 模組目前由 rescan + A5 shadow 使用，orchestrator 整合留待 v0.6.1。
+
+### 驗收
+- §17.1 VIEW：deployable_total / historical / fresh / live_proven 皆可查，
+  目前全 0（workers 剛重啟 bake 中）。
+- §17.6 stale-service：新 workers mtime 在 process start 前（verified）。
+- Q1/Q2/Q3：見 `docs/decisions/20260420-arena-reconstruction.md`。
+- Retro：`docs/retros/20260420.md`。
+
+---
+
 ## v0.5.5 — 2026-04-18 — @macmini13 miniapp self-contained (Docker → host process, proxy removed)
 **Scope:** `~/d-mail-miniapp/` refactor + systemd unit
 

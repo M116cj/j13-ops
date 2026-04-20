@@ -145,7 +145,6 @@ from zangetsu.services.shared_utils import (
     backtest_with_a3_params,
     ensure_db_connection,
     reap_expired_leases,
-    deflated_sharpe_ratio,
 )
 
 # ── V9: PGQueuer event-driven pickup (opt-in via A45_USE_PGQUEUER=1) ──
@@ -165,8 +164,6 @@ A4_MIN_SEG_TRADES = 8  # v6b: minimum trades per holdout segment (was implicit 3
 A4_MAX_VARIABILITY = 1.5
 
 # ── Arena 5 constants ───────────────────────────────────────────
-A4_MIN_DSR = 0.05  # V9 oneshot A2: deflated Sharpe floor
-A4_MIN_TRIALS_FOR_DSR = 20  # V9 oneshot A2: multi-trial floor
 A5_INITIAL_ELO = 1500.0
 A5_K_FACTOR = 32.0
 A5_MATCH_WINDOW = 5000  # bars per match
@@ -379,7 +376,7 @@ async def promote_candidate(champ, db, log, verbose=False):
 
     # All gates passed — PROMOTE to DEPLOYABLE
     await db.execute("""
-        UPDATE champion_pipeline SET status = 'DEPLOYABLE', updated_at = NOW()
+        UPDATE champion_pipeline SET status = 'DEPLOYABLE', deployable_tier = 'fresh', updated_at = NOW()
         WHERE id = $1
     """, champ_id)
     await log_transition(db, champ_id, "CANDIDATE", "DEPLOYABLE", worker_id=WORKER_ID,
@@ -556,19 +553,7 @@ async def process_arena4(champ, data_cache, backtester, cost_model, rust_engine,
     }
     has_positive_metric = any(v > 0 for v in positive_metrics.values())
 
-    # V9 oneshot A2: Deflated Sharpe Ratio gate (Lopez de Prado)
-    a1_trials = int(passport.get('arena1', {}).get('total_searched', 0) or 0)
-    num_trials = max(a1_trials, A4_MIN_TRIALS_FOR_DSR)
-    seg_sharpes = [segment_results[k].get('sharpe', 0.0) for k in ('early', 'mid', 'late')]
-    sr_std_est = float(np.std(seg_sharpes)) if len(seg_sharpes) > 1 else 0.0
-    dsr = deflated_sharpe_ratio(
-        observed_sr=float(full_result.get('sharpe', 0.0) or 0.0),
-        sr_std=max(sr_std_est, 0.1),
-        num_trials=num_trials,
-        T=int(full_result.get('trades', 0) or 0),
-    )
-    dsr_pass = dsr >= A4_MIN_DSR
-    gate_pass = all_segments_pass and full_pass and variability < A4_MAX_VARIABILITY and has_positive_metric and dsr_pass
+    gate_pass = all_segments_pass and full_pass and variability < A4_MAX_VARIABILITY and has_positive_metric
 
     if gate_pass:
         metrics = {k: v for k, v in positive_metrics.items() if v > 0}
@@ -580,8 +565,6 @@ async def process_arena4(champ, data_cache, backtester, cost_model, rust_engine,
                 "holdout_segments": segment_results,
                 "segment_wrs": segment_wrs,
                 "variability": variability,
-                "dsr": float(dsr),
-                "dsr_num_trials": num_trials,
                 "quant_class": quant_class,
                 "symbol": symbol,
                 "holdout_bars": n,
@@ -612,8 +595,6 @@ async def process_arena4(champ, data_cache, backtester, cost_model, rust_engine,
             reason_parts.append(f"var={variability:.3f}")
         if not has_positive_metric:
             reason_parts.append("no_positive_holdout_metric")
-        if not dsr_pass:
-            reason_parts.append(f"dsr={dsr:.3f}")
         reason = "|".join(reason_parts) or "unknown"
 
         await arena4_fail(db, champ_id, reason, hell_wr, variability)
