@@ -184,12 +184,21 @@ async def main():
         log.warning("Random baseline not found -- p-values will not be computed")
 
     import asyncpg
-    db = await asyncpg.connect(
+    # MEDIUM-M5: replace single connection with connection pool.
+    # Daemon runs indefinitely; a single conn has no reconnect path on transient
+    # network/PG blips. Pool auto-reconnects individual conns on failure.
+    # min_size=2 keeps warm conns; max_size=10 bounded to avoid exhausting
+    # server-side max_connections across 4 workers (=40 total cap).
+    # Pool exposes .fetch/.fetchrow/.fetchval/.execute as high-level methods
+    # that auto-acquire/release, so existing call sites work unchanged.
+    db = await asyncpg.create_pool(
         host=settings.db_host,
         port=settings.db_port,
         database='zangetsu',
         user=settings.db_user,
         password=settings.db_password,
+        min_size=2,
+        max_size=10,
     )
 
     # V10: DIRECTIONAL retained only for indicator_bridge cache keys reference;
@@ -348,23 +357,43 @@ async def main():
     # ── V10: Build indicator cache ONCE per symbol at startup ──
     # (Rust-backed; ~len(DIRECTIONAL) * len(PERIODS) arrays per symbol.)
     # Kept in memory; reused across all GP evolutions for that symbol.
+    # Patch E 2026-04-19: build TWO caches per symbol — one for the train slice
+    # (used during GP evolve + train backtest) and one for the holdout slice
+    # (swapped in for the v0.5.9 val backtest so indicator terminals evaluate
+    # against holdout OHLCV, not stale train-window indicator values).
     symbol_indicator_cache = {}
+    holdout_indicator_cache = {}
     for sym in symbols:
-        d = data_cache[sym]["train"]
+        d_train = data_cache[sym]["train"]
+        d_hold = data_cache[sym]["holdout"]
         try:
-            cache = build_indicator_cache(
-                close=d["close"],
-                high=d["high"],
-                low=d["low"],
-                volume=d["volume"],
-                funding=d.get("funding_rate"),
-                oi=d.get("oi"),
+            cache_train = build_indicator_cache(
+                close=d_train["close"],
+                high=d_train["high"],
+                low=d_train["low"],
+                volume=d_train["volume"],
+                funding=d_train.get("funding_rate"),
+                oi=d_train.get("oi"),
             )
-            symbol_indicator_cache[sym] = cache
-            log.info(f"Indicator cache built for {sym}: {len(cache)} arrays")
+            symbol_indicator_cache[sym] = cache_train
+            log.info(f"Indicator cache built for {sym}: {len(cache_train)} arrays (train)")
         except Exception as e:
-            log.warning(f"Indicator cache failed for {sym}: {e}")
+            log.warning(f"Indicator cache (train) failed for {sym}: {e}")
             symbol_indicator_cache[sym] = {}
+        try:
+            cache_hold = build_indicator_cache(
+                close=d_hold["close"],
+                high=d_hold["high"],
+                low=d_hold["low"],
+                volume=d_hold["volume"],
+                funding=d_hold.get("funding_rate"),
+                oi=d_hold.get("oi"),
+            )
+            holdout_indicator_cache[sym] = cache_hold
+            log.info(f"Indicator cache built for {sym}: {len(cache_hold)} arrays (holdout)")
+        except Exception as e:
+            log.warning(f"Indicator cache (holdout) failed for {sym}: {e}")
+            holdout_indicator_cache[sym] = {}
 
     # Log regime distribution
     from collections import Counter
@@ -407,7 +436,12 @@ async def main():
         "alphas_evaluated": 0,
         "reject_few_trades": 0,
         "reject_neg_pnl": 0,
-        "reject_low_positive_count": 0,
+        "reject_val_constant": 0,
+        "reject_val_error": 0,
+        "reject_val_few_trades": 0,
+        "reject_val_neg_pnl": 0,
+        "reject_val_low_sharpe": 0,
+        "reject_val_low_wr": 0,
         "champions_inserted": 0,
         "alpha_compile_errors": 0,
     }
@@ -482,8 +516,14 @@ async def main():
             except Exception as e:
                 log.warning(f"Checkpoint save failed: {e}")
 
-        # ── Bloom periodic refresh: sync cross-worker discoveries every 200 rounds ──
-        if round_number % 200 == 0 and round_number > 0:
+        # ── Bloom periodic refresh: sync cross-worker discoveries ──
+        # MEDIUM-M4: 4 workers with local Bloom filters drift apart between refreshes;
+        # 200 rounds is too sparse — by then duplicates already slipped through all 4.
+        # Tightened to 20 rounds (10x more frequent). Each refresh is a single DB fetch
+        # against indexed columns (status, alpha_hash), cost is negligible relative to
+        # one GP evolution round. Redis shared Bloom = follow-up PR.
+        _BLOOM_REFRESH_EVERY = int(os.environ.get("ZV_BLOOM_REFRESH_EVERY", "20"))
+        if round_number % _BLOOM_REFRESH_EVERY == 0 and round_number > 0:
             try:
                 _rows = await db.fetch("""
                     SELECT DISTINCT regime, alpha_hash
@@ -554,8 +594,11 @@ async def main():
         returns_f64[1:] = (close_f64[1:] - close_f64[:-1]) / np.maximum(close_f64[:-1], 1e-10)
 
         # ── V10: Evolve alphas for this symbol / regime ──
+        # end-to-end-upgrade fix 2026-04-19: pass pre-built indicator cache so the
+        # 126 indicator terminals are not silently pruned to zeros by GP tournament
+        # selection (was the latent cause of V10 path producing 0 A4-passing alphas).
         try:
-            engine = AlphaEngine()
+            engine = AlphaEngine(indicator_cache=symbol_indicator_cache.get(sym, {}))
             alphas = engine.evolve(
                 close_f64, high_f64, low_f64, vol_f64, returns_f64,
                 n_gen=N_GEN, pop_size=POP_SIZE, top_k=TOP_K,
@@ -576,8 +619,8 @@ async def main():
 
             # ── Compile alpha AST → callable ──
             try:
-                func = AlphaEngine.ast_to_callable(alpha_result.ast_json)
-                alpha_values = func(close_f64, high_f64, low_f64, vol_f64, returns_f64)
+                func = engine.ast_to_callable(alpha_result.ast_json)
+                alpha_values = func(close_f64, high_f64, low_f64, close_f64, vol_f64)
                 alpha_values = np.nan_to_num(
                     alpha_values, nan=0.0, posinf=0.0, neginf=0.0
                 ).astype(np.float32)
@@ -625,20 +668,79 @@ async def main():
             if bt.total_trades < 30:
                 stats["reject_few_trades"] += 1
                 continue
-            if float(bt.net_pnl) < -1.0:
-                stats["reject_neg_pnl"] += 1
+
+            # ── v0.5.9: VAL backtest on holdout slice (prevents overfit flooding A4) ──
+            # Gate calibration:
+            #   val_trades >= 15   (CI half-width < 0.15 at WR=0.55)
+            #   val_net_pnl > 0    (OOS profitable, non-negotiable honesty floor)
+            #   val_sharpe >= 0.3  (positive risk-adjusted edge; leaves A4 0.5 margin)
+            #   val_wilson_wr >= 0.52  (strictly > A4 promote_wilson_lb=0.50)
+            d_val = data_cache[sym]["holdout"]
+            # Patch E 2026-04-19: swap engine.indicator_cache to holdout slice
+            # for the val evaluation, restore train cache via finally on ALL exits
+            # (exception, continue, normal). Without this, indicator terminals return
+            # TRAIN-window values while OHLCV is HOLDOUT → systemic val_neg_pnl
+            # rejection (5353/5500 @ R50000 prior to this patch).
+            engine.indicator_cache.clear()
+            engine.indicator_cache.update(holdout_indicator_cache.get(sym, {}))
+            try:
+                av_val = func(
+                    d_val["close"].astype(np.float64),
+                    d_val["high"].astype(np.float64),
+                    d_val["low"].astype(np.float64),
+                    d_val["close"].astype(np.float64),
+                    d_val["volume"].astype(np.float64),
+                )
+                av_val = np.nan_to_num(av_val, nan=0.0, posinf=0.0, neginf=0.0).astype(np.float32)
+                if np.std(av_val) < 1e-10:
+                    stats["reject_val_constant"] += 1
+                    continue
+                sig_v, sz_v, _ = generate_alpha_signals(
+                    av_val,
+                    entry_threshold=ENTRY_THR,
+                    exit_threshold=EXIT_THR,
+                    min_hold=MIN_HOLD,
+                    cooldown=COOLDOWN,
+                )
+                bt_val = backtester.run(
+                    sig_v,
+                    d_val["close"].astype(np.float32),
+                    sym,
+                    cost_bps,
+                    480,
+                    high=d_val["high"].astype(np.float32),
+                    low=d_val["low"].astype(np.float32),
+                    sizes=sz_v,
+                )
+            except Exception as _ve:
+                stats["reject_val_error"] += 1
+                log.debug(f"val backtest failed ({alpha_hash}): {_ve}")
                 continue
-            _pos_count = (
-                (float(bt.net_pnl) > 0)
-                + (float(bt.sharpe_ratio) > 0)
-                + (float(bt.pnl_per_trade) > 0)
-            )
-            if _pos_count < 2:
-                stats["reject_low_positive_count"] += 1
+            finally:
+                # Patch E: restore train cache on every exit path (success, except, continue).
+                engine.indicator_cache.clear()
+                engine.indicator_cache.update(symbol_indicator_cache.get(sym, {}))
+
+            if bt_val.total_trades < 15:
+                stats["reject_val_few_trades"] += 1
+                continue
+            if float(bt_val.net_pnl) <= 0:
+                stats["reject_val_neg_pnl"] += 1
+                continue
+            if float(bt_val.sharpe_ratio) < 0.3:
+                stats["reject_val_low_sharpe"] += 1
+                continue
+            val_wilson = wilson_lower(bt_val.winning_trades, bt_val.total_trades)
+            if float(val_wilson) < 0.52:
+                stats["reject_val_low_wr"] += 1
                 continue
 
             adjusted_wr = wilson_lower(bt.winning_trades, bt.total_trades)
-            score = float(adjusted_wr) * max(float(bt.net_pnl) + 1.0, 0.01)
+            # Score weighted by val_wilson (OOS) not train (prevents overfit score inflation).
+            # Gemini 2026-04-19: clamp PnL contribution so a single lucky 15-trade outlier
+            # cannot skew ELO pool. Cap at +5.0 (equivalent to strong-but-not-absurd alpha).
+            _pnl_component = max(0.01, min(float(bt_val.net_pnl) + 1.0, 5.0))
+            score = float(val_wilson) * _pnl_component
 
             # ── Build V10 passport with alpha_expression ──
             sym_info = data_cache[sym]
@@ -673,6 +775,14 @@ async def main():
                     "train_bars": sym_info["train_bars"],
                     "holdout_bars": sym_info["holdout_bars"],
                     "split_ratio": TRAIN_SPLIT_RATIO,
+                },
+                "val_metrics": {
+                    "trades": int(bt_val.total_trades),
+                    "net_pnl": float(bt_val.net_pnl),
+                    "sharpe": float(bt_val.sharpe_ratio),
+                    "win_rate": float(bt_val.win_rate),
+                    "wilson_wr": float(val_wilson),
+                    "max_drawdown": float(bt_val.max_drawdown),
                 },
             }
 
@@ -745,6 +855,14 @@ async def main():
                 f"bloom_hits={stats['bloom_hits']} "
                 f"compile_err={stats['alpha_compile_errors']} "
                 f"inserted={stats['champions_inserted']} | "
+                f"reject_few_trades={stats['reject_few_trades']} "
+                f"reject_neg_pnl={stats['reject_neg_pnl']} "
+                f"reject_val_few={stats['reject_val_few_trades']} "
+                f"reject_val_neg={stats['reject_val_neg_pnl']} "
+                f"reject_val_sharpe={stats['reject_val_low_sharpe']} "
+                f"reject_val_wr={stats['reject_val_low_wr']} "
+                f"reject_val_err={stats['reject_val_error']} "
+                f"reject_val_const={stats['reject_val_constant']} | "
                 f"bloom_size={bloom.count}"
             )
 

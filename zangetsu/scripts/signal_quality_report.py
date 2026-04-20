@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """Signal quality analysis framework.
 
@@ -37,7 +38,7 @@ from typing import Any, Dict, Iterable, List, Optional
 import psycopg2
 import psycopg2.extras
 
-DEFAULT_DSN = "postgresql://zangetsu:REDACTED@127.0.0.1:5432/zangetsu"
+DEFAULT_DSN = os.environ["ZV5_DSN"]  # no fallback
 
 
 def extract_indicator_names(passport: Any) -> List[str]:

@@ -108,8 +108,25 @@ def _reconstruct_from_alpha(
     returns32 = np.zeros_like(close32)
     returns32[1:] = (close32[1:] - close32[:-1]) / np.maximum(close32[:-1], 1e-10)
 
+    # end-to-end-upgrade fix 2026-04-19: if caller did not pre-compute
+    # indicator_cache, build one from the OHLCV we already have. Without this,
+    # AlphaEngine falls back to zeros for all 126 indicator terminals and the
+    # reconstructed formula evaluates differently from how A1 evolved it.
+    if not indicator_cache:
+        try:
+            from zangetsu.engine.components.indicator_bridge import build_indicator_cache
+            indicator_cache = build_indicator_cache(
+                np.ascontiguousarray(close, dtype=np.float64),
+                np.ascontiguousarray(high, dtype=np.float64),
+                np.ascontiguousarray(low, dtype=np.float64),
+                np.ascontiguousarray(volume, dtype=np.float64),
+            )
+        except Exception as e:  # noqa: BLE001
+            log.warning(f"Inline indicator_cache build failed: {e}; terminals will be zeros")
+            indicator_cache = {}
+
     try:
-        engine = AlphaEngine()
+        engine = AlphaEngine(indicator_cache=indicator_cache or {})
         tree = gp.PrimitiveTree.from_string(formula, engine.pset)
         func = engine.toolbox.compile(expr=tree)
         alpha_values = func(close32, high32, low32, close32, vol32)

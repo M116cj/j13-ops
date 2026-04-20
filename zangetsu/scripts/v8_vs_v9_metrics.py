@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """V8 vs V9 metrics comparison framework.
 
@@ -26,7 +27,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import psycopg2
 import psycopg2.extras
 
-DEFAULT_DSN = "postgresql://zangetsu:REDACTED@127.0.0.1:5432/zangetsu"
+DEFAULT_DSN = os.environ["ZV5_DSN"]  # no fallback
 
 # engine_hash values of interest. V8 == zv5_v71 (and earlier zv5_v6). V9 == zv5_v9.
 TRACKED_HASHES: Sequence[str] = ("zv5_v6", "zv5_v71", "zv5_v9")

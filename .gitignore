@@ -30,3 +30,21 @@ zangetsu/.venv/
 zangetsu/config/a13_guidance.json
 zangetsu/docs/retros/
 calcifer/maintenance_last.json
+
+# session/patch backup artifacts — never commit
+**/.backup_*_claude_deploy/
+**/*.pre_*_20260*
+**/*.pre_patch_*
+**/*.pre_cache_fix_*
+**/*.pre_drift_*
+**/*.pre_h1h3h4_*
+**/*.pre_c3_*
+**/*.orig
+**/*.deleted
+**/__pycache__/
+**/*.pyc
+
+# secrets: all env files
+**/.env
+**/.env.*
+!**/.env.example

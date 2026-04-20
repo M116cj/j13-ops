@@ -23,7 +23,7 @@ DATA_DIR = Path('/home/j13/j13-ops/zangetsu/data/ohlcv')
 SYMBOLS = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'XRPUSDT',
            'DOGEUSDT', 'LINKUSDT', 'AAVEUSDT', 'AVAXUSDT', 'DOTUSDT',
            'FILUSDT', '1000PEPEUSDT', '1000SHIBUSDT', 'GALAUSDT']
-DSN = f"postgresql://zangetsu:{os.environ.get('ZV5_DB_PASSWORD', 'REDACTED')}@127.0.0.1:5432/zangetsu"
+DSN = f"postgresql://zangetsu:{os.environ['ZV5_DB_PASSWORD']}@127.0.0.1:5432/zangetsu"
 
 
 # ============================================================

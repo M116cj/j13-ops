@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from multiprocessing import shared_memory
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
@@ -141,11 +142,16 @@ def precompute_all_indicators(
 
     zi = _load_rust_compute()
 
+    # MEDIUM-M1: engine_hash must reflect runtime engine, not hardcoded "zv5_v9".
+    # V10 runtime callers (arena_pipeline, alpha_discovery) should publish
+    # "zv5_v10_alpha"; legacy V9 callers may set ZV_ENGINE_HASH="zv5_v9".
+    # Default = zv5_v10_alpha (current production engine).
+    _engine_hash = os.environ.get("ZV_ENGINE_HASH", "zv5_v10_alpha")
     meta: Dict[str, Any] = {
         "prefix": SHM_PREFIX,
         "dtype": "float32",
         "split": split,
-        "engine_hash": "zv5_v9",
+        "engine_hash": _engine_hash,
         "arrays": {},
     }
 

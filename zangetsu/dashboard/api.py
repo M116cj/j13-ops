@@ -823,6 +823,190 @@ def create_dashboard_app(engine) -> FastAPI:
             logger.error("pipeline_health failed: %s", e)
             return {"last_champion_ago_s": -1, "recent_5m": 0, "recent_1h": 0, "error": str(e)}
 
+    # ---------------------------------------------------------------
+    # Unified overview endpoint for mobile dashboard (DASHBOARD_SPEC.md)
+    # ---------------------------------------------------------------
+
+    @app.get("/api/overview")
+    async def overview():
+        """Unified 13-field payload for mobile dashboard.
+
+        - 5s TTL via cached_fetch (key='overview')
+        - Health status derived from last_champion_ago_s (ok<300 / stale 300-1800 / dead>1800)
+        - Does NOT call _check_all_services (systemd false-reports degraded)
+        - Server-side alerts rule engine (4 rules per spec Section 4)
+        """
+        async def _fetch():
+            import datetime
+            import json as _json
+
+            # --- 1) last_champion_ago_s (drives health.status) ---
+            ago_s: float = -1.0
+            try:
+                row = await engine.db.fetchrow(
+                    "SELECT MAX(created_at) as last_champion "
+                    "FROM champion_pipeline WHERE status NOT LIKE 'LEGACY%%'"
+                )
+                last = row["last_champion"] if row else None
+                if last:
+                    ago_s = (
+                        datetime.datetime.now(datetime.timezone.utc)
+                        - last.replace(tzinfo=datetime.timezone.utc)
+                    ).total_seconds()
+            except Exception as e:
+                logger.warning("overview: last_champion query failed: %s", e)
+
+            if ago_s < 0:
+                status = "dead"
+            elif ago_s < 300:
+                status = "ok"
+            elif ago_s < 1800:
+                status = "stale"
+            else:
+                status = "dead"
+
+            # --- 2) pipeline overview (reuses cached_fetch("pipeline_overview")) ---
+            po: Dict[str, Any] = {}
+            try:
+                po = await pipeline_overview()
+            except Exception as e:
+                logger.warning("overview: pipeline_overview failed: %s", e)
+                po = {}
+
+            # --- 3) v6_pipeline_flow (funnel arena1/arena23 counts) ---
+            pf: Dict[str, Any] = {}
+            try:
+                pf = await v6_pipeline_flow()
+            except Exception as e:
+                logger.warning("overview: v6_pipeline_flow failed: %s", e)
+                pf = {}
+            by_status = pf.get("by_status", {}) if isinstance(pf, dict) else {}
+            arena1 = sum(v for k, v in by_status.items() if k.startswith("ARENA1"))
+            arena23 = sum(
+                v for k, v in by_status.items()
+                if k.startswith("ARENA2") or k.startswith("ARENA3")
+            )
+
+            # --- 4) arena4_detail (eliminated / passed / gate_rate) ---
+            a4: Dict[str, Any] = {}
+            try:
+                a4 = await arena4_detail()
+            except Exception as e:
+                logger.warning("overview: arena4_detail failed: %s", e)
+                a4 = {}
+            arena4_eliminated = int(a4.get("eliminated", 0) or 0) if isinstance(a4, dict) else 0
+            arena4_passed = int(a4.get("passed", 0) or 0) if isinstance(a4, dict) else 0
+            arena4_pass_rate = float(a4.get("gate_rate", 0.0) or 0.0) if isinstance(a4, dict) else 0.0
+
+            # --- 5) a13 guidance (read config JSON directly) ---
+            a13_mode = "unknown"
+            a13_survivors = 0
+            a13_failures = 0
+            top_weights: List[Dict[str, Any]] = []
+            try:
+                with open("/home/j13/j13-ops/zangetsu/config/a13_guidance.json") as _f:
+                    a13_cfg = _json.load(_f)
+                if isinstance(a13_cfg, dict):
+                    a13_mode = str(a13_cfg.get("mode", "unknown"))
+                    a13_survivors = int(a13_cfg.get("survivors", 0) or 0)
+                    a13_failures = int(a13_cfg.get("failures", 0) or 0)
+                    weights_raw = a13_cfg.get("indicator_weights", {}) or {}
+                    if isinstance(weights_raw, dict):
+                        sorted_w = sorted(
+                            weights_raw.items(),
+                            key=lambda kv: float(kv[1] or 0),
+                            reverse=True,
+                        )[:3]
+                        top_weights = [
+                            {"indicator": k, "weight": round(float(v or 0), 2)}
+                            for k, v in sorted_w
+                        ]
+            except FileNotFoundError:
+                logger.warning("overview: a13_guidance.json not found")
+            except Exception as e:
+                logger.warning("overview: a13_guidance read failed: %s", e)
+
+            # --- 6) Assemble numeric fields ---
+            throughput_hr = float(po.get("throughput_hr", 0) or 0) if isinstance(po, dict) else 0.0
+            new_1h = int(po.get("new_1h", 0) or 0) if isinstance(po, dict) else 0
+            total = int(po.get("total_champions", 0) or 0) if isinstance(po, dict) else 0
+            candidate = int(po.get("candidate", 0) or 0) if isinstance(po, dict) else 0
+            deployable = int(po.get("deployable", 0) or 0) if isinstance(po, dict) else 0
+            active_cards = int(po.get("active_cards", 0) or 0) if isinstance(po, dict) else 0
+            uptime_s = round(time.time() - _start_time, 1)
+            last_champion_ago_s = round(ago_s, 1) if ago_s >= 0 else None
+
+            # --- 7) Server-side alerts rule engine (4 rules per spec Section 4) ---
+            alerts: List[Dict[str, str]] = []
+            if arena4_pass_rate == 0.0 and arena4_eliminated >= 50:
+                alerts.append({
+                    "level": "red",
+                    "msg": f"arena4_pass_rate=0% over {arena4_eliminated} samples",
+                })
+            if last_champion_ago_s is not None and last_champion_ago_s > 1800:
+                alerts.append({
+                    "level": "red",
+                    "msg": f"no champion for {int(last_champion_ago_s)}s",
+                })
+            if deployable == 0 and active_cards == 0:
+                alerts.append({
+                    "level": "amber",
+                    "msg": "deployable=0 and active_cards=0",
+                })
+            if throughput_hr < 5:
+                alerts.append({
+                    "level": "amber",
+                    "msg": f"throughput_hr={throughput_hr} < 5",
+                })
+
+            return {
+                "ts": int(time.time()),
+                "health": {
+                    "status": status,
+                    "last_champion_ago_s": last_champion_ago_s,
+                    "uptime_s": uptime_s,
+                },
+                "pipeline": {
+                    "throughput_hr": throughput_hr,
+                    "new_1h": new_1h,
+                    "total": total,
+                },
+                "funnel": {
+                    "arena1": arena1,
+                    "arena23": arena23,
+                    "arena4_eliminated": arena4_eliminated,
+                    "arena4_passed": arena4_passed,
+                    "arena4_pass_rate": arena4_pass_rate,
+                    "candidate": candidate,
+                    "deployable": deployable,
+                    "active_cards": active_cards,
+                },
+                "a13": {
+                    "mode": a13_mode,
+                    "survivors": a13_survivors,
+                    "failures": a13_failures,
+                    "top_weights": top_weights,
+                },
+                "alerts": alerts,
+            }
+
+        try:
+            return await cached_fetch("overview", _fetch)
+        except Exception as e:
+            logger.error("overview failed: %s", e)
+            return {
+                "ts": int(time.time()),
+                "health": {"status": "dead", "last_champion_ago_s": None, "uptime_s": 0},
+                "pipeline": {"throughput_hr": 0, "new_1h": 0, "total": 0},
+                "funnel": {
+                    "arena1": 0, "arena23": 0, "arena4_eliminated": 0,
+                    "arena4_passed": 0, "arena4_pass_rate": 0.0,
+                    "candidate": 0, "deployable": 0, "active_cards": 0,
+                },
+                "a13": {"mode": "unknown", "survivors": 0, "failures": 0, "top_weights": []},
+                "alerts": [{"level": "red", "msg": f"overview build failed: {e}"}],
+            }
+
     @app.get("/api/certification")
     async def certification():
         """Certification status: CANDIDATE + DEPLOYABLE with Wilson LB."""

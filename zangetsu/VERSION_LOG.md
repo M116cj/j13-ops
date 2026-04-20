@@ -1,3 +1,351 @@
+## v0.5.5 — 2026-04-18 — @macmini13 miniapp self-contained (Docker → host process, proxy removed)
+**Scope:** `~/d-mail-miniapp/` refactor + systemd unit
+
+> **註:** j13 指示「不做 proxy 連結、直接把 macmini13 miniapp 做好」。本次撤除 v0.5.4 的 proxy/host-gateway/ufw detour，把 calcifer 的 ops 邏輯**直接**合進 d-mail-miniapp，並從 Docker 轉為 systemd host process 讓 shell exec 無需中介。
+
+### Change
+- d-mail-miniapp 架構：**Docker container → systemd user service** `d-mail-miniapp.service`，listen `0.0.0.0:8771`（port 不變，Caddy `/dmail/` 路由不動）
+- `server.py` 456 → 1047 行：吸收 calcifer 所有 ops code（`_ACTION_COMMANDS` 動作登錄、`_run_job`/`dispatch_job` 工作調度器、`audit_log` 寫入、`require_owner_fresh` j13 白名單 + 1h fresh auth、shortcut/tasks/jobs endpoints）
+- `validate_init_data` 抽出共用 `_validate_init_data_core(max_age_s)`：d-mail 24h wrapper + calcifer 1h owner wrapper 都用同一 HMAC 邏輯
+- HTML：9 個 `/api/ops/*` fetch 改回 `/api/*`（無 proxy prefix）
+- `Dockerfile` + `docker-compose.yml` → `.deprecated_v055_<ts>` (保留以 rollback)
+- **撤除 v0.5.4 的所有網路 detour**：
+  - 移除 `CALCIFER_UPSTREAM` + `host.docker.internal:host-gateway` extra_hosts
+  - 移除 ufw 3 rules（`8772 ALLOW 172.17/18/22.0.0/16`）
+  - 移除 7 個 `/api/ops/*` proxy endpoints
+- **硬化 MINIAPP_OWNER_TG_ID**：systemd `Environment=MINIAPP_OWNER_TG_ID=5252897787` 明確寫入（不靠 `.env` fallback），防 subagent flag 的「silent allow-all」失誤模式
+
+### Endpoints (最終 15 個)
+Public：`GET /`、`GET /api/akasha/health`
+Auth 24h：`/api/akasha/{context,projects}`、`POST /api/upload`、`/api/zangetsu/live`、`/api/current-task`、`/api/session/health`、`/api/shortcuts`、`/api/tasks/pending`、`/api/shortcut/{keyword}`（讀取型）、`GET /api/jobs/{id}`
+Auth 1h + j13 whitelist：`POST /api/tasks/{id}/approve`、`POST /api/tasks/{id}/reject`、`DELETE /api/jobs/{id}`、`/api/shortcut/{keyword}`（破壞型分支）
+
+### Verification
+- systemd `active (running)` pid 1736662
+- port 8771 listen 0.0.0.0 ✓
+- 8 endpoint smoke: health 200, 6× auth 401, shortcut GET 405（POST only）
+- env 檢查：MINIAPP_OWNER_TG_ID=5252897787、ENV=miniapp、MINIAPP_AUDIT_DIR=/home/j13/audit
+- Redis SSOT `shorthand:dict:v1` 不變
+- `/tmp/zangetsu_live.json` + `/tmp/j13-current-task.md` host 直讀（不需 volume mount）
+
+### Rollback
+```bash
+sudo systemctl disable --now d-mail-miniapp
+cp server.py.bak_v055_<ts> server.py
+mv docker-compose.yml.deprecated_v055_<ts> docker-compose.yml
+mv Dockerfile.deprecated_v055_<ts> Dockerfile
+docker compose up -d --build
+```
+
+### Out-of-scope（延後 v0.5.6+）
+- Calcifer `/api/shortcuts`, `/api/tasks/*`, `/api/shortcut/*`, `/api/jobs/*` endpoints 留著 dead code，未啟用（d-mail 已不呼叫）。v0.5.6 清除讓 calcifer 回歸 infra-only。
+- T1-A session_store writer + T2 mention router 仍未部署 — Session Health + Pending Tasks 顯示 empty 直到上線
+
+### Lessons
+- **不 proxy 就是最直的路**：v0.5.4 proxy 模式要處理 Docker→host 網路（host-gateway + ufw）；移除 Docker 後所有複雜性消失。Occam's Razor 勝。
+- **Subagent 風險 flag 必須主動 hardening**：Subagent 回報 `MINIAPP_OWNER_TG_ID fallback 0 allow-all` 是 silent 風險。Lead 在 systemd unit 加 `Environment=` 明寫，不依賴 `.env`。
+
+## v0.5.4 — 2026-04-18 — Ops UI merged into @macmini13 miniapp (d-mail unified command center)
+**Scope:** `~/d-mail-miniapp/` (proxy layer + UI merge) + Alaya ufw (3 new rules)
+
+> **註:** 本次將 v0.5.3 放在 calcifer-miniapp 的 Ops/Dispatch 面板 (shortcut grid、pending tasks、job polling) 遷移到 d-mail-miniapp (= @macmini13bot 的 miniapp)，讓 j13 只需開一個 URL (`/dmail/`) 即可存取所有 Claude Command Center 功能。Calcifer backend 保留為後端 API service，Calcifer UI (`/calcifer/`) 暫留為 infra-only diagnostic fallback。
+
+### Feature: d-mail `/api/ops/*` proxy layer
+- **Change type:** feat (new capability)
+- **What changed:** `services/server.py` 373 → 456 行 (+83)。新增 7 個 proxy endpoints：
+  - `GET  /api/ops/shortcuts`            → forward to calcifer `/api/shortcuts`
+  - `GET  /api/ops/tasks/pending`        → `/api/tasks/pending`
+  - `POST /api/ops/tasks/{id}/approve`   → `/api/tasks/{id}/approve`
+  - `POST /api/ops/tasks/{id}/reject`    → `/api/tasks/{id}/reject`
+  - `POST /api/ops/shortcut/{keyword}`   → `/api/shortcut/{keyword}` (dispatch timeout 30s)
+  - `GET  /api/ops/jobs/{id}`            → `/api/jobs/{id}`
+  - `DELETE /api/ops/jobs/{id}`          → cancel job
+- **Upstream resolution:** `CALCIFER_UPSTREAM=http://host.docker.internal:8772` (env)
+- **Auth pass-through:** `X-Telegram-Init-Data` header forwarded as-is; initData 驗證仍由 calcifer 端嚴格把關 (j13-only whitelist + 1h fresh auth for destructive)
+- **Fault tolerance:** upstream error (calcifer down, network timeout) → return HTTP 502 `{"error":"calcifer_upstream_unavailable"}` without crashing d-mail
+- **Why:** j13 的 UX 設計要求所有 Claude Command Center 功能集中在 @macmini13 miniapp。Proxy 模式保留 calcifer 作為 ops backend (維持 host process 直接 shell 能力) 同時讓 UI 統一。
+
+### Feature: HTML merge — d-mail 統一面板
+- **What changed:** `static/index.html` 從 d-mail v0.5.3 (3 Context panels + AKASHA + Upload) 擴充至 1344 行，加入 Ops panels：
+  - **Shortcut Grid panel:** 8 shorthand 按鈕 (狀/部/回/監/接/問G/問M/問C) + 2 支援 (AKASHA/cleanup/restart 仍留 calcifer 專屬)
+  - **Pending Tasks panel:** 從 `/api/ops/tasks/pending` 拉 ZSET，approve/reject 按鈕
+  - **Active Jobs sub-section:** destructive 短語觸發後顯示 job_id + 輪詢狀態
+- **Visual hardening (Gemini #5):**
+  - Read-only 按鈕 (狀/問G/問M/問C): 青色 (cyan/green accent)
+  - Destructive 按鈕 (部): 紅色 (red accent)
+  - `data-destructive="true"` 屬性 + 2-step confirm modal
+- **Layout order:** Current Task → Quick Snapshot → Session Health → Shortcut Grid → Pending Tasks → AKASHA → Upload
+- **API URL rewrites:** 9 fetch 點全部改 `/api/` → `/api/ops/`
+- **Subagent produced, Lead verified:** 0 bare-path leaks; d-mail existing panels byte-identical preserved
+- **Skipped panel:** calcifer 的 "Live Snapshot" (fetches `/api/status` = infra view) 與 d-mail 既有 "Quick Snapshot" (fetches `/api/zangetsu/live` = 策略 view) 功能不同但 home 已不需第二 panel → 未移植，infra view 仍可在 `/calcifer/` 查看
+
+### Feature: docker-compose host-gateway
+- **What changed:**
+  - `extra_hosts: - "host.docker.internal:host-gateway"` 讓 Docker 20.10+ 自動解析 host magic
+  - `CALCIFER_UPSTREAM=http://host.docker.internal:8772` env
+- **Why:** d-mail-miniapp 在 custom Docker network (akasha_akasha_net + magi_default)，需要一個穩定的 host 地址指向 calcifer (跑 host process on 0.0.0.0:8772)
+
+### Feature: ufw rules for Docker bridges → calcifer:8772
+- **Change type:** infra (firewall)
+- **What changed:** Alaya ufw 新增 3 rules (編號 23-25):
+  - `8772 ALLOW IN 172.17.0.0/16` — docker0 bridge (host.docker.internal 解析到 172.17.0.1)
+  - `8772 ALLOW IN 172.18.0.0/16` — magi_default network
+  - `8772 ALLOW IN 172.22.0.0/16` — akasha_akasha_net
+- **Why:** Alaya `INPUT` policy = DROP (ufw managed)。Container → host TCP 沒 explicit ACCEPT → timeout。加 3 rules 覆蓋 d-mail 可能走的所有 bridge gateway。
+- **Root cause analysis (deploy-time discovery):**
+  - Deployed compose + restart container → TCP connect 172.17.0.1:8772 / 172.18.0.1:8772 / 172.22.0.1:8772 全部 timeout
+  - 問題不在 calcifer (0.0.0.0:8772 ✓)，不在 host-gateway 解析 (172.17.0.1 ✓)
+  - 根因：ufw INPUT 預設 DROP + 缺 explicit calcifer:8772 ALLOW rule
+  - 參考既有 pattern：nexus-engine port 8001 已有 3 個 bridge ALLOW rules (rules 2-4)，依樣為 calcifer 加 3 rules
+- **Q1/Q2/Q3:** PASS
+  - Q1 input: rules 作用域限 private subnet，外網不會走這 rule
+  - Q1 silent failure: proxy 有 upstream timeout 回 502 (不會 crash)
+  - Q1 concurrency: ufw 原子更新 + reload
+  - Q1 scope creep: 只開 8772 一個 port，不開整機 docker range
+  - Q2: 3 rules 完整 mirror 既有 nexus-engine pattern
+  - Q3: 最小增量，一 port 三 subnet
+- **Rollback:** `sudo ufw delete 25 && sudo ufw delete 24 && sudo ufw delete 23 && sudo ufw reload`
+
+### Deployment verification
+- d-mail container rebuilt + started (uptime new)
+- 7 `/api/ops/*` endpoints all respond 401 (auth middleware works + routing correct)
+- Container → host TCP connectivity: `host.docker.internal:8772` / `172.17.0.1:8772` / `172.18.0.1:8772` 全 OK
+- Container → calcifer HTTP chain: `urlopen /api/shortcuts` → HTTP 401 (= **proxy chain end-to-end works**, auth correctly rejected at calcifer layer)
+- **Awaiting j13 phone test** for true UX validation (needs real Telegram initData)
+
+### Files modified
+- `/home/j13/d-mail-miniapp/server.py` v0.5.3 → v0.5.4 (backup `.bak_v054_<ts>`)
+- `/home/j13/d-mail-miniapp/static/index.html` (backup `.bak_v054_<ts>`)
+- `/home/j13/d-mail-miniapp/docker-compose.yml` (backup `.bak_v054_<ts>`)
+- Alaya ufw: 3 rules added (persistent, `sudo ufw reload` applied)
+
+### Out-of-scope / deferred
+- Calcifer `/calcifer/` UI **未 retire** — 暫留 infra diagnostic fallback。若需完全 retire，後續 v0.5.5 動作
+- telegram-optimization T1-A (Redis session_store writer) + T2 (mention router `@macmini13 <task>`) 仍未部署 — Ops panels 目前顯示 `pending=[]` 直到 T2 mention router 上線產出 task queue entries
+- `intent modifiers`（狀+短/狀+深 等）: 當 audit log 顯示 j13 頻繁補充再加
+- Ops panel 的即時 WebSocket 推送 (目前 5s 輪詢): 下版 consider
+
+### Lessons
+- **Docker custom networks 不繼承 docker0 的 iptables rules.** host-gateway magic 解析地址正確 (172.17.0.1)，但 packet 離開 container 後仍走 custom network's own route，而 iptables ufw default-drop 擋在 INPUT chain。修復靠 ufw 允許 private subnet。未來 Docker→host 的 deploy 必須 **pre-flight 檢查 ufw subnet allow list**。
+- **Deploy-time 暴露 infra gap 優於 UX-time**: 先 container 內 TCP smoke test 抓到，j13 手機開 miniapp 前就修好。流程應該所有 proxy/跨 service deploy 加入「container → backend TCP smoke」這一步。
+- **Proxy pattern 的 auth 邊界責任**：d-mail 端 pass-through initData，真 auth logic 在 calcifer。兩層都是 `require_auth` + `require_j13` 的話會有 double validation；目前只有 calcifer validate，d-mail 端只 validate user 有登入 (get_current_user) 沒做 whitelist。這是故意的（whitelist 邏輯只在 calcifer 統一），但要寫進 code comment 避免未來人誤改。
+
+## v0.5.3 — 2026-04-18 — Miniapp UX redesign: Claude command center (d-mail + calcifer extension)
+**Scope:** `~/d-mail-miniapp/` + `~/calcifer-miniapp/` (NOT zangetsu core)
+**Branch / commit:** direct-to-alaya deploy (not in zangetsu repo — miniapp lives outside)
+
+> **註:** 本 entry 記錄在 zangetsu VERSION_LOG，因為新 miniapp 功能重度依賴 zangetsu 的 `/tmp/zangetsu_live.json` + `/tmp/j13-current-task.md` + shorthand SSOT。miniapp code 本身 repo 位在 `~/d-mail-miniapp/` 和 `~/calcifer-miniapp/`（無獨立 VERSION_LOG）。
+
+### Feature: d-mail-miniapp — Context & State panels
+- **Change type:** feat (new capability, no breaking change to existing AKASHA + upload)
+- **What changed (`/home/j13/d-mail-miniapp/`):**
+  - `server.py` 6.4K → 12.9K, +3 endpoints:
+    - `GET /api/zangetsu/live` — read `/tmp/zangetsu_live.json` with mtime <1h stale-check
+    - `GET /api/current-task` — read `/tmp/j13-current-task.md` with mtime <1h stale-check
+    - `GET /api/session/health?thread_id={id}` — Redis HASH `session:alaya13jbot:{thread_id}` (env-aware: miniapp mode disables file-fallback per Gemini hardening #3)
+  - `static/index.html` 15K → 25K, +3 panels (Current Task / Quick Snapshot / Session Health) above existing AKASHA + Upload
+  - `docker-compose.yml` +vol mount `/tmp:/tmp:ro`, +env `NEXUS_REDIS_URL=redis://magi-redis-1:6379`, +env `ENV=miniapp`
+  - `requirements.txt` +redis>=5.0 (container rebuild)
+  - Session Health panel: **NO pseudo-compact button** (Gemini "kill this feature" veto — compact belongs in agent.py context_monitor only)
+- **Why:** j13 跨 3 介面切換成本 3-5 min/switch。Passive read miniapp 讓 j13 手機打開即看當前 task progress + Zangetsu 健康 + session context%。
+- **Q1/Q2/Q3:** PASS
+  - Q1 input boundary: stale file → `{state:"unavailable"}` HTTP 200, never 500; malformed JSON tolerated; oversized file capped
+  - Q1 silent failure: all IO try/except + log
+  - Q1 external deps: Redis down in miniapp mode → `state:unavailable` no file-fallback (避免 Mac/Alaya filesystem 不同步導致 stale read)
+  - Q1 concurrency: redis-py pool thread-safe; read-only endpoints
+  - Q1 scope creep: 0 writes, 0 shell exec, 0 pseudo-compact
+- **Rollback:** `cp server.py.bak_v03_20260419_003545 server.py && cp static/index.html.bak_v03_* static/index.html && cp docker-compose.yml.bak_v03_* docker-compose.yml && cp requirements.txt.bak_v03_* requirements.txt && docker compose down && docker compose build && docker compose up -d`
+
+### Feature: calcifer-miniapp — Ops & Dispatch panels
+- **Change type:** feat (new capability + safety hardening for existing `shell()`)
+- **What changed (`/home/j13/calcifer-miniapp/`):**
+  - `server.py` 12.4K → 38K, +7 endpoints (spec asked 5, Subagent B added 2 bonus):
+    - `GET /api/tasks/pending` — Redis ZSET `task_queue:pending` score=priority (ZRANGE REV WITHSCORES LIMIT 50)
+    - `POST /api/tasks/{id}/approve` (j13-only + audit log)
+    - `POST /api/tasks/{id}/reject` (j13-only + audit log)
+    - `POST /api/shortcut/{keyword}` (auth + shell exec; destructive → j13-only 1h fresh auth)
+    - `GET /api/shortcuts` (list seeded shortcuts — bonus)
+    - `GET /api/jobs/{id}` (job status polling; Redis TTL 24h so frontend polling survives restart)
+    - `DELETE /api/jobs/{id}` (cancel running job — bonus)
+  - **Job dispatcher**: `asyncio.create_task` + SIGTERM→5s grace→SIGKILL; output drained to 2KB tail buffers; state persist to Redis `job:{id}` TTL 24h
+  - **Audit log**: `~/audit/miniapp-{YYYY-MM-DD}.log` every destructive + approve/reject logged with `{iso_ts}|{user_id}|{action}|{detail}`
+  - **Auth model split**:
+    - `require_auth` (24h window): read-only APIs + `/api/shortcut/{keyword}` read-only path
+    - `require_owner_fresh` (1h window + j13 whitelist): all destructive + approve/reject + DELETE jobs
+  - **Shortcut action registry** (explicit, no eval/string-interp):
+    - snapshot → `cat /tmp/zangetsu_live.json`
+    - resume_current_task → `cat /tmp/j13-current-task.md`
+    - review_gemini → `gemini -p '...'`
+    - review_markl → curl Ollama gemma3:12b on Mac (wait — lead-verified: correct model, local-loopback on alaya:11434)
+    - review_calcifer → curl Ollama **gemma4:e4b** on alaya (lead-fixed from Subagent B's `gemma3:4b` error)
+    - **deploy → `bash /home/j13/j13-ops/zangetsu/zangetsu_ctl.sh restart`** (lead-fixed from Subagent B's non-existent `/home/j13/alaya/zangetsu/deploy.sh`)
+    - **rollback → disabled as shortcut** (lead-decision: too stateful, needs .bak selection + DB cleanup, must go through bot/Claude session)
+  - `static/index.html` 18K → 37K, +3 panels (Zangetsu Live / Shortcut Grid / Pending Tasks)
+  - `calcifer-miniapp.service` +env placeholder `MINIAPP_OWNER_TG_ID` (fallback to existing `CALCIFER_TG_USER_ID=5252897787` if unset — Subagent B's graceful default)
+- **Why:** 給 j13 手機可用的「Ops & Dispatch center」— 短語 tap-to-action，destructive 強制 2-step confirm，pending task queue UI 取代 Telegram 打字 `/confirm <task_id>`。
+- **Q1/Q2/Q3:** PASS
+  - Q1 input boundary: unknown keyword→404 `{error:"unknown_shortcut"}`; confirm-token TTL GC; disk-full for audit log → stderr fallback
+  - Q1 silent failure: Gemini #1 (zombie/timeout) fixed via job dispatcher (no 15s timeout for destructive); SIGTERM→grace→SIGKILL lifecycle; state survives restart via Redis TTL
+  - Q1 external deps: Redis down → shortcut lookup fails gracefully (404); Ollama timeout → `[X unavailable]` string
+  - Q1 concurrency: ZSET approve atomic (`ZADD approved + ZREM pending` in txn); Redis HSET atomic per-field; job dict LRU cap 100
+  - Q1 scope creep: 0 new write-destruction beyond what registry explicitly allows; rollback disabled; destructive gated 3-way (j13 whitelist + 1h fresh auth + 2-step confirm)
+- **Audit trail guarantee**: every destructive call writes `{ts}|{tg_user_id}|{action}|{detail}|{job_id}` to `~/audit/miniapp-YYYY-MM-DD.log` 700-perm dir; rotation未設（Lead follow-up）
+- **Rollback:** `cp server.py.bak_v03_20260419_003612 server.py && cp static/index.html.bak_v03_* static/index.html && bash /tmp/launch_calcifer.sh`
+
+### Feature: Redis shorthand SSOT seed
+- **Change type:** infra (new shared state)
+- **What changed:** Redis HASH `shorthand:dict:v1` on `magi-redis-1`
+- **Entries (8 keyword mappings):**
+  - 狀→snapshot, 部→deploy, 回→rollback, 監→monitor_loop, 接→resume_current_task, 問G→review_gemini, 問M→review_markl, 問C→review_calcifer
+  - +meta: version=1, updated_at, schema=keyword->action_code
+- **Why:** Markl review 指出 shorthand 分散 3 處（bot / Mac CLI / miniapp）→ 需 single source of truth。Redis HASH 讓未來加短語改一處即可。
+- **How to add shortcut**: `docker exec magi-redis-1 redis-cli HSET shorthand:dict:v1 "新短語" "action_code"` + calcifer server.py 的 `_ACTION_COMMANDS` dict 加 mapping。
+
+### Deployment process (/team 4-phase applied)
+- Phase 1 Recon: 3 parallel reviewers (Gemini 7/10→4/10 after hardening, Markl GO-w-mod, Calcifer HOLD→SAFE-w-preconditions) → design v2 consensus (10 modifications)
+- Phase 2 Task Design: 8 sub-tasks with acceptance criteria
+- Phase 3 Spawn: 2 Opus 4.7 subagents parallel (A: d-mail, B: calcifer) → both Q1 self-PASS
+- Phase 4 Integration: Lead verified + fixed 2 flags (B's path assumption / A's Dockerfile dep) + scp + restart + smoke test (6 endpoints all 401 = auth middleware work + endpoint exists)
+
+### E2E smoke test results
+- d-mail (port 8771): `/api/zangetsu/live`, `/api/current-task`, `/api/session/health` → all **401** (initData required) ✅
+- calcifer (port 8772): `/api/shortcuts`, `/api/tasks/pending`, `/api/jobs/fake-id` → all **401** ✅
+- Caddy reverse proxy: existing rules `handle_path /dmail/*` + `handle_path /calcifer/*` already route correctly, no change
+- `/tmp:/tmp:ro` mount verified inside d-mail container (zangetsu_live.json + j13-current-task.md accessible)
+
+### Pre-existing dependencies not yet deployed (out-of-scope for v0.5.3)
+- telegram-optimization T1-A **Redis session_store** (required for `/api/session/health` to return real data — currently returns `{state:"empty"}` until agent.py patched) — `~/.claude/scratch/telegram-optimization/t1_core/`
+- T2 **mention router** (`@macmini13 <task>`) that produces `task_queue:pending` ZSET entries — `~/.claude/scratch/telegram-optimization/t2_mention/`
+- 上述 2 個先前 Mac CLI session 已產出 draft code 但未部署；v0.5.4 應部署以讓 miniapp 新功能有真實資料源
+- 不影響本次 miniapp 健康：miniapp endpoint 優雅降級顯示「empty」或「unavailable」，不 crash
+
+### Deferred
+- V0.5.4: T1-A + T2 部署（miniapp 資料源）
+- V0.5.5: audit log rotation + alert on audit anomaly
+- V0.5.6: rollback-as-shortcut（需先設計 .bak snapshot DB 結構）
+- V0.5.7: `intent modifiers`（Markl suggested「狀+短 / 狀+深 / 部+dry」）當 audit log 顯示 j13 頻繁補充語氣再加
+
+### Lessons
+- **Gemini "kill this feature" 救了一個設計錯誤**：pseudo-compact 按鈕放在 miniapp 會引起 race condition with agent.py monitor。第 1 次 review 的批判最有價值。
+- **Subagent B path assumption**：預設生產 script 路徑時，應強制 Lead verify 或讓 subagent SSH 檢查。本次 `/home/j13/alaya/zangetsu/deploy.sh` 不存在，Lead 修正為 `zangetsu_ctl.sh restart`。
+- **Lead model name flag caught by coincidence**：Subagent B 寫 `gemma3:4b` 給 Calcifer，我知道是 `gemma4:e4b` 因為今天用過。無此先驗知識會默默 call 錯 model。建議 subagent spec 中把外部服務版本列成 grounding fact。
+- **/team 4-phase Q1 reviewer 數≥3 顯著降風險**：Gemini+Markl+Calcifer 各抓 7/5/6 個不同層面的問題，無重疊，都 actionable。單審查容易漏。
+
+## v0.5.2 — 2026-04-18 — Mac CLI session: A4 V10 dispatcher + max_hold alignment + dedup isolation (post-factum record)
+**Engine hash:** `zv5_v10_alpha` (unchanged)
+**Branch / commit:** (post-factum — originally deployed 12:54 + 14:24 UTC without VERSION_LOG entry)
+
+> **註**：此 entry 是事後補寫。修復由 Mac CLI session 於 2026-04-18 12:54 和 14:24 UTC 直接部署到 Alaya 生產環境，當下未同步 VERSION_LOG。v0.5.3 session 補寫此記錄以恢復 source-of-truth 對齊。Backup 仍保留：`.backup_20260418_122707_claude_deploy/`。
+
+### Feature P0-G: A4 V10 alpha_expression dispatcher (arena45_orchestrator.py, +47 / -20 lines)
+- **Change type:** fix (silent-reject CRITICAL)
+- **What changed:**
+  - `services/arena45_orchestrator.py` L385-455: `if not configs: fail no_configs` → `if not configs and not has_v10_alpha: fail`，加 `has_v10_alpha = bool(arena1.get("alpha_expression"))` dispatcher
+  - V10 path: `reconstruct_signal_from_passport(passport, close, high, low, open, vol, entry_thr, exit_thr, min_hold=60, cooldown, regime)`（A5 live 也用同一函數）
+  - V9 path: 原 `compute_indicators` + zero-MAD filter + `generate_threshold_signals` 邏輯不變，僅縮排至 else branch
+  - 加 zero-signal guard：`if not np.any(signals): fail v10_alpha_reconstruct_failed`（防 reconstruct 返回 zero-fallback 卻被 backtest 當合格訊號）
+  - Import `deflated_sharpe_ratio` from shared_utils（供後續 DSR gate 使用）
+- **Why:** V10 champion 因設計上 `configs=[]`，被 L385 的 `if not configs` guard 全數 silent reject 為 `no_configs`。A4 的 V10 reconstruct 路徑（L430）**從未被執行過**。v0.5.1 session 的 outcome metric「2 V10 reached ARENA4_ELIMINATED」**其實是 silent reject，不是 legit holdout elimination** — 這點在 v0.5.1 當下未被識別。
+- **Q1/Q2/Q3:** PASS
+  - Q1 input boundary: has_v10_alpha 用 `bool(arena1.get("alpha_expression"))`，KeyError/None 都安全
+  - Q1 silent failure: zero-signal guard 明確防止 fallback signal pass-through
+  - Q1 scope creep: 僅加 dispatcher + guard，V9 path 純縮排不變邏輯
+  - Q2: V9 向後相容，V10 champion 首次走入真 holdout test
+  - Q3: 47 增 20 刪
+- **Outcome metric (measured post-deploy):** 12:54 UTC P0-G deploy 至 15:01 UTC（2h07m）+13 筆 V10 通過 reconstruct 路徑進入 holdout test，全部 legit segmented WR fail（例 71477 DOGE bear wr=0.200, 71455 ETH bear wr=0.220 etc.）。A4 V10 pass rate 實測 = 0% 但**是真的 0%，不是假的 silent reject 0%**。
+- **Rollback:** `cp .backup_20260418_122707_claude_deploy/arena45_orchestrator.py services/arena45_orchestrator.py && bash zangetsu_ctl.sh restart arena45_orchestrator`
+
+### Feature M2: A4 V10 detection 統一 engine_hash prefix match (arena45_orchestrator.py)
+- **Change type:** fix
+- **What changed:** `pick_arena3_complete` SQL 從 `engine_hash != 'zv5_v10_alpha'` 改 `engine_hash IS NULL OR engine_hash NOT LIKE 'zv5_v10%'`
+- **Why:** 未來 V10 variant（e.g. `zv5_v10_beta`）不會被新增字串重複。SQL detection 與 Python 端 `.startswith("zv5_v10")`（L321）統一。
+- **Q1/Q2/Q3:** PASS（純 SQL literal，無注入面）
+
+### Feature M3: A2 dedup engine_hash isolation (arena23_orchestrator.py +5 lines)
+- **Change type:** fix
+- **What changed:** `is_duplicate_champion` dedup SELECT 加 `AND (engine_hash IS NULL OR engine_hash NOT LIKE 'zv5_v9%')`
+- **Why:** V9 pre-migration row 可能保留非 LEGACY 狀態；其 `config_hash` 和 V10 champion collide 會誤擋 V10。隔離 engine 家族避免跨世代 dedup 污染。
+- **Q1/Q2/Q3:** PASS
+
+### Feature: A2 V10 max_hold alignment with A1 (arena23_orchestrator.py:482, 1-line change)
+- **Change type:** fix (pos_count=0 rejection root cause)
+- **What changed:** `bt = backtester.run(sig, close, symbol, cost_bps, **120**, high=high, low=low, sizes=sz)` → `**480**`
+- **Why:** A1 使用 `max_hold=480`（arena_pipeline.py:633），A2 原用 120 造成 same-alpha-diff-backtest。V10 rank crossover signal 的 min_hold=60 + cooldown=60，120 max_hold 會強制退出可獲利之持倉，轉成 cost-dominated loss，導致 `pos_count=0` 97% 拒絕率。對齊 480 讓 A2 重現 A1 的回測條件。
+- **Q1/Q2/Q3:** PASS（配對上 A1 既有 max_hold，無新 magic number）
+
+### Correction to v0.5.1 outcome metric (AKASHA chunk correction)
+v0.5.1 session 聲明「2 V10 rows (71455 ETHUSDT, 71477 DOGEUSDT) reached ARENA4_ELIMINATED (legitimate holdout failure)」**此判定錯誤**。實際這 2 筆在 P0-G fix 之前就 ELIMINATED，走的是 `no_configs` silent reject 路徑（arena45 L385 V9-era guard），沒真的進入 A4 holdout test。v0.5.1 修復的是 A2/A3 signal-gen bridge（確實 end-to-end 恢復），但 A4 last-mile 到 12:54 UTC P0-G deploy 才真正打通。
+
+### Process meta
+- Mac CLI session 在 /team 深度掃描中發現 pos_count=0 問題（`~/.claude/scratch/zangetsu-247-monitor/POS_COUNT_ZERO.md`），該檔正確指出 max_hold asymmetry 為 H1 主因、passport 不可重現為 H2、direction bias 為 H3
+- P0-G 本名源自 Mac CLI 內部 priority classification（P0=critical, G=group, letter 對應 discovery 順序）
+- 24/7 monitor 系統於 14:10-14:12 UTC 建立於 `~/.claude/scratch/zangetsu-247-monitor/`，含 A1/A2A3/A4/A5/A13/Infra 6 區塊
+
+### Deferred to v0.5.3
+- VERSION_LOG 補記紀律：未來 Mac CLI 直接部署必須同步 prepend entry（本次 4 修復缺 1 日才被補上）
+- Outcome metric 必達 DEPLOYABLE/ACTIVE 才算 end-to-end done（A4_ELIMINATED 不夠）
+- `_global/feedback_outcome_metric.md` 新 memory 記錄此教訓
+
+### Lessons
+- **"V10 rolling migration" 的 4 個檔案同步陷阱**：producer（A1）→ consumer chain（A2/A3/A4/A5）任一未同步，表面 pass rate 會偽造為合法 elim。A2 是 signal-gen 不一致（v0.5.1 修），A4 是 no_configs silent reject（v0.5.2 修），兩步都無 VERSION_LOG entry 提前警示。
+- **AKASHA chunk 修正成本**：已 POST 的 chunk 不能改，只能 POST 新 chunk 註解前者錯誤。本次 v0.5.1 的 AKASHA chunk 需由 v0.5.2 的修正 chunk 覆寫解讀。
+- **監控系統 ≠ 修復部署追蹤**：24/7 monitor 抓到 0 promote/h，但因我們把「A4_ELIMINATED = legit」當成功指標，silent reject 在 monitor 裡也看起來綠。下次應加「no_configs rate」或「A4 dispatcher path hit count」作為 diagnostic metric。
+
+---
+
+## v0.5.1 — 2026-04-18 — V10 signal-gen alignment + hotfix return format
+**Engine hash:** `zv5_v10_alpha` (unchanged)
+**Branch / commit:** `feat/v10-signal-alignment` @ (pending)
+
+### Feature: V10 A2/A3 signal-gen alignment with A1 (CORE FIX)
+- **Change type:** fix (architectural)
+- **What changed:**
+  - `services/arena23_orchestrator.py`:
+    - `_v10_alpha_to_signal()` body → stub raising `NotImplementedError`
+    - A2 V10 branch (was calling `_v10_alpha_to_signal` = sign-of-zscore): now compiles AST inline and calls `generate_alpha_signals(alpha_values, ENTRY=0.80, EXIT=0.50, MIN_HOLD=60, COOLDOWN=60)` — same function A1 uses
+    - A3 V10 branch: same alignment. Also **fixed latent NameError**: old code referenced `close/high/low/volume` undefined in `process_arena3` scope (would have crashed the moment any V10 row reached A3 — masked because A2 was rejecting all V10 rows first)
+    - Added module-level env-driven constants `_V10_ENTRY_THR/_V10_EXIT_THR/_V10_MIN_HOLD/_V10_COOLDOWN` (read `ALPHA_*` env vars, fallback to A1 defaults)
+    - Wrapped compile_ast + generate_alpha_signals in try/except; added `np.isfinite()` + `np.std<1e-10` guards
+    - Passport gains `signal_gen`/`signal_params` fields for auditability
+  - Hotfix v21 (same session): A2 V10 return changed from 3-tuple `(True, fields, passport)` to 2-tuple `(True, {"status":"ARENA2_COMPLETE", "arena2_win_rate":..., "arena2_n_trades":..., "passport_patch":{"arena2":{...}}})` matching V9 format. A3 V10 return changed to dict with `status="ARENA3_COMPLETE"` + `passport_patch` matching V9 A3 format.
+- **Why:** 
+  - Root cause (bridge bug): A1 produced champions using `generate_alpha_signals` (percentile-rank crossover, trades≥30) but A2/A3 evaluated them with `sign(tanh(rolling_zscore(raw, 500)))` — Kakushadze 2016 alpha-ensemble method, NOT a trade-signal generator. Same alpha produced ≥30 trades in A1 but 0-1 trades in A2 → 100% V10 rejection for 36 hours. 898 rows accumulated, 0 reached A3/A4/A5.
+  - Secondary bug (pre-existing, masked): V10 branches returned 3-tuple `(True, fields, passport)` while main loop unpacked 2-tuple → ValueError immediately upon any V10 pass. Never surfaced because no V10 row had ever passed A2 since V10 deployment (2026-04-16). Fixing the bridge bug exposed this in production — caught within 3 minutes via tail log, hotfix applied within 5 minutes.
+- **Q1/Q2/Q3:** PASS — 
+  - Q1 input boundary: NaN/Inf/flat alpha → log + return None (no crash); env parse errors → fallback to code defaults
+  - Q1 silent failure: try/except on compile_ast + signal_gen; stub raises NotImplementedError (no silent bypass)
+  - Q1 concurrency: no shared state added; module-level constants immutable
+  - Q1 scope creep: overfitting ratio change (Gemini+Markl both vetoed) explicitly deferred to v0.2.2; A3 NameError fix is in-scope (was prerequisite for outcome metric)
+  - Q2: error_rollback path unchanged; rejected rows return to ARENA1_COMPLETE
+  - Q3: ~20 LoC core + 15 LoC hotfix; no refactoring
+- **Outcome metric (validated):** 2 V10 champions reached ARENA3_COMPLETE within 5 min of patch deploy:
+  - id=71455 ETHUSDT `<alpha>` trades=1102 A2 sharpe=0.04 → A3 sharpe=0.05 → A4_ELIMINATED (holdout wr<0.40)
+  - id=71477 DOGEUSDT `<alpha>` trades=49 A2 sharpe=0.70 → A3 sharpe=0.70 → A4_ELIMINATED
+  - A4 elimination is legitimate holdout failure, not a bug. Pipeline now end-to-end functional.
+- **Rollback:** `cp services/arena23_orchestrator.py.bak_v2_20260418_170404 services/arena23_orchestrator.py && bash zangetsu_ctl.sh restart`. 51 reset rows would naturally re-enter A2 under old code and revert to their prior rejected state — no DB rollback needed (tested via consensus review with Calcifer).
+
+### Non-feature changes
+- Audit: `services/alpha_quality_gates.py` confirmed to have **0 callers** across services/engine/live/scripts. The 6 designed quality gates (DSR>0.95, PBO<0.5, IC stability, regime robustness, turnover, monotonic spread) are inactive. Deferred to v0.2.3 PR (requires forward_returns + regime_labels data stream).
+- Audit: A4 DSR threshold (0.05) vs `alpha_quality_gates.DSR_THRESHOLD` (0.95) — likely different metric formulas (one may be single-test, other multiple-testing corrected). Flagged for math review in v0.2.3 (no scope to reconcile this session).
+
+### Deferred
+- V0.2.2: tiered overfitting ratio (Markl recommended `<100 trades: 2x`, `>500 trades: 5x`, instead of current flat 10x and proposed flat 3x)
+- V0.2.3: `alpha_quality_gates.py` wiring (need forward_returns stream from A1 post-A3)
+- V0.2.4: end-to-end smoke test harness as CI check (to prevent future "producer upgraded, consumer not upgraded" incidents)
+
+### Process meta — /team 四階段 applied
+- Phase 1 Recon: 3 parallel — Explore Agent (A3/A4/A5 gates), Claude (A1/A2 gates + signal function map), Codex (backup audit — failed due to sandbox)
+- Phase 2 Task Design: Unified Fix Plan v1 → 3-reviewer audit (Gemini 7/10, Markl GO-with-mod, Calcifer HOLD) → v2 consensus
+- Phase 3 Spawn: 2 Opus 4.7 subagents in parallel (A: smoke test + patch; B: 5 deploy/monitor/rollback scripts). Subagent A caught latent A3 NameError during implementation (adversarial voice) — explicitly flagged in report
+- Phase 4 Integration: Lead ran smoke test PASS → env check PASS → stop → scp patch → DB cleanup → start → caught 3-tuple bug in 3 min → Edit local + scp hotfix → workers up → outcome verified
+
+### Lessons (for retro 20260418.md)
+- **Subagent B scripts had BSD-vs-GNU awk `strftime` bug** → silent exit 0 without executing anything. Caught by manual verification (`ps aux`). Lesson: subagent-produced shell scripts need a runtime dry-check on Mac before production use.
+- **3-tuple-vs-2-tuple latent bug was masked by the primary bug**. Fixing the primary exposed it immediately. Lesson aligns with existing memory `feedback_end_to_end_upgrade`: partial upgrade + smoke test covering only the first stage misses downstream format mismatches.
+- **AKASHA memory was stale** (said arena-pipeline/arena45_orchestrator services were in systemd `activating` state; reality: arena services were *intentionally disabled* from systemd in v0.1.1 and replaced by ctl.sh + watchdog). Markl's 04-18 06:42 finding reinforced the stale state. Lesson: AKASHA memory decays fast on infra moves.
+
+---
+
 ## v0.5.0 — 2026-04-18 — V10 core upgrade + single-track consolidation
 **Engine hash:** `zv5_v10_alpha` (V10 active) + `zv5_v71`/`zv5_v9` (archived labels)
 **Branch:** `main` @ `98a95e22` (single-track — feat deleted)

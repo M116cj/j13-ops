@@ -26,8 +26,8 @@ ARENA2_ENTRY_THR_STEP: float = 0.05          # CONSOLE_HOOK: arena2_entry_thr_st
 ARENA2_EXIT_THR_MIN: float = 0.50            # CONSOLE_HOOK: arena2_exit_thr_min
 ARENA2_EXIT_THR_MAX: float = 0.80            # CONSOLE_HOOK: arena2_exit_thr_max
 ARENA2_EXIT_THR_STEP: float = 0.05           # CONSOLE_HOOK: arena2_exit_thr_step
-ARENA2_MIN_TRADES: int = 30                  # CONSOLE_HOOK: arena2_min_trades
-ARENA2_WR_FLOOR: float = 0.52               # CONSOLE_HOOK: arena2_wr_floor
+ARENA2_MIN_TRADES: int = 25  # Patch H1 2026-04-20: aligned from 30→25 to match actual code gate in arena23_orchestrator                  # CONSOLE_HOOK: arena2_min_trades
+ARENA2_WR_FLOOR: float = 0.52               # CONSOLE_HOOK: arena2_wr_floor  [Patch H4 2026-04-20: RESERVED — not actively gated in process_arena2 which uses pos_count logic; kept tunable via console for future use]
 
 # ── Arena 3: PnL Training ────────────────────────────────────────
 ARENA3_COST_BPS: float = 4.5                 # CONSOLE_HOOK: arena3_cost_bps
@@ -44,6 +44,10 @@ ARENA4_MIN_PNL_GATE: float = 0.001          # CONSOLE_HOOK: arena4_min_pnl_gate
 ARENA4_MAX_DRAWDOWN: float = 0.15           # CONSOLE_HOOK: arena4_max_drawdown
 ARENA4_MIN_SHARPE: float = 0.8              # CONSOLE_HOOK: arena4_min_sharpe
 
+
+# ── Promotion gates (CANDIDATE → DEPLOYABLE) — Patch H3 2026-04-20 ───────
+PROMOTE_WILSON_LB: float = 0.50              # CONSOLE_HOOK: promote_wilson_lb
+PROMOTE_MIN_TRADES: int = 25                 # CONSOLE_HOOK: promote_min_trades
 # ── Arena 5: ELO Tournament ──────────────────────────────────────
 ARENA5_INITIAL_ELO: float = 1500.0           # CONSOLE_HOOK: arena5_initial_elo
 ARENA5_K_FACTOR: float = 32.0               # CONSOLE_HOOK: arena5_k_factor
@@ -92,7 +96,7 @@ DB_HOST: str = os.getenv("ZV5_DB_HOST", "localhost")
 DB_PORT: int = int(os.getenv("ZV5_DB_PORT", "5432"))
 DB_NAME: str = os.getenv("ZV5_DB_NAME", "zangetsu")
 DB_USER: str = os.getenv("ZV5_DB_USER", "zangetsu")
-DB_PASSWORD: str = os.getenv("ZV5_DB_PASSWORD", "REDACTED")  # TODO-SECURITY: rotate and set via env only, remove default
+DB_PASSWORD: str = os.environ["ZV5_DB_PASSWORD"]  # no fallback — must be set in env
 DB_POOL_MIN: int = 2                        # CONSOLE_HOOK: db_pool_min
 DB_POOL_MAX: int = 10                       # CONSOLE_HOOK: db_pool_max
 DB_STATEMENT_TIMEOUT: int = 30000           # CONSOLE_HOOK: db_statement_timeout_ms

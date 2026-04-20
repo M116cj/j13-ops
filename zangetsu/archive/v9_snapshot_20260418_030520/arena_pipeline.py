@@ -1,3 +1,4 @@
+import os
 """Arena Pipeline V9 — High-throughput optimized A1 with bloom filter dedup + A2 pre-screen.
 
 Changes from v4/v5 (unified V9):
@@ -259,7 +260,7 @@ async def main():
     _v9_coordinator = None
     if _V9_SEARCH_AVAILABLE and os.environ.get("A1_USE_V9_SEARCH", "1") == "1":
         try:
-            storage_url = f"postgresql://zangetsu:{os.environ.get('ZV5_DB_PASSWORD', 'REDACTED')}@127.0.0.1:5432/zangetsu"
+            storage_url = f"postgresql://zangetsu:{os.environ['ZV5_DB_PASSWORD']}@127.0.0.1:5432/zangetsu"
             _v9_coordinator = V9SearchCoordinator(
                 indicator_pool=DIRECTIONAL,
                 period_choices=[14, 20, 30, 50],

@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "min_survivors_for_soft": 3,
   "min_failures_for_soft": 5,
   "min_survivors_for_active": 20,
@@ -7,5 +7,6 @@
   "min_post_update_champions": 20,
   "soft_exit_below_survivors": 1,
   "active_exit_below_survivors": 12,
-  "note": "V9 (2026-04-17): bootstrap-friendly thresholds + hysteresis. Mode transitions: observe (default) -> soft (N>=3/5) -> active (N>=20/50). Hysteresis: drop to observe if survivors<1; drop active->soft if survivors<12. Mode written into guidance.json for A1 to read."
+  "failures_only_threshold": 20,
+  "note": "V10 (2026-04-19): V9 thresholds + new failures_only mode. When survivors==0 AND failures>=failures_only_threshold (default 20), A13 emits mode='failures_only' and applies decay-only weights (never upweights). Transitions: observe (default) -> soft (N>=3/5) -> active (N>=20/50). Hysteresis: drop to observe if survivors<1; drop active->soft if survivors<12. failures_only path is an orthogonal branch that fires before observe when survivors==0."
 }

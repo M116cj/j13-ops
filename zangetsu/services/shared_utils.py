@@ -316,45 +316,57 @@ async def ensure_db_connection(db, settings, log):
 
 
 # ═══════════════════════════════════════════════════════════════════
-# Lease Expiry Reaper
+# Lease Expiry Reaper (P1-J: atomic CTE + FOR UPDATE SKIP LOCKED)
 # ═══════════════════════════════════════════════════════════════════
 
 async def reap_expired_leases(db, log, lease_minutes: int = 15):
     """Reset champions stuck in *_PROCESSING status past their lease expiry.
 
-    Run periodically (every few minutes) to prevent permanently stuck entries.
+    P1-J fix: single atomic UPDATE with a CTE that does FOR UPDATE SKIP LOCKED,
+    then a CASE expression to revert each *_PROCESSING row back to the PREVIOUS
+    arena's _COMPLETE state. Eliminates the two-step race window where
+    pick_champion (also SKIP LOCKED) could snatch a row between the old
+    REPLACE step and the per-row revert step, and also avoids reaper-crash
+    mid-transition leaving rows mis-staged.
+
+    Semantics preserved:
+        ARENA2_PROCESSING -> ARENA1_COMPLETE
+        ARENA3_PROCESSING -> ARENA2_COMPLETE
+        ARENA4_PROCESSING -> ARENA3_COMPLETE
+        other             -> REPLACE('_PROCESSING', '_COMPLETE') fallback
+
+    Negative / zero lease_minutes is clamped to 1 minute to prevent a
+    catastrophic full-table reclaim if a caller passes a bad value.
+
+    Run periodically (every few minutes). Safe under concurrent reapers.
     """
+    # Defensive clamp: lease_minutes <= 0 would reclaim every PROCESSING row
+    # (lease_until < NOW() + positive interval => always true). Floor at 1.
+    lease_minutes = max(int(lease_minutes), 1)
     try:
         rows = await db.fetch("""
-            UPDATE champion_pipeline
-            SET status = REPLACE(status, '_PROCESSING', '_COMPLETE'),
+            WITH expired AS (
+                SELECT id, status
+                FROM champion_pipeline
+                WHERE status LIKE '%_PROCESSING'
+                  AND lease_until IS NOT NULL
+                  AND lease_until < NOW() - INTERVAL '1 minute' * $1
+                FOR UPDATE SKIP LOCKED
+            )
+            UPDATE champion_pipeline cp
+            SET status = CASE expired.status
+                    WHEN 'ARENA2_PROCESSING' THEN 'ARENA1_COMPLETE'
+                    WHEN 'ARENA3_PROCESSING' THEN 'ARENA2_COMPLETE'
+                    WHEN 'ARENA4_PROCESSING' THEN 'ARENA3_COMPLETE'
+                    ELSE REPLACE(expired.status, '_PROCESSING', '_COMPLETE')
+                END,
                 worker_id = NULL,
                 lease_until = NULL,
                 updated_at = NOW()
-            WHERE status LIKE '%_PROCESSING'
-              AND lease_until IS NOT NULL
-              AND lease_until < NOW() - INTERVAL '1 minute' * $1
-            RETURNING id, status
+            FROM expired
+            WHERE cp.id = expired.id
+            RETURNING cp.id, expired.status AS prev_status, cp.status AS new_status
         """, lease_minutes)
-
-        # Special case: ARENA2_PROCESSING should revert to ARENA1_COMPLETE
-        for row in rows:
-            old_status = row["status"]
-            if "ARENA2" in old_status:
-                await db.execute(
-                    "UPDATE champion_pipeline SET status = 'ARENA1_COMPLETE' WHERE id = $1",
-                    row["id"],
-                )
-            elif "ARENA3" in old_status:
-                await db.execute(
-                    "UPDATE champion_pipeline SET status = 'ARENA2_COMPLETE' WHERE id = $1",
-                    row["id"],
-                )
-            elif "ARENA4" in old_status:
-                await db.execute(
-                    "UPDATE champion_pipeline SET status = 'ARENA3_COMPLETE' WHERE id = $1",
-                    row["id"],
-                )
 
         if rows:
             log.info(f"Lease reaper: reset {len(rows)} stuck PROCESSING entries")

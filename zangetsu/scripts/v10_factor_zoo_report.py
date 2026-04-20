@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """V10 Factor Zoo Report - hourly health check.
 Run: python3 scripts/v10_factor_zoo_report.py
@@ -12,7 +13,7 @@ import psycopg2
 import psycopg2.extras
 
 DSN = os.environ.get('ZV5_DSN',
-    f"postgresql://zangetsu:{os.environ.get('ZV5_DB_PASSWORD', 'REDACTED')}@127.0.0.1:5432/zangetsu")
+    os.environ['ZV5_DSN'])
 
 
 def main():

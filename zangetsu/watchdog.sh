@@ -72,6 +72,74 @@ check_log_activity() {
   return 0
 }
 
+# --- Reclaim lockfile: SIGTERM -> poll -> SIGKILL -> verify -> rm ---
+# P1-I: services/pidlock.py uses fcntl.flock() on the opened fd.
+# The advisory lock is bound to the inode, not the dentry. The old
+# `rm -f $lock` + fire-and-forget kill pattern unlinked the dentry while
+# the dead-but-not-reaped process still held the flock on the old inode.
+# A new service process would then open() a brand-new inode, acquire a
+# new flock, and two workers would run concurrently -> double DB writes.
+#
+# Correct protocol:
+#   1. Empty pidfile or pid=1 -> stale, just rm.
+#   2. pid not alive -> stale, just rm.
+#   3. pid alive -> SIGTERM, poll kill-0 up to 10s (atexit is cheap),
+#      then SIGKILL + 1s, then a final kill-0 verification. Only rm the
+#      lockfile AFTER the kernel has reclaimed the old fd+inode+flock.
+#   4. Still alive after SIGKILL -> return 1 (caller must abort restart
+#      rather than spawn a second worker on a fresh inode).
+reclaim_lock() {
+  local lock=$1
+  local name=$2
+  [ -f "$lock" ] || return 0
+
+  local old_pid
+  old_pid=$(cat "$lock" 2>/dev/null)
+
+  # Empty pidfile or PID 1 (init) -> stale, never signal init
+  if [ -z "$old_pid" ] || [ "$old_pid" = "1" ]; then
+    rm -f "$lock"
+    return 0
+  fi
+
+  # PID not alive -> stale file, kernel already released the flock
+  if ! kill -0 "$old_pid" 2>/dev/null; then
+    rm -f "$lock"
+    return 0
+  fi
+
+  # PID alive -> graceful terminate, then WAIT for exit (flock release)
+  kill -TERM "$old_pid" 2>/dev/null || true
+
+  local waited=0
+  local max_wait=10
+  while [ $waited -lt $max_wait ]; do
+    if ! kill -0 "$old_pid" 2>/dev/null; then
+      break
+    fi
+    sleep 1
+    waited=$((waited + 1))
+  done
+
+  # Still alive after SIGTERM window -> force kill, wait one tick
+  if kill -0 "$old_pid" 2>/dev/null; then
+    echo "$(timestamp) WATCHDOG: $name pid=$old_pid ignored SIGTERM after ${max_wait}s, SIGKILL"
+    kill -KILL "$old_pid" 2>/dev/null || true
+    sleep 1
+  fi
+
+  # Final verification — refuse to rm lock + respawn if still alive
+  # (zombie parent / ptrace hold / kernel bug).
+  if kill -0 "$old_pid" 2>/dev/null; then
+    echo "$(timestamp) WATCHDOG: $name pid=$old_pid UNKILLABLE, skipping restart to avoid double-worker race"
+    return 1
+  fi
+
+  # Safe: old process gone, kernel has released flock on its inode.
+  rm -f "$lock"
+  return 0
+}
+
 # --- Restart a single service ---
 restart_service() {
   local name=$1
@@ -79,15 +147,11 @@ restart_service() {
   local lock="$LOCK_DIR/${name}.lock"
   local log="${LOCK_TO_LOG[$name]:-$LOG_DIR/zangetsu_${name}.log}"
 
-  # Kill old process if still around
-  if [ -f "$lock" ]; then
-    local old_pid
-    old_pid=$(cat "$lock" 2>/dev/null)
-    if [ -n "$old_pid" ] && kill -0 "$old_pid" 2>/dev/null; then
-      kill "$old_pid" 2>/dev/null
-      sleep 1
-    fi
-    rm -f "$lock"
+  # Reclaim lock with kill -> wait -> verify; abort restart if unkillable
+  # so we never spawn a second worker racing on a fresh inode.
+  if ! reclaim_lock "$lock" "$name"; then
+    echo "$(timestamp) WATCHDOG: aborting $name restart (stuck old process)"
+    return 1
   fi
 
   # Determine start command from name

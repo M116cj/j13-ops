@@ -48,6 +48,26 @@ except Exception:  # noqa: BLE001
 
 
 # ---------------------------------------------------------------------------
+# Patch F' 2026-04-19 — callable-aware terminal subclass.
+# Default DEAP Terminal.format returns bare name ("tsi_50"), so compile emits
+# `tanh_x(tsi_50)` where tsi_50 resolves to the function object, which numba
+# then tries to type-check and errors. Our subclass emits "tsi_50()" so compile
+# generates `tanh_x(tsi_50())` — the closure is invoked and returns the cached
+# indicator array. Empty __slots__ inherits the parent's (__slots__ classes).
+# ---------------------------------------------------------------------------
+
+if HAS_DEAP:
+    class _CallableIndicatorTerminal(gp.Terminal):  # type: ignore[misc]
+        __slots__ = ()
+
+        def format(self) -> str:  # noqa: D401
+            return f"{self.name}()"
+else:  # pragma: no cover — DEAP absent fallback so module still imports
+    class _CallableIndicatorTerminal:  # type: ignore[misc]
+        pass
+
+
+# ---------------------------------------------------------------------------
 # Internal fallback primitives (used only when alpha_primitives module absent)
 # ---------------------------------------------------------------------------
 
@@ -347,7 +367,32 @@ class AlphaEngine:
                     return _fn
 
                 try:
+                    # Patch F' 2026-04-19 (final): register as terminal, then replace
+                    # the Terminal instance with _CallableIndicatorTerminal in BOTH
+                    # `pset.terminals[ret_type]` (used by genFull/genGrow sampling)
+                    # AND `pset.mapping[name]` (used by gp.PrimitiveTree.from_string
+                    # lookup). Without the mapping swap, from_string rebuilds trees
+                    # with the unpatched Terminal → str(tree) emits `tsi_50` (no
+                    # parens) → DEAP compile hands the function object to numba →
+                    # typing error. With both swapped, str(tree) emits `tsi_50()`
+                    # and compile invokes the closure to return the cached array.
                     pset.addTerminal(_make_terminal(term_name), name=term_name)
+                    _replacement = None
+                    for _terms in pset.terminals.values():
+                        for _i, _t in enumerate(_terms):
+                            if getattr(_t, "name", None) == term_name and not isinstance(_t, _CallableIndicatorTerminal):
+                                _new_t = _CallableIndicatorTerminal.__new__(_CallableIndicatorTerminal)
+                                _new_t.name = _t.name
+                                _new_t.value = _t.value
+                                _new_t.ret = _t.ret
+                                _new_t.conv_fct = _t.conv_fct
+                                _terms[_i] = _new_t
+                                _replacement = _new_t
+                                break
+                        if _replacement is not None:
+                            break
+                    if _replacement is not None and hasattr(pset, "mapping"):
+                        pset.mapping[term_name] = _replacement
                 except (TypeError, ValueError) as e:  # pragma: no cover
                     log.debug("skip terminal %s: %s", term_name, e)
 
@@ -547,10 +592,24 @@ class AlphaEngine:
 
     @staticmethod
     def _forward_returns(close: np.ndarray) -> np.ndarray:
+        """Cumulative forward return over ALPHA_FORWARD_HORIZON bars.
+
+        Patch G 2026-04-20: changed from 1-bar to horizon-matched (default 60)
+        to align GP fitness with execution min_hold. Prior state caused 99.7%
+        val_neg_pnl rejection across 30d: GP evolved 1-bar predictors whose
+        edge dissipated within 2-3 bars of the forced 60-bar hold, converting
+        winning signals into mean-reversion losers. Outcome §17.1: 0 DEPLOYABLE.
+
+        Configurable via env ALPHA_FORWARD_HORIZON (must match the min_hold
+        used by alpha_to_signal in the production signal path). Default 60.
+        """
+        import os as _os
+        horizon = max(1, int(_os.environ.get('ALPHA_FORWARD_HORIZON', '60')))
         fr = np.zeros_like(close, dtype=np.float32)
-        if close.size > 1:
-            denom = np.maximum(close[:-1], 1e-10)
-            fr[:-1] = ((close[1:] - close[:-1]) / denom).astype(np.float32)
+        n = close.size
+        if n > horizon:
+            denom = np.maximum(close[:-horizon], 1e-10)
+            fr[:-horizon] = ((close[horizon:] - close[:-horizon]) / denom).astype(np.float32)
         return fr
 
     def evolve(
@@ -808,6 +867,10 @@ class AlphaEngine:
 
         tree = gp.PrimitiveTree(rebuilt)
         return self.toolbox.compile(expr=tree)
+
+    def ast_to_callable(self, ast_json: List[Any]) -> Callable[..., np.ndarray]:
+        """Alias for compile_ast — backward-compat with arena_pipeline caller."""
+        return self.compile_ast(ast_json)
 
     # ------------------------------------------------------------------
     # Introspection

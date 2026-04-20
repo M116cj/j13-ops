@@ -28,6 +28,107 @@ from zangetsu.services.db_audit import log_transition
 from zangetsu.engine.components.signal_utils import generate_threshold_signals
 from zangetsu.services.signal_reconstructor import reconstruct_signal_from_passport
 from zangetsu.engine.components.data_preprocessor import enrich_data_cache
+# v0.5.9: Central passport schema dispatch (prevents V9→V10 silent regressions).
+from zangetsu.services.passport_schema import is_v10, get_dedup_key, get_alpha
+
+# ── V10 factor-expression helpers (added by v10_complete_upgrade) ──
+_V10_ALPHA_ENGINE = None
+
+def _get_v10_engine():
+    global _V10_ALPHA_ENGINE
+    if _V10_ALPHA_ENGINE is None:
+        from zangetsu.engine.components.alpha_engine import AlphaEngine
+        _V10_ALPHA_ENGINE = AlphaEngine()
+    return _V10_ALPHA_ENGINE
+
+
+def _v10_get_alpha_expression(passport):
+    """Extract alpha_expression from passport, handling both schema variants."""
+    return (
+        passport.get("alpha_expression")
+        or (passport.get("arena1", {}) or {}).get("alpha_expression")
+        or {}
+    )
+
+
+def _v10_alpha_to_signal(ast_json, close, high, low, open_arr, volume,
+                          entry_thresh=0.5, exit_thresh=0.2):
+    """Compile AST and produce (signal, alpha_norm, err).
+
+    signal: int8 array {-1, 0, +1} (short / flat / long)
+    alpha_norm: float array clipped to [-1, 1]
+    err: None on success, str describing failure otherwise
+    """
+    import numpy as _np
+    import logging as _logging
+    _log = _logging.getLogger("arena45")
+    engine = _get_v10_engine()
+    # end-to-end-upgrade fix 2026-04-19: populate indicator_cache for this
+    # symbol's holdout window so the 126 indicator terminals evaluate against
+    # real data instead of silent zeros (consistent with A1/A2/A3 paths).
+    try:
+        from zangetsu.engine.components.indicator_bridge import build_indicator_cache
+        _v10_cache = build_indicator_cache(
+            _np.ascontiguousarray(close, dtype=_np.float64),
+            _np.ascontiguousarray(high, dtype=_np.float64),
+            _np.ascontiguousarray(low, dtype=_np.float64),
+            _np.ascontiguousarray(volume, dtype=_np.float64),
+        )
+        engine.indicator_cache.clear()
+        engine.indicator_cache.update(_v10_cache)
+    except Exception as _ce:  # noqa: BLE001
+        _log.warning(f"A4/A5 indicator_cache build failed: {_ce}")
+    try:
+        fn = engine.compile_ast(ast_json)
+        raw = fn(close, high, low, open_arr, volume)
+    except Exception as e:
+        return None, None, f"compile_fail:{type(e).__name__}:{e}"
+    if raw is None:
+        return None, None, "alpha_returned_none"
+    raw = _np.asarray(raw, dtype=_np.float64).ravel()
+    if raw.shape[0] != close.shape[0]:
+        if raw.shape[0] < close.shape[0]:
+            padded = _np.full(close.shape[0], _np.nan)
+            padded[-raw.shape[0]:] = raw
+            raw = padded
+        else:
+            raw = raw[-close.shape[0]:]
+    valid = _np.isfinite(raw)
+    if valid.sum() < 100:
+        return None, None, "alpha_mostly_nan"
+    med = _np.nanmedian(raw)
+    mad = _np.nanmedian(_np.abs(raw[valid] - med)) * 1.4826
+    if mad < 1e-10:
+        return None, None, "alpha_zero_variance"
+    alpha_norm = _np.clip((raw - med) / (2 * mad + 1e-9), -1.0, 1.0)
+    alpha_norm = _np.nan_to_num(alpha_norm, nan=0.0, posinf=1.0, neginf=-1.0)
+    signal = _np.zeros(alpha_norm.shape[0], dtype=_np.int8)
+    signal[alpha_norm > entry_thresh] = 1
+    signal[alpha_norm < -entry_thresh] = -1
+    exit_mask = _np.abs(alpha_norm) < exit_thresh
+    signal[exit_mask] = 0
+    return signal, alpha_norm, None
+
+
+def _v10_extract_symbol(champion, data_cache):
+    import json as _json
+    pp = champion.get("passport")
+    if isinstance(pp, str):
+        pp = _json.loads(pp)
+    a1 = pp.get("arena1", {}) or {}
+    sym = a1.get("symbol") or a1.get("arena1_symbol")
+    if sym and sym in data_cache:
+        return sym
+    discovery = pp.get("discovery", {}) or {}
+    sym = discovery.get("symbol")
+    if sym and sym in data_cache:
+        return sym
+    ih = champion.get("indicator_hash", "") or ""
+    for s in data_cache:
+        if ih.endswith(s):
+            return s
+    return None
+
 from zangetsu.services.data_collector import merge_funding_to_1m, merge_oi_to_1m
 from pathlib import Path
 from zangetsu.services.shared_utils import (
@@ -44,6 +145,7 @@ from zangetsu.services.shared_utils import (
     backtest_with_a3_params,
     ensure_db_connection,
     reap_expired_leases,
+    deflated_sharpe_ratio,
 )
 
 # ── V9: PGQueuer event-driven pickup (opt-in via A45_USE_PGQUEUER=1) ──
@@ -126,10 +228,13 @@ def backtest_slice(backtester, signals, close, high, low, symbol, cost_bps, max_
 async def pick_arena3_complete(db):
     """Atomically pick one ARENA3_COMPLETE champion for processing."""
     # v9: Pre-filter - skip A3 champions with non-positive PnL
+    # MEDIUM-M2: unify V10 detection with python check below (line ~321 startswith("zv5_v10"))
+    # Using NOT LIKE 'zv5_v10%' instead of != 'zv5_v10_alpha' to cover future v10 variants
+    # (e.g. zv5_v10_beta) consistently across SQL and Python call sites.
     n_prefiltered = await db.fetchval("""
         WITH to_filter AS (
             SELECT id FROM champion_pipeline
-            WHERE status = 'ARENA3_COMPLETE' AND COALESCE(arena3_pnl, 0) <= 0
+            WHERE status = 'ARENA3_COMPLETE' AND COALESCE(arena3_pnl, 0) <= 0 AND (engine_hash IS NULL OR engine_hash NOT LIKE 'zv5_v10%')
         )
         UPDATE champion_pipeline cp
         SET status = 'ARENA4_ELIMINATED',
@@ -191,8 +296,8 @@ async def arena4_fail(db, champ_id, reason, hell_wr, variability):
 
 
 # ── CANDIDATE → DEPLOYABLE promotion thresholds ──────────────────
-PROMOTE_WILSON_LB = 0.50
-PROMOTE_MIN_TRADES = 25
+# Patch H3 2026-04-20: moved to config/settings.py
+from zangetsu.config.settings import PROMOTE_WILSON_LB, PROMOTE_MIN_TRADES  # re-exported
 
 
 async def promote_candidate(champ, db, log, verbose=False):
@@ -236,29 +341,41 @@ async def promote_candidate(champ, db, log, verbose=False):
 
     # Gate 4: positive arena3 PnL (prevent negative-PnL strategies from reaching DEPLOYABLE)
     arena3_pnl = float(champ.get("arena3_pnl", 0) or 0)
-    if arena3_pnl <= 0:
+    _is_v10 = (champ.get("engine_hash") or "").startswith("zv5_v10")
+    if not _is_v10 and arena3_pnl <= 0:
         if verbose:
             log.info(f"CANDIDATE #{champ_id}: STAY (arena3_pnl={arena3_pnl:.4f} <= 0)")
         return False
 
-    # Gate 5: dedup — skip if a DEPLOYABLE with same config_hash already exists
-    config_hash = None
+    # Gate 5 (v0.5.9): dedup via passport_schema — handles V9 config_hash AND V10 alpha_hash.
+    # Pre-fix: V10 champions had config_hash=None → dedup silently skipped → duplicates reached DEPLOYABLE.
+    dedup_key = None
+    dedup_kind = None
     try:
         passport_data = json.loads(champ["passport"]) if champ["passport"] else {}
-        config_hash = passport_data.get("arena1", {}).get("config_hash")
+        spec = get_alpha(passport_data)
+        if spec:
+            dedup_kind = spec["kind"]
+            dedup_key = spec.get("alpha_hash") if dedup_kind == "v10" else spec.get("config_hash")
     except (json.JSONDecodeError, TypeError) as e:
         log.debug(f"passport parse failed for champ {champ.get('id')}: {e}")
-    if config_hash:
-        existing = await db.fetchval("""
+    if dedup_key:
+        json_field = "alpha_hash" if dedup_kind == "v10" else "config_hash"
+        existing = await db.fetchval(f"""
             SELECT id FROM champion_pipeline
             WHERE status = 'DEPLOYABLE' AND id != $1 AND regime = $3
-            AND passport::jsonb -> 'arena1' ->> 'config_hash' = $2
+            AND passport::jsonb -> 'arena1' ->> '{json_field}' = $2
             LIMIT 1
-        """, champ_id, config_hash, champ["regime"])
+        """, champ_id, dedup_key, champ["regime"])
         if existing:
             if verbose:
-                log.info(f"CANDIDATE #{champ_id}: STAY (duplicate config_hash={config_hash} in {champ["regime"]}, existing DEPLOYABLE #{existing})")
+                log.info(f"CANDIDATE #{champ_id}: STAY (duplicate {dedup_kind}:{json_field}={dedup_key} in {champ['regime']}, existing DEPLOYABLE #{existing})")
             return False
+    elif passport_data:
+        # Gemini 2026-04-19: pre-fix would log WARN then fall through to PROMOTE, allowing
+        # dedup-keyless (malformed) passports to flood DEPLOYABLE. Fail hard instead.
+        log.error(f"CANDIDATE #{champ_id}: passport missing dedup key (engine_hash={champ.get('engine_hash')!r}) — REFUSING to promote (malformed passport)")
+        return False
 
     # All gates passed — PROMOTE to DEPLOYABLE
     await db.execute("""
@@ -298,11 +415,15 @@ async def process_arena4(champ, data_cache, backtester, cost_model, rust_engine,
     close, high, low, vol = d["close"], d["high"], d["low"], d["volume"]
     cost_bps = cost_model.get(symbol).total_round_trip_bps
 
-    # Extract indicator configs from passport
+    # Extract passport branches (V10 dispatcher bridge: p0g v0.5.2)
     arena1 = passport.get("arena1", {})
-    configs = arena1.get("configs", [])
-    if not configs:
-        log.warning(f"A4 #{champ_id}: no indicator configs in passport")
+    has_v10_alpha = bool(arena1.get("alpha_expression"))
+    configs = arena1.get("configs", []) or []
+    # Only V9 rows that ALSO lack an alpha formula truly have no playable signal.
+    # Pre-p0g bug: this guard fired on every V10 champion (no configs by design),
+    # making V10 pass-rate 0% silently.
+    if not configs and not has_v10_alpha:
+        log.warning(f"A4 #{champ_id}: no indicator configs and no V10 alpha_expression")
         await arena4_fail(db, champ_id, "no_configs", 0.0, 0.0)
         return
 
@@ -322,34 +443,43 @@ async def process_arena4(champ, data_cache, backtester, cost_model, rust_engine,
     # Compute ATR on holdout data for ATR stop
     atr = compute_atr(high, low, close, period=14)
 
-    # Compute indicators on holdout data
-    arrs = compute_indicators(configs, close, high, low, vol, rust_engine)
-    if len(arrs) < 2:
-        log.warning(f"A4 #{champ_id}: insufficient indicators computed ({len(arrs)})")
-        await arena4_fail(db, champ_id, "insufficient_indicators", 0.0, 0.0)
-        return
-
-    # Filter zero-variance indicators
-    valid = [(i, a) for i, a in enumerate(arrs) if np.median(np.abs(a - np.median(a))) > 0]
-    if len(valid) < 2:
-        log.warning(f"A4 #{champ_id}: insufficient valid indicators after filtering ({len(valid)})")
-        await arena4_fail(db, champ_id, "insufficient_valid_indicators", 0.0, 0.0)
-        return
-    valid_idx = [v[0] for v in valid]
-    arrs = [v[1] for v in valid]
-    configs = [configs[i] for i in valid_idx]
-    names = [c["name"] for c in configs]
-
-    # Generate signals using indicator-specific thresholds (same as Arena 1)
-    # V10 BUG-3: use A2-optimized thresholds from passport (was hardcoded 0.55/0.30)
-    # V10 dispatcher: alpha_expression -> reconstruct; configs -> legacy voting
-    if passport.get("arena1", {}).get("alpha_expression"):
+    # V10 path: alpha_expression -> reconstruct directly (no indicator compute).
+    # V9 path: configs -> legacy compute+filter+vote pipeline.
+    if has_v10_alpha:
         signals, _sizes_a4, _agr_a4 = reconstruct_signal_from_passport(
             passport, close, high, low, d.get("open", np.zeros_like(close)), vol,
             entry_threshold=entry_thr, exit_threshold=exit_thr,
             min_hold=60, cooldown=cooldown, regime=regime,
         )
+        # reconstruct_signal_from_passport returns a zero-signal fallback on
+        # internal failure (alpha modules missing / compile failure / NaN flood).
+        # Treat all-zero as explicit A4 fail — do NOT let a dead strategy flow
+        # into backtest and "pass" by accident. (Q1 dim-2: no silent failure.)
+        if not np.any(signals):
+            log.warning(f"A4 #{champ_id}: V10 alpha reconstruct produced zero signal")
+            await arena4_fail(db, champ_id, "v10_alpha_reconstruct_failed", 0.0, 0.0)
+            return
     else:
+        # V9 legacy path (unchanged logic, just indented under else).
+        arrs = compute_indicators(configs, close, high, low, vol, rust_engine)
+        if len(arrs) < 2:
+            log.warning(f"A4 #{champ_id}: insufficient indicators computed ({len(arrs)})")
+            await arena4_fail(db, champ_id, "insufficient_indicators", 0.0, 0.0)
+            return
+
+        # Filter zero-variance indicators
+        valid = [(i, a) for i, a in enumerate(arrs) if np.median(np.abs(a - np.median(a))) > 0]
+        if len(valid) < 2:
+            log.warning(f"A4 #{champ_id}: insufficient valid indicators after filtering ({len(valid)})")
+            await arena4_fail(db, champ_id, "insufficient_valid_indicators", 0.0, 0.0)
+            return
+        valid_idx = [v[0] for v in valid]
+        arrs = [v[1] for v in valid]
+        configs = [configs[i] for i in valid_idx]
+        names = [c["name"] for c in configs]
+
+        # Generate signals using indicator-specific thresholds (same as Arena 1)
+        # V10 BUG-3: use A2-optimized thresholds from passport (was hardcoded 0.55/0.30)
         signals, _sizes_a4, _agr_a4 = generate_threshold_signals(
             names, arrs,
             entry_threshold=entry_thr, exit_threshold=exit_thr, min_hold=60, cooldown=cooldown, regime=regime,
@@ -556,14 +686,24 @@ async def sync_active_cards(db):
 
 def swiss_pair(pool):
     """Swiss-system pairing: pair strategies with similar ELO.
-    Skips pairs with identical indicator config hashes to avoid TIE spam."""
+    Skips pairs with identical dedup keys to avoid TIE spam.
+
+    v0.5.9: dedup key via passport_schema (V10 alpha_hash OR V9 config_hash).
+    Pre-fix: V10 champions all hashed to "" → every V10/V10 pair skipped → V10 pool
+    was structurally starved of ELO matches.
+    """
     sorted_pool = sorted(pool, key=lambda r: r["elo_rating"] or A5_INITIAL_ELO, reverse=True)
-    # Pre-compute config hashes using shared_utils (sorted pipe-joined[:16], matching A1/A23)
-    def _get_config_hash(s):
-        passport = json.loads(s["passport"]) if s.get("passport") else {}
-        configs = passport.get("arena1", {}).get("configs", [])
-        return compute_config_hash(configs) if configs else ""
-    hashes = [_get_config_hash(s) for s in sorted_pool]
+    def _dedup_hash(s):
+        try:
+            passport = json.loads(s["passport"]) if s.get("passport") else {}
+            return get_dedup_key(passport)
+        except (json.JSONDecodeError, TypeError, ValueError):
+            # Missing/unresolvable dedup key → return unique sentinel so this
+            # row does not collide with any other row (opposite of pre-fix "" bug).
+            # Gemini 2026-04-19: `s.get('id', id(s))` returns None if id key is literally None;
+            # use `or` so explicit-None also falls through to Python id().
+            return f"__no_key__:{s.get('id') or id(s)}"
+    hashes = [_dedup_hash(s) for s in sorted_pool]
     pairs = []
     used = set()
     for i in range(len(sorted_pool)):
@@ -633,25 +773,32 @@ async def run_elo_round(by_regime, data_cache, backtester, cost_model, rust_engi
             tp_strategy = a3_params["tp_type"]
             tp_param = float(a3_params["tp_param"])
 
-            if not configs:
-                scores[label] = {"metric": -999.0}
-                continue
-
-            arrs = compute_indicators(configs, close, high, low, vol, rust_engine)
-            if len(arrs) < 2:
-                scores[label] = {"metric": -999.0}
-                continue
-
-            elo_names = [c["name"] for c in configs]
-            # V10 BUG-3: use A2-optimized thresholds from passport
-            # V10 dispatcher: alpha_expression -> reconstruct; configs -> legacy voting
+            # v0.5.9: V10 dispatcher MUST precede the `configs` guard. Pre-fix
+            # the guard below fired before the V10 branch at the old L748 could
+            # run, so every V10 champion was scored -999 and silently lost every
+            # ELO match. Same family as the 2026-04-18 P0-G incident.
             if passport.get("arena1", {}).get("alpha_expression"):
-                signals, _sz_elo, _agr_elo = reconstruct_signal_from_passport(
-                    passport, close, high, low, d.get("open", np.zeros_like(close)), vol,
-                    entry_threshold=entry_thr, exit_threshold=exit_thr,
-                    min_hold=60, cooldown=cooldown, regime=regime,
-                )
+                try:
+                    signals, _sz_elo, _agr_elo = reconstruct_signal_from_passport(
+                        passport, close, high, low, d.get("open", np.zeros_like(close)), vol,
+                        entry_threshold=entry_thr, exit_threshold=exit_thr,
+                        min_hold=60, cooldown=cooldown, regime=regime,
+                    )
+                except Exception as _re:
+                    log.debug(f"ELO V10 reconstruct failed for champ {champ.get('id')}: {_re}")
+                    scores[label] = {"metric": -999.0}
+                    continue
             else:
+                if not configs:
+                    scores[label] = {"metric": -999.0}
+                    continue
+
+                arrs = compute_indicators(configs, close, high, low, vol, rust_engine)
+                if len(arrs) < 2:
+                    scores[label] = {"metric": -999.0}
+                    continue
+
+                elo_names = [c["name"] for c in configs]
                 signals, _sz_elo, _agr_elo = generate_threshold_signals(
                     elo_names, arrs,
                     entry_threshold=entry_thr, exit_threshold=exit_thr, min_hold=60, cooldown=cooldown, regime=regime,

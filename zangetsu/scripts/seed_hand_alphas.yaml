@@ -1,0 +1,29 @@
+- name: F1_momentum_tsi50
+  family: F1_trend_momentum
+  formula: "tanh_x(tsi_50)"
+  rationale: "50-bar True Strength Index squashed to [-1,1]; positive IC via trend continuation."
+
+- name: F2_volatility_filtered_momentum
+  family: F2_volatility_regime
+  formula: "mul(roc_50, neg(normalized_atr_20))"
+  rationale: "Medium-term rate of change × low-volatility filter; rewards momentum in low-vol regime."
+
+- name: F3_volume_obv_direction
+  family: F3_volume_orderflow
+  formula: "sign_x(delta_20(obv_50))"
+  rationale: "OBV accumulation/distribution direction; persistent sign across 20-bar delta."
+
+- name: F4_funding_contrarian
+  family: F4_funding_rate
+  formula: "neg(funding_zscore_50)"
+  rationale: "Negative funding z-score (shorts pay longs) predicts positive return; crypto-specific factor."
+
+- name: F6_mean_rev_trend_filter
+  family: F6_mean_reversion
+  formula: "mul(neg(zscore_50), sign_x(delta_20(close)))"
+  rationale: "Oversold (-zscore) confirmed by medium-term uptrend; captures pullback entries."
+
+- name: F8_rsi_price_divergence
+  family: F8_divergence
+  formula: "sub(ts_rank_20(rsi_100), ts_rank_20(close))"
+  rationale: "RSI relative-rank exceeding price relative-rank = bullish divergence signal."

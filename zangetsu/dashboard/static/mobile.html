@@ -3,348 +3,317 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<title>ZANGETSU V7</title>
+<meta name="theme-color" content="#0a0a14">
+<title>ZNGT</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
---bg:#0c0c0c;--card:#141414;--border:#1e1e1e;--text:#e8e8e8;--text-dim:#888;
---gold:#f0a500;--green:#22c55e;--red:#ef4444;--yellow:#eab308;
---blue:#3b82f6;--purple:#a855f7;--cyan:#06b6d4;
+  --bg:#0a0a14;--card:#0f0f1e;--border:#1a1a2e;--text:#e0e0f0;--dim:#6a6a8a;
+  --cyan:#00fff0;--green:#00ff88;--pink:#ff0080;--amber:#ffaa00;
+  --mono:ui-monospace,'JetBrains Mono',Menlo,monospace;
+  --sans:-apple-system,BlinkMacSystemFont,'Inter',sans-serif;
 }
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'SF Pro Text',sans-serif;font-size:14px;line-height:1.4;-webkit-font-smoothing:antialiased;padding-bottom:60px;padding-top:56px;overscroll-behavior-y:contain}
-.header{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
-.header-left{display:flex;align-items:center;gap:8px}
-.header h1{font-size:15px;font-weight:700;letter-spacing:1px}
-.status-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
-.status-dot.live{background:var(--green);box-shadow:0 0 6px var(--green)}
-.status-dot.down{background:var(--red);box-shadow:0 0 6px var(--red)}
-.header-right{text-align:right;font-size:10px;color:var(--text-dim)}
-.conn-dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-left:4px;vertical-align:middle}
-.mode-tag{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:700;letter-spacing:.5px}
-.mode-observe{background:#1a1a00;color:var(--yellow)}
-.mode-soft{background:#0a1a2a;color:var(--cyan)}
-.mode-active{background:#0a2a0a;color:var(--green)}
-.tab-bar{position:fixed;bottom:0;left:0;right:0;z-index:100;background:var(--bg);border-top:1px solid var(--border);display:flex;padding:4px 0;padding-bottom:max(4px,env(safe-area-inset-bottom))}
-.tab-item{flex:1;text-align:center;padding:6px 0;font-size:10px;font-weight:600;color:var(--text-dim);cursor:pointer;letter-spacing:.5px;transition:color .15s;position:relative}
-.tab-item.active{color:var(--gold)}
-.tab-item.active::after{content:'';position:absolute;top:0;left:25%;right:25%;height:2px;background:var(--gold);border-radius:1px}
-.tab-item .tab-icon{font-size:16px;display:block;margin-bottom:1px}
-.page{display:none;padding:8px}
-.page.active{display:block}
-.section{padding:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:8px}
-.section-title{font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--text-dim);margin-bottom:10px;text-transform:uppercase}
-.stats-row{display:flex;gap:6px;justify-content:center}
-.stat-box{flex:1;text-align:center;padding:10px 4px;background:var(--bg);border:1px solid var(--border);border-radius:8px}
-.stat-val{font-size:24px;font-weight:800;line-height:1}
-.stat-val.gold{color:var(--gold)}.stat-val.green{color:var(--green)}.stat-val.red{color:var(--red)}.stat-val.cyan{color:var(--cyan)}
-.stat-label{font-size:9px;font-weight:600;letter-spacing:.5px;color:var(--text-dim);margin-top:3px;text-transform:uppercase}
-.stat-sub{font-size:9px;color:var(--text-dim);margin-top:1px}
-.funnel{display:flex;align-items:center;gap:2px;margin:10px 0;font-size:11px}
-.funnel-step{flex:1;text-align:center;padding:8px 2px;border-radius:6px;background:var(--bg);border:1px solid var(--border)}
-.funnel-step .fv{font-size:16px;font-weight:800}
-.funnel-step .fl{font-size:8px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px}
-.funnel-step .fr{font-size:9px;font-weight:700;margin-top:2px}
-.funnel-step .fr.green{color:var(--green)}.funnel-step .fr.red{color:var(--red)}.funnel-step .fr.gold{color:var(--gold)}
-.funnel-arr{color:var(--text-dim);font-size:10px}
-.pipeline-flow{display:flex;align-items:center;justify-content:center;gap:4px;margin:8px 0}
-.arena-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;border:2px solid var(--border);cursor:pointer;transition:all .15s}
-.arena-dot.ok{border-color:var(--green);color:var(--green)}
-.arena-dot.waiting{border-color:var(--yellow);color:var(--yellow)}
-.arena-dot:active{transform:scale(1.15)}
-.arena-arrow{color:var(--text-dim);font-size:12px}
-.cert-card{padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:6px}
-.cert-card.tier-green{border-left:3px solid var(--green)}
-.cert-card.tier-yellow{border-left:3px solid var(--yellow)}
-.cert-card.tier-red{border-left:3px solid var(--red)}
-.cert-card.tier-gold{border-left:3px solid var(--gold);background:#1a1400}
-.cert-head{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:600}
-.cert-metrics{display:flex;gap:10px;margin-top:5px;font-size:11px;color:var(--text-dim)}
-.cert-regime{font-size:10px;padding:2px 6px;border-radius:4px;font-weight:600}
-.regime-PARABOLIC{background:#3b1a00;color:#f97316}
-.regime-CONSOLIDATION{background:#1a2a1a;color:#22c55e}
-.regime-BEAR_TREND{background:#2a0a0a;color:#ef4444}
-.regime-BULL_TREND{background:#1a2a1a;color:#22c55e}
-.regime-SQUEEZE{background:#1a1a2a;color:#3b82f6}
-.regime-CHOPPY_VOLATILE{background:#2a2a1a;color:#eab308}
-.elo-item{padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;margin-bottom:4px;cursor:pointer;transition:all .2s}
-.elo-item:active{background:#1a1a1a}
-.elo-head{display:flex;justify-content:space-between;align-items:center}
-.elo-rank{font-weight:800;color:var(--text-dim);width:24px;font-size:13px}
-.elo-id{font-weight:600;font-size:13px}
-.elo-right{text-align:right;font-size:12px}
-.elo-score{font-weight:700}
-.elo-expand{max-height:0;overflow:hidden;transition:max-height .3s ease;font-size:11px;color:var(--text-dim)}
-.elo-item.expanded .elo-expand{max-height:120px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border)}
-.elo-expand-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px 16px}
-.detail-kv{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-.kv{text-align:center;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:8px}
-.kv-val{font-size:20px;font-weight:800;line-height:1.2}
-.kv-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.5px;margin-top:2px}
-.detail-list{max-height:400px;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.detail-row{padding:10px 12px;border-bottom:1px solid var(--border);font-size:12px;display:flex;justify-content:space-between;align-items:center}
-.detail-row:last-child{border-bottom:none}
-.detail-row-left{display:flex;align-items:center;gap:6px}
-.detail-row-right{text-align:right;font-size:11px;color:var(--text-dim)}
-.detail-row-right strong{color:var(--text);font-size:12px}
-.comp-row{display:flex;gap:6px;flex-wrap:wrap}
-.comp-badge{font-size:10px;padding:3px 8px;border-radius:4px;font-weight:600}
-.comp-badge.ok{background:#0a2a0a;color:var(--green)}
-.comp-badge.err{background:#2a0a0a;color:var(--red)}
-.reason-tag{font-size:10px;padding:2px 6px;border-radius:3px;background:#1a1a2a;color:var(--blue);display:inline-block;margin-top:2px}
-.pull-indicator{position:fixed;top:0;left:0;right:0;height:3px;background:var(--green);transform:scaleX(0);transform-origin:left;transition:transform .2s;z-index:200}
-.weight-bar{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px}
-.weight-bar .wb-name{width:70px;text-align:right;color:var(--text-dim)}
-.weight-bar .wb-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden;position:relative}
-.weight-bar .wb-fill{height:100%;border-radius:3px;transition:width .3s}
-.weight-bar .wb-val{width:35px;font-weight:700;font-size:10px}
-.action-row{display:flex;gap:10px;margin-top:8px}
-.action-row button{flex:1;padding:10px;border-radius:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;letter-spacing:1px;transition:opacity .2s}
-.action-row button:active{opacity:.7}
-.btn-pause{background:#1a1a00;color:var(--yellow);border:1px solid var(--yellow)!important}
-.btn-halt{background:#1a0000;color:var(--red);border:1px solid var(--red)!important}
-@media(max-width:375px){.stat-val{font-size:20px}.section{padding:10px}.kv-val{font-size:18px}}
+html,body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.3;-webkit-font-smoothing:antialiased;overscroll-behavior-y:contain}
+body{padding-top:36px}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.dim{color:var(--dim)}
+.title{font-size:11px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim)}
+
+/* header 36px fixed */
+.hdr{position:fixed;top:0;left:0;right:0;height:36px;z-index:100;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;font-size:11px}
+.hdr .logo{font-family:var(--mono);font-weight:700;letter-spacing:1px;color:var(--text)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 8px var(--cyan);animation:breathe 2s ease-in-out infinite}
+.dot.fail{background:var(--pink);box-shadow:0 0 8px var(--pink);animation:none}
+@keyframes breathe{0%,100%{opacity:.4}50%{opacity:1}}
+.hdr .tp{color:var(--dim);font-family:var(--mono)}
+.hdr .mode{margin-left:auto;font-family:var(--mono);font-size:10px;padding:2px 7px;border:1px solid var(--cyan);color:var(--cyan);border-radius:10px;letter-spacing:.5px}
+.hdr .rfr{color:var(--dim);font-family:var(--mono);font-size:10px;min-width:42px;text-align:right}
+.pull{position:fixed;top:36px;left:0;right:0;height:3px;background:var(--cyan);transform:scaleX(0);transform-origin:left;transition:transform .15s;z-index:200}
+
+/* alerts banner */
+.alert{display:none;height:44px;background:var(--pink);color:#fff;align-items:center;padding:0 14px;font-size:12px;font-weight:600;letter-spacing:.3px;gap:10px}
+.alert.on{display:flex}
+.alert .x{margin-left:auto;opacity:.8;font-family:var(--mono)}
+
+/* cards */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin:6px 8px;padding:12px 14px;overflow:hidden}
+.card .ex{max-height:0;overflow:hidden;transition:max-height .3s ease-out;font-size:12px;color:var(--dim)}
+.card.open .ex{max-height:260px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+
+/* card 1 headline 132px */
+.hero{height:132px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.hero .n{font-family:var(--mono);font-size:56px;font-weight:700;line-height:1;letter-spacing:-1px;color:var(--cyan);text-shadow:0 0 12px currentColor}
+.hero .n.crit{color:var(--pink)}
+.hero .n.warn{color:var(--amber);text-shadow:0 0 10px currentColor}
+.hero .lbl{font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--dim);margin-top:4px;text-transform:uppercase}
+.hero .sub{font-family:var(--mono);font-size:20px;font-weight:600;margin-top:6px}
+.hero .sub.crit{color:var(--pink)}.hero .sub.ok{color:var(--green)}.hero .sub.warn{color:var(--amber)}
+.hero .age{font-size:11px;color:var(--dim);margin-top:4px;font-family:var(--mono)}
+
+/* card 2 funnel 120px */
+.funnel{height:120px;display:flex;flex-direction:column;gap:8px}
+.fn-bars{flex:1;display:flex;gap:3px;align-items:stretch;margin-top:6px}
+.fn-seg{position:relative;background:var(--border);border-radius:4px;min-width:14px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding:4px 2px;font-family:var(--mono);font-size:10px}
+.fn-seg .v{font-size:11px;font-weight:700;color:var(--text)}
+.fn-seg .k{font-size:9px;color:var(--dim);margin-top:1px;letter-spacing:.5px}
+.fn-seg.ok{background:linear-gradient(180deg,var(--cyan),var(--green))}
+.fn-seg.ok .v,.fn-seg.ok .k{color:#0a0a14}
+.fn-seg.crit{background:var(--pink);box-shadow:0 0 8px rgba(255,0,128,.5)}
+.fn-seg.crit .v,.fn-seg.crit .k{color:#fff}
+.fn-pct{display:flex;gap:3px;font-family:var(--mono);font-size:9px;color:var(--dim)}
+.fn-pct span{flex:1;text-align:center;min-width:14px}
+.fn-pct span.crit{color:var(--pink);font-weight:700}
+
+/* card 3 arena strip 72px */
+.strip{height:72px;display:flex;align-items:center;justify-content:space-around;padding:0 4px}
+.arn{display:flex;flex-direction:column;align-items:center;gap:4px}
+.arn .d{width:10px;height:10px;border-radius:50%;background:var(--dim)}
+.arn .d.act{background:var(--green)}
+.arn .d.stale{background:var(--amber)}
+.arn .l{font-family:var(--mono);font-size:10px;color:var(--dim);letter-spacing:.5px}
+
+/* card 4 a13 132px */
+.a13{min-height:132px}
+.a13 .row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:11px}
+.a13 .pill{font-family:var(--mono);font-size:10px;padding:3px 9px;border:1px solid var(--cyan);color:var(--cyan);border-radius:10px;letter-spacing:.5px}
+.a13 .meta{color:var(--dim);font-family:var(--mono);font-size:11px}
+.wb{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:11px}
+.wb .n{width:48px;text-align:right;color:var(--dim);font-family:var(--mono);font-size:11px}
+.wb .tk{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.wb .fl{height:100%;background:linear-gradient(90deg,var(--cyan),var(--green));border-radius:3px;transition:width .3s}
+.wb .v{width:40px;text-align:right;font-family:var(--mono);font-weight:600;font-size:11px;color:var(--text)}
+
+/* activity feed */
+.feed{margin:6px 8px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:12px}
+.feed .title{margin-bottom:8px}
+.fr{display:flex;gap:8px;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)}
+.fr:last-child{border-bottom:none}
+.fr .t{color:var(--dim);font-family:var(--mono);min-width:44px;font-size:11px}
+.fr .a{color:var(--cyan);flex:1}
+
+/* toast */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--card);border:1px solid var(--cyan);color:var(--cyan);padding:8px 16px;border-radius:20px;font-size:12px;font-family:var(--mono);opacity:0;transition:opacity .2s,transform .2s;z-index:300;pointer-events:none}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
-<div class="pull-indicator" id="pullIndicator"></div>
-<div class="header">
-  <div class="header-left">
-    <h1>ZANGETSU V7</h1>
-    <span class="status-dot" id="statusDot"></span>
-    <span id="statusLabel" style="font-size:11px;font-weight:700"></span>
-    <span class="mode-tag mode-observe" id="modeTag">OBSERVE</span>
+<div class="hdr">
+  <span class="logo">ZNGT</span>
+  <span class="dot" id="dot"></span>
+  <span class="tp mono" id="tp">--/h</span>
+  <span class="mode" id="mode">--</span>
+  <span class="rfr mono" id="rfr">--</span>
+</div>
+<div class="pull" id="pull"></div>
+<div class="alert" id="alert"><span id="alertMsg"></span><span class="x">&times;</span></div>
+
+<div class="card" id="c1" data-id="hero">
+  <div class="hero">
+    <div class="n mono" id="dep">--</div>
+    <div class="lbl">DEPLOYABLE</div>
+    <div class="sub mono" id="gate">A4 GATE --</div>
+    <div class="age mono" id="age">last --</div>
   </div>
-  <div class="header-right">
-    <div id="lastChampion"></div>
-    <div>conn <span class="conn-dot" id="connDot"></span></div>
-  </div>
+  <div class="ex" id="c1ex"></div>
 </div>
 
-<!-- HOME -->
-<div class="page active" id="page-home">
-  <div class="section">
-    <div class="stats-row">
-      <div class="stat-box"><div class="stat-val gold" id="deployCount">-</div><div class="stat-label">Deploy</div></div>
-      <div class="stat-box"><div class="stat-val green" id="candCount">-</div><div class="stat-label">Candidate</div></div>
-      <div class="stat-box"><div class="stat-val cyan" id="v6Total">-</div><div class="stat-label">V7 Total</div><div class="stat-sub" id="familyEff"></div></div>
-      <div class="stat-box"><div class="stat-val" id="activeCards">-</div><div class="stat-label">Active</div></div>
-    </div>
+<div class="card" id="c2" data-id="funnel">
+  <div class="funnel">
+    <div class="title">PIPELINE FUNNEL</div>
+    <div class="fn-bars" id="fnBars"></div>
+    <div class="fn-pct" id="fnPct"></div>
   </div>
-  <div class="section">
-    <div class="section-title">Conversion Funnel</div>
-    <div class="funnel" id="funnel"></div>
-  </div>
-  <div class="section">
-    <div class="section-title">Pipeline</div>
-    <div class="pipeline-flow" id="pipelineFlow"></div>
-    <div style="display:flex;justify-content:center;gap:16px;font-size:12px;color:var(--text-dim);margin-top:6px">
-      <span>new/hr: <strong id="newHr">-</strong></span>
-      <span>throughput: <strong id="throughput">-</strong>/hr</span>
-    </div>
-    <div class="comp-row" id="components" style="margin-top:8px"></div>
-  </div>
-  <div class="section">
-    <div class="section-title">Certification</div>
-    <div style="display:flex;gap:12px;margin-bottom:8px;font-size:12px;align-items:center">
-      <span>Best Wilson: <strong style="color:var(--yellow)" id="bestWilson">-</strong></span>
-      <span style="font-size:10px;color:var(--text-dim)" id="bestGap"></span>
-    </div>
-    <div id="certList"></div>
-  </div>
-  <div class="section">
-    <div class="section-title">Top ELO</div>
-    <div id="eloList"></div>
-    <div id="eloEmpty" style="padding:12px;text-align:center;color:var(--text-dim);font-size:12px;display:none">No ELO-rated champions</div>
-  </div>
-  <div class="action-row" style="margin:8px">
-    <button class="btn-pause" id="btnPause">PAUSE</button>
-    <button class="btn-halt" id="btnHalt">HALT</button>
-  </div>
+  <div class="ex" id="c2ex"></div>
 </div>
 
-<!-- ARENA PAGES -->
-<div class="page" id="page-a1"><div class="section"><div class="section-title">Arena 1 — Discovery (4 workers, composite)</div><div class="detail-kv" id="a1-kv"></div></div><div class="section"><div class="section-title">Top Champions</div><div class="detail-list" id="a1-list"></div></div></div>
-<div class="page" id="page-a2"><div class="section"><div class="section-title">Arena 2 — Threshold Optimization</div><div class="detail-kv" id="a2-kv"></div></div><div class="section"><div class="section-title">Promoted</div><div class="detail-list" id="a2-list"></div></div></div>
-<div class="page" id="page-a3"><div class="section"><div class="section-title">Arena 3 — PnL Training (composite + grid 39)</div><div class="detail-kv" id="a3-kv"></div></div><div class="section"><div class="section-title">Best Strategies</div><div class="detail-list" id="a3-list"></div></div></div>
-<div class="page" id="page-a4"><div class="section"><div class="section-title">Arena 4 — Holdout Validation</div><div class="detail-kv" id="a4-kv"></div></div><div class="section"><div class="section-title">Survivors</div><div class="detail-list" id="a4-list"></div></div></div>
-<div class="page" id="page-a5"><div class="section"><div class="section-title">Arena 5 — ELO Tournament</div><div class="detail-kv" id="a5-kv"></div></div><div class="section"><div class="section-title">By Regime</div><div class="detail-list" id="a5-regime"></div></div><div class="section"><div class="section-title">Leaderboard</div><div class="detail-list" id="a5-list"></div></div></div>
-
-<!-- A13 FEEDBACK -->
-<div class="page" id="page-a13">
-  <div class="section">
-    <div class="section-title">Arena 13 — Feedback (v7 composite)</div>
-    <div class="detail-kv" id="a13-kv"></div>
+<div class="card" id="c3" data-id="arenas">
+  <div class="strip">
+    <div class="title" style="position:absolute;margin:-28px 0 0 0">ARENAS</div>
   </div>
-  <div class="section">
-    <div class="section-title">Indicator Weights (Guided vs Base)</div>
-    <div id="a13-weights"></div>
-  </div>
+  <div class="strip" id="strip"></div>
+  <div class="ex" id="c3ex"></div>
 </div>
 
-<div class="tab-bar">
-  <div class="tab-item active" data-page="home"><span class="tab-icon">&#9678;</span>Home</div>
-  <div class="tab-item" data-page="a1"><span class="tab-icon">1</span>A1</div>
-  <div class="tab-item" data-page="a2"><span class="tab-icon">2</span>A2</div>
-  <div class="tab-item" data-page="a3"><span class="tab-icon">3</span>A3</div>
-  <div class="tab-item" data-page="a4"><span class="tab-icon">4</span>A4</div>
-  <div class="tab-item" data-page="a5"><span class="tab-icon">5</span>A5</div>
-  <div class="tab-item" data-page="a13"><span class="tab-icon">&#9881;</span>A13</div>
+<div class="card a13" id="c4" data-id="a13">
+  <div class="title" style="margin-bottom:8px">A13 GUIDANCE</div>
+  <div class="row">
+    <span class="pill" id="a13mode">--</span>
+    <span class="meta" id="a13meta">-- / --</span>
+  </div>
+  <div id="wts"></div>
+  <div class="ex" id="c4ex"></div>
 </div>
+
+<div class="feed">
+  <div class="title">ACTIVITY</div>
+  <div id="feed"></div>
+</div>
+
+<div class="toast" id="toast">copied</div>
 
 <script>
 (function(){
 'use strict';
-const REFRESH=3000;
-let currentPage='home';
-function ts(){return '?t='+Date.now()}
-async function f(url){const t0=performance.now();const r=await fetch(url+ts());const ms=performance.now()-t0;updateConn(ms);if(!r.ok)throw new Error(r.status);return r.json();}
-function updateConn(ms){const d=document.getElementById('connDot');d.style.background=ms<500?'var(--green)':ms<1500?'var(--yellow)':'var(--red)';}
-function $(id){return document.getElementById(id)}
-function setText(id,val){const el=$(id);if(el&&el.textContent!==String(val))el.textContent=val;}
-function fmtTime(s){if(s<60)return Math.round(s)+'s';if(s<3600)return Math.round(s/60)+'m';return(s/3600).toFixed(1)+'h';}
-function regimeShort(r){return{PARABOLIC:'PARAB',CONSOLIDATION:'CONSOL',LIQUIDITY_CRISIS:'LIQ',CHOPPY_VOLATILE:'CHOPPY',BULL_PULLBACK:'B-PULL',BEAR_RALLY:'BR-RALLY',ACCUMULATION:'ACCUM',DISTRIBUTION:'DISTRIB'}[r]||r;}
-function wilsonTier(w){return w>=0.50?'gold':w>=0.45?'green':w>=0.40?'yellow':'red';}
-function pct(v){return(v*100).toFixed(1)+'%';}
+const POLL=5000,URL='/api/overview';
+let lastData=null,failing=false,alertDismissed=false;
 
-document.querySelectorAll('.tab-item').forEach(tab=>{
-  tab.addEventListener('click',()=>{
-    const page=tab.dataset.page;if(page===currentPage)return;currentPage=page;
-    document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));tab.classList.add('active');
-    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));$('page-'+page).classList.add('active');
-    window.scrollTo(0,0);refreshCurrentPage();
+const $=id=>document.getElementById(id);
+function fmtAge(s){if(s==null)return '--';if(s<60)return Math.round(s)+'s';if(s<3600)return Math.round(s/60)+'m';return(s/3600).toFixed(1)+'h';}
+function now(){const d=new Date();return d.toTimeString().slice(0,5);}
+function log2(x){return x>0?Math.log2(x+1):0;}
+
+async function poll(){
+  try{
+    const r=await fetch(URL+'?t='+Date.now());
+    if(!r.ok)throw new Error(r.status);
+    const d=await r.json();
+    failing=false;$('dot').classList.remove('fail');
+    render(d);
+    lastData=d;
+    $('rfr').textContent=now();
+  }catch(e){
+    failing=true;$('dot').classList.add('fail');
+    $('rfr').textContent='ERR';
+  }
+}
+
+function render(d){
+  // header
+  $('tp').textContent=(d.pipeline?.throughput_hr??0).toFixed(0)+'/h';
+  $('mode').textContent=(d.a13?.mode||'--').toUpperCase().replace(/_/g,' ');
+
+  // card 1 headline
+  const dep=d.funnel?.deployable??0;
+  const rate=d.funnel?.arena4_pass_rate??0;
+  const depEl=$('dep');
+  depEl.textContent=dep;
+  depEl.classList.remove('crit','warn');
+  const gateEl=$('gate');
+  gateEl.classList.remove('crit','ok','warn');
+  if(dep>=1){/* cyan default */}
+  else if(rate===0){depEl.classList.add('crit');gateEl.classList.add('crit');}
+  else{depEl.classList.add('warn');gateEl.classList.add('warn');}
+  gateEl.textContent='A4 GATE '+(rate).toFixed(1)+'%';
+  $('age').textContent='last champion '+fmtAge(d.health?.last_champion_ago_s);
+
+  // card 2 funnel
+  const f=d.funnel||{};
+  const segs=[
+    {k:'A1',v:f.arena1||0},
+    {k:'A2/3',v:f.arena23||0},
+    {k:'A4',v:(f.arena4_eliminated||0)+(f.arena4_passed||0)},
+    {k:'CAND',v:f.candidate||0},
+    {k:'DEP',v:f.deployable||0}
+  ];
+  const maxL=Math.max(...segs.map(s=>log2(s.v)),1);
+  $('fnBars').innerHTML=segs.map((s,i)=>{
+    const w=Math.max(log2(s.v)/maxL,0.08);
+    const prev=i>0?segs[i-1].v:s.v;
+    const pass=prev>0?s.v/prev:0;
+    const cls=(i>0&&s.v>0&&pass<0.05)?'crit':(s.v>0?'ok':'');
+    return `<div class="fn-seg ${cls}" style="flex:${w.toFixed(2)}"><span class="v">${s.v}</span><span class="k">${s.k}</span></div>`;
+  }).join('');
+  $('fnPct').innerHTML=segs.map((s,i)=>{
+    if(i===0)return '<span>100%</span>';
+    const prev=segs[i-1].v;
+    const pct=prev>0?(s.v/prev*100):0;
+    const cls=pct<5?'crit':'';
+    return `<span class="${cls}">${pct.toFixed(0)}%</span>`;
+  }).join('');
+
+  // card 3 arenas — infer activity from last_champion_ago_s as global proxy
+  const ago=d.health?.last_champion_ago_s??9999;
+  const arenas=['A1','A2','A3','A4','A5','A13'];
+  const counts={A1:f.arena1,A2:f.arena23,A3:f.arena23,A4:(f.arena4_eliminated||0)+(f.arena4_passed||0),A5:f.candidate,A13:d.a13?.failures};
+  $('strip').innerHTML=arenas.map(a=>{
+    const c=counts[a]||0;
+    let cls='';
+    if(c>0&&ago<300)cls='act';
+    else if(c>0&&ago<1800)cls='stale';
+    return `<div class="arn"><span class="d ${cls}"></span><span class="l">${a}</span></div>`;
+  }).join('');
+
+  // card 4 a13
+  $('a13mode').textContent=(d.a13?.mode||'--').replace(/_/g,' ');
+  $('a13meta').textContent=`survivors ${d.a13?.survivors??0} | failures ${d.a13?.failures??0}`;
+  const ws=(d.a13?.top_weights||[]).slice(0,3);
+  const maxW=Math.max(...ws.map(x=>x.weight),2.0);
+  $('wts').innerHTML=ws.map(w=>`<div class="wb"><span class="n">${w.indicator}</span><div class="tk"><div class="fl" style="width:${(w.weight/maxW*100).toFixed(0)}%"></div></div><span class="v">${w.weight.toFixed(2)}</span></div>`).join('')||'<div class="dim" style="font-size:11px;padding:4px 0">no guidance</div>';
+
+  // alerts
+  const red=(d.alerts||[]).find(a=>a.level==='red');
+  const alEl=$('alert');
+  if(red&&!alertDismissed){$('alertMsg').textContent=red.msg;alEl.classList.add('on');}
+  else alEl.classList.remove('on');
+
+  // activity feed — synthesize from counters deltas if prev data; else placeholder
+  const feed=[];
+  feed.push({t:now(),a:`throughput ${(d.pipeline?.throughput_hr||0).toFixed(0)}/h · ${d.pipeline?.new_1h||0} new`});
+  feed.push({t:fmtAge(ago),a:`last champion · A4 gate ${rate.toFixed(1)}%`});
+  feed.push({t:'now',a:`A13 ${d.a13?.mode||'--'} · ${d.a13?.failures||0} failures analyzed`});
+  feed.push({t:'1h',a:`${f.arena4_eliminated||0} eliminated at A4`});
+  feed.push({t:'24h',a:`${f.deployable||0} deployable, ${f.candidate||0} candidate`});
+  $('feed').innerHTML=feed.map(x=>`<div class="fr"><span class="t">${x.t}</span><span class="a">${x.a}</span></div>`).join('');
+}
+
+// card expand — tap to accordion + url hash
+document.querySelectorAll('.card').forEach(c=>{
+  c.addEventListener('click',e=>{
+    if(e.target.closest('.wb, .arn'))return;
+    c.classList.toggle('open');
+    const id=c.dataset.id;
+    history.replaceState(null,'',c.classList.contains('open')?'#'+id:location.pathname);
+    const ex=c.querySelector('.ex');
+    if(c.classList.contains('open')&&lastData){
+      ex.innerHTML=detailFor(c.dataset.id,lastData);
+    }
   });
 });
-function arenaClick(n){const m={'1':'a1','2':'a2','3':'a3','4':'a4','5':'a5','13':'a13'};const p=m[n];if(p)document.querySelector(`.tab-item[data-page="${p}"]`).click();}
+if(location.hash){
+  const tgt=document.querySelector(`.card[data-id="${location.hash.slice(1)}"]`);
+  if(tgt)setTimeout(()=>tgt.click(),100);
+}
 
-async function refreshHome(){
-  try{
-    const [pipeline,elo,cert,arenas,health,comps,v6]=await Promise.all([
-      f('/api/pipeline'),f('/api/elo'),f('/api/certification'),
-      f('/api/arenas'),f('/api/health/pipeline'),f('/api/components'),f('/api/v7/stats')
-    ]);
-    const dot=$('statusDot'),lbl=$('statusLabel');
-    if(pipeline.state==='RUNNING'){dot.className='status-dot live';lbl.textContent='LIVE';lbl.style.color='var(--green)';}
-    else{dot.className='status-dot down';lbl.textContent=pipeline.state;lbl.style.color='var(--red)';}
-    setText('lastChampion','Last: '+fmtTime(health.last_champion_ago_s));
-    setText('deployCount',pipeline.deployable);
-    setText('candCount',pipeline.candidate);
-    setText('activeCards',pipeline.active_cards||0);
-    setText('v6Total',v6.total||0);
-    setText('familyEff',(v6.family_efficiency||100).toFixed(0)+'% unique');
-    setText('newHr',pipeline.new_1h);
-    setText('throughput',Math.round(pipeline.throughput_hr));
-    // Funnel
-    const bs=v6.by_status||{};
-    const a2r=(bs['ARENA2_REJECTED']||{}).count||0;
-    const a3r=(bs['ARENA3_REJECTED']||{}).count||0;
-    const a4e=(bs['ARENA4_ELIMINATED']||{}).count||0;
-    const cand=(bs['CANDIDATE']||{}).count||0;
-    const depl=(bs['DEPLOYABLE']||{}).count||0;
-    const tot=v6.total||1;
-    const passA2=tot-a2r;
-    const passA3=passA2-a3r;
-    const passA4=passA3-a4e;
-    $('funnel').innerHTML=`
-      <div class="funnel-step"><div class="fv">${tot}</div><div class="fl">A1</div><div class="fr">100%</div></div>
-      <span class="funnel-arr">&#9654;</span>
-      <div class="funnel-step"><div class="fv">${passA2}</div><div class="fl">A2</div><div class="fr ${passA2/tot>.8?'green':'red'}">${(passA2/tot*100).toFixed(0)}%</div></div>
-      <span class="funnel-arr">&#9654;</span>
-      <div class="funnel-step"><div class="fv">${passA3}</div><div class="fl">A3</div><div class="fr ${passA3/passA2>.3?'green':'red'}">${passA2?(passA3/passA2*100).toFixed(0)+'%':'-'}</div></div>
-      <span class="funnel-arr">&#9654;</span>
-      <div class="funnel-step"><div class="fv">${passA4}</div><div class="fl">A4</div><div class="fr ${passA4/Math.max(passA3,1)>.1?'green':'red'}">${passA3?(passA4/passA3*100).toFixed(0)+'%':'-'}</div></div>
-      <span class="funnel-arr">&#9654;</span>
-      <div class="funnel-step"><div class="fv">${depl}</div><div class="fl">Deploy</div><div class="fr gold">${depl}</div></div>`;
-    // Pipeline dots
-    const ids=['1','2','3','4','5','13'],labels=['A1','A2','A3','A4','A5','A13'];
-    let ph='';
-    ids.forEach((id,i)=>{
-      const a=arenas['arena'+id]||{};
-      const st=a.status==='RUNNING'?'ok':'waiting';
-      ph+=`<div class="arena-dot ${st}" onclick="window._arenaClick('${id}')">${labels[i]}</div>`;
-      if(i<ids.length-1)ph+='<span class="arena-arrow">&#9654;</span>';
+function detailFor(id,d){
+  const f=d.funnel||{};
+  if(id==='hero')return `<div>deployable ${f.deployable||0} · candidate ${f.candidate||0} · active ${f.active_cards||0}</div><div style="margin-top:4px">uptime ${fmtAge(d.health?.uptime_s)}</div>`;
+  if(id==='funnel')return `<div>A1 total ${f.arena1||0}</div><div>A4 passed ${f.arena4_passed||0} / eliminated ${f.arena4_eliminated||0}</div><div>rate ${(f.arena4_pass_rate||0).toFixed(2)}%</div>`;
+  if(id==='arenas')return `<div>Activity inferred from last champion (${fmtAge(d.health?.last_champion_ago_s)})</div><div>green=&lt;5min · amber=&lt;30min · dim=idle</div>`;
+  if(id==='a13'){
+    const ws=d.a13?.top_weights||[];
+    return ws.map(w=>`<div>${w.indicator} · ${w.weight.toFixed(2)}</div>`).join('')||'<div>no guidance</div>';
+  }
+  return '';
+}
+
+// long-press headline to copy
+let pressT=null;
+$('c1').addEventListener('touchstart',e=>{
+  pressT=setTimeout(()=>{
+    pressT=null;
+    if(!lastData)return;
+    const s=`ZNGT deploy=${lastData.funnel?.deployable||0} a4_gate=${(lastData.funnel?.arena4_pass_rate||0).toFixed(1)}% ${(lastData.pipeline?.throughput_hr||0).toFixed(0)}/h`;
+    (navigator.clipboard?.writeText(s)||Promise.resolve()).finally(()=>{
+      const t=$('toast');t.textContent='copied: '+s.slice(0,24)+'...';t.classList.add('on');
+      setTimeout(()=>t.classList.remove('on'),1500);
     });
-    $('pipelineFlow').innerHTML=ph;
-    if(comps)$('components').innerHTML=comps.map(c=>`<span class="comp-badge ${c.status==='ok'?'ok':'err'}">${c.name}</span>`).join('');
-    // Cert
-    if(cert&&cert.length){
-      const sorted=[...cert].sort((a,b)=>b.wilson_lb-a.wilson_lb);
-      setText('bestWilson',sorted[0].wilson_lb.toFixed(4));
-      $('bestGap').textContent='(gap '+sorted[0].wilson_gap.toFixed(4)+' to 0.50)';
-      $('certList').innerHTML=sorted.map(c=>`<div class="cert-card tier-${wilsonTier(c.wilson_lb)}">
-        <div class="cert-head"><span>#${c.id} <span class="cert-regime regime-${c.regime}">${regimeShort(c.regime)}</span></span><span>${pct(c.holdout_wr)} ${c.holdout_pnl>=0?'+':''}${pct(c.holdout_pnl)}</span></div>
-        <div class="cert-metrics"><span>Wilson: <strong>${c.wilson_lb.toFixed(4)}</strong></span><span>${c.holdout_trades}t</span><span>${c.certified?'CERTIFIED':'pending'}</span></div>
-      </div>`).join('');
-    }else $('certList').innerHTML='<div style="padding:12px;text-align:center;color:var(--text-dim);font-size:12px">No certified</div>';
-    // ELO
-    if(elo&&elo.length){
-      $('eloEmpty').style.display='none';
-      const container=$('eloList');const top=elo.slice(0,10);const ids=new Set();
-      top.forEach((e,i)=>{
-        ids.add('elo-'+e.id);let item=$('elo-'+e.id);
-        if(!item){item=document.createElement('div');item.className='elo-item';item.id='elo-'+e.id;item.addEventListener('click',()=>item.classList.toggle('expanded'));container.appendChild(item);}
-        item.innerHTML=`<div class="elo-head"><span><span class="elo-rank">${i+1}.</span><span class="elo-id">#${e.id}</span> <span class="cert-regime regime-${e.regime}">${regimeShort(e.regime)}</span></span><div class="elo-right"><span class="elo-score">${Math.round(e.elo)}</span> <span style="color:var(--text-dim)">${pct(e.wr)}</span></div></div><div class="elo-expand"><div class="elo-expand-grid"><span>PnL: ${pct(e.pnl)}</span><span>Trades: ${e.trades}</span><span>Sharpe: ${e.sharpe.toFixed(2)}</span><span>Kelly: ${(parseFloat(e.kelly)*100).toFixed(1)}%</span></div></div>`;
-      });
-      Array.from(container.children).forEach(c=>{if(!ids.has(c.id))container.removeChild(c);});
-    }else{$('eloList').innerHTML='';$('eloEmpty').style.display='block';}
-    // A13 mode tag
-    try{
-      const g=await f('/api/v7/stats');
-      // Try to fetch guidance mode from v6 families or infer
-    }catch(e){}
-  }catch(e){console.error('Home:',e);}
-}
+    e.preventDefault();
+  },500);
+},{passive:false});
+$('c1').addEventListener('touchend',()=>{if(pressT){clearTimeout(pressT);pressT=null;}});
+$('c1').addEventListener('touchmove',()=>{if(pressT){clearTimeout(pressT);pressT=null;}});
 
-async function refreshA1(){try{const [s,d]=await Promise.all([f('/api/arena/arena1'),f('/api/arena1/detail')]);$('a1-kv').innerHTML=`<div class="kv"><div class="kv-val">${s.total.toLocaleString()}</div><div class="kv-label">Total</div></div><div class="kv"><div class="kv-val green">${d.recent_1h||0}</div><div class="kv-label">New/1h</div></div><div class="kv"><div class="kv-val">${s.avg_wr.toFixed(3)}</div><div class="kv-label">Avg WR</div></div><div class="kv"><div class="kv-val gold">${s.best_wr.toFixed(3)}</div><div class="kv-label">Best WR</div></div>`;$('a1-list').innerHTML=(d.champions||[]).map(c=>`<div class="detail-row"><div class="detail-row-left"><span style="font-weight:700">#${c.id}</span><span class="cert-regime regime-${c.regime}">${regimeShort(c.regime)}</span></div><div class="detail-row-right"><strong>${(c.wr*100).toFixed(1)}%</strong> | ${c.trades}t | ${(c.pnl*100).toFixed(1)}%</div></div>`).join('')||'<div style="padding:16px;text-align:center;color:var(--text-dim)">No data</div>';}catch(e){$('a1-kv').innerHTML='<div style="color:var(--red)">Error</div>';}}
-async function refreshA2(){try{const [s,d]=await Promise.all([f('/api/arena/arena2'),f('/api/arena2/detail')]);const pr=d.pass_rate||0;$('a2-kv').innerHTML=`<div class="kv"><div class="kv-val">${(d.total_processed||0).toLocaleString()}</div><div class="kv-label">Processed</div></div><div class="kv"><div class="kv-val red">${(d.rejected_count||0).toLocaleString()}</div><div class="kv-label">Rejected</div></div><div class="kv"><div class="kv-val ${pr>10?'green':'red'}">${pr.toFixed(1)}%</div><div class="kv-label">Pass Rate</div></div><div class="kv"><div class="kv-val">${s.avg_trades||0}</div><div class="kv-label">Avg Trades</div></div>`;$('a2-list').innerHTML=(d.promoted||[]).map(c=>`<div class="detail-row"><div class="detail-row-left"><span style="font-weight:700">#${c.id}</span><span class="cert-regime regime-${c.regime}">${regimeShort(c.regime)}</span></div><div class="detail-row-right">A1:${pct(c.a1_wr)} &#8594; <strong>${pct(c.a2_wr)}</strong></div></div>`).join('')||'<div style="padding:16px;text-align:center;color:var(--text-dim)">No data</div>';}catch(e){}}
-async function refreshA3(){try{const [s,d]=await Promise.all([f('/api/arena/arena3'),f('/api/arena3/detail')]);$('a3-kv').innerHTML=`<div class="kv"><div class="kv-val">${s.total}</div><div class="kv-label">Total</div></div><div class="kv"><div class="kv-val gold">${s.avg_sharpe.toFixed(2)}</div><div class="kv-label">Avg Sharpe</div></div><div class="kv"><div class="kv-val">${s.avg_expectancy.toFixed(4)}</div><div class="kv-label">Expect</div></div><div class="kv"><div class="kv-val">${pct(s.avg_pnl)}</div><div class="kv-label">Avg PnL</div></div>`;$('a3-list').innerHTML=(d.strategies||[]).map(c=>`<div class="detail-row"><div class="detail-row-left"><span style="font-weight:700">#${c.id}</span><span class="cert-regime regime-${c.regime}">${regimeShort(c.regime)}</span></div><div class="detail-row-right">Sharpe:<strong>${c.sharpe.toFixed(2)}</strong> | ${pct(c.pnl)} | ATR:${c.atr_mult}x</div></div>`).join('')||'<div style="padding:16px;text-align:center;color:var(--text-dim)">No data</div>';}catch(e){}}
-async function refreshA4(){try{const [s,d]=await Promise.all([f('/api/arena/arena4'),f('/api/arena4/detail')]);const gr=d.gate_rate||0;$('a4-kv').innerHTML=`<div class="kv"><div class="kv-val">${(s.total||0).toLocaleString()}</div><div class="kv-label">Total</div></div><div class="kv"><div class="kv-val red">${(d.eliminated||0).toLocaleString()}</div><div class="kv-label">Elim</div></div><div class="kv"><div class="kv-val green">${d.passed||0}</div><div class="kv-label">Passed</div></div><div class="kv"><div class="kv-val ${gr>5?'green':'red'}">${gr.toFixed(1)}%</div><div class="kv-label">Gate %</div></div>`;$('a4-list').innerHTML=(d.survivors||[]).map(c=>`<div class="detail-row"><div class="detail-row-left"><span style="font-weight:700">#${c.id}</span><span class="cert-regime regime-${c.regime}">${regimeShort(c.regime)}</span></div><div class="detail-row-right">Hell:<strong>${(c.hell_wr*100).toFixed(1)}%</strong> | Var:${c.variability.toFixed(2)}</div></div>`).join('')||'<div style="padding:16px;text-align:center;color:var(--text-dim)">No survivors</div>';}catch(e){}}
-async function refreshA5(){try{const [s,d]=await Promise.all([f('/api/arena/arena5'),f('/api/arena5/detail')]);$('a5-kv').innerHTML=`<div class="kv"><div class="kv-val">${s.total}</div><div class="kv-label">Total</div></div><div class="kv"><div class="kv-val gold">${s.max_elo.toFixed(0)}</div><div class="kv-label">Top ELO</div></div><div class="kv"><div class="kv-val">${s.avg_elo.toFixed(0)}</div><div class="kv-label">Avg</div></div><div class="kv"><div class="kv-val green">${s.elite||0}</div><div class="kv-label">Elite</div></div>`;$('a5-regime').innerHTML=(d.by_regime||[]).map(r=>`<div class="detail-row"><div class="detail-row-left"><span class="cert-regime regime-${r.regime}">${regimeShort(r.regime)}</span> ${r.count}</div><div class="detail-row-right">Top:<strong>${r.top_elo.toFixed(0)}</strong> Avg:${r.avg_elo.toFixed(0)}</div></div>`).join('')||'<div style="padding:12px;text-align:center;color:var(--text-dim)">No data</div>';$('a5-list').innerHTML=(d.strategies||[]).map((c,i)=>`<div class="detail-row"><div class="detail-row-left"><span style="font-weight:800;color:var(--text-dim)">${i+1}.</span><span style="font-weight:700">#${c.id}</span><span class="cert-regime regime-${c.regime}">${regimeShort(c.regime)}</span></div><div class="detail-row-right"><strong>${c.elo.toFixed(0)}</strong> | ${pct(c.wr)} | ${c.card||'--'}</div></div>`).join('')||'<div style="padding:16px;text-align:center;color:var(--text-dim)">No data</div>';}catch(e){}}
+// dismiss alert
+$('alert').addEventListener('click',()=>{alertDismissed=true;$('alert').classList.remove('on');});
 
-async function refreshA13(){
-  try{
-    const resp=await fetch('/api/v7/stats'+ts());
-    const v6=await resp.json();
-    const guidResp=await fetch('/api/a13/guidance'+ts()).catch(()=>null);
-    let g=null;
-    if(guidResp&&guidResp.ok)g=await guidResp.json();
-    const mode=g?g.mode:'unknown';
-    const mt=$('modeTag');
-    mt.textContent=mode.toUpperCase();
-    mt.className='mode-tag mode-'+mode;
-    const meta=g?g.meta:{};
-    $('a13-kv').innerHTML=`
-      <div class="kv"><div class="kv-val" style="color:${mode==='observe'?'var(--yellow)':mode==='soft'?'var(--cyan)':'var(--green)'}">${mode.toUpperCase()}</div><div class="kv-label">Mode</div></div>
-      <div class="kv"><div class="kv-val">${meta.survivors_analyzed||0}</div><div class="kv-label">Survivors</div></div>
-      <div class="kv"><div class="kv-val">${meta.failures_analyzed||0}</div><div class="kv-label">Failures</div></div>
-      <div class="kv"><div class="kv-val">${g?(g.cool_off_hashes||[]).length:0}</div><div class="kv-label">Cool-off</div></div>`;
-    if(g&&g.indicator_weights){
-      const base={tsi:2.0,macd:2.0,zscore:1.8,ppo:1.8,cci:1.5,trix:1.5,cmo:1.2,roc:1.2,rsi:1.0,stochastic_k:1.0,obv:1.0,mfi:1.2,vwap:1.0};
-      const sorted=Object.entries(g.indicator_weights).sort((a,b)=>b[1]-a[1]);
-      const maxW=Math.max(...sorted.map(x=>x[1]),2.0);
-      $('a13-weights').innerHTML=sorted.map(([ind,w])=>{
-        const bw=base[ind]||1.0;
-        const delta=((w/bw-1)*100).toFixed(0);
-        const color=w>bw*1.1?'var(--green)':w<bw*0.9?'var(--red)':'var(--text-dim)';
-        return`<div class="weight-bar"><span class="wb-name">${ind}</span><div class="wb-track"><div class="wb-fill" style="width:${(w/maxW*100).toFixed(0)}%;background:${color}"></div></div><span class="wb-val" style="color:${color}">${w.toFixed(2)}</span></div>`;
-      }).join('');
-    }else $('a13-weights').innerHTML='<div style="padding:16px;text-align:center;color:var(--text-dim)">No guidance data</div>';
-  }catch(e){console.error('A13:',e);$('a13-kv').innerHTML='<div style="color:var(--red)">Error loading A13</div>';}
-}
+// pull-to-refresh — 3px cyan bar
+let y0=0,pulling=false;
+document.addEventListener('touchstart',e=>{if(window.scrollY===0){y0=e.touches[0].clientY;pulling=true;}},{passive:true});
+document.addEventListener('touchmove',e=>{if(!pulling)return;const dy=e.touches[0].clientY-y0;if(dy>0&&dy<150)$('pull').style.transform='scaleX('+Math.min(dy/80,1)+')';},{passive:true});
+document.addEventListener('touchend',()=>{if(!pulling)return;const w=parseFloat($('pull').style.transform.replace(/[^\d.]/g,''))||0;if(w>=0.99)poll();$('pull').style.transform='scaleX(0)';pulling=false;},{passive:true});
 
-const refreshFn={home:refreshHome,a1:refreshA1,a2:refreshA2,a3:refreshA3,a4:refreshA4,a5:refreshA5,a13:refreshA13};
-function refreshCurrentPage(){const fn=refreshFn[currentPage];if(fn)fn();}
-let touchStartY=0,pulling=false;
-document.addEventListener('touchstart',e=>{if(window.scrollY===0){touchStartY=e.touches[0].clientY;pulling=true;}},{passive:true});
-document.addEventListener('touchmove',e=>{if(!pulling)return;const dy=e.touches[0].clientY-touchStartY;if(dy>0&&dy<150)$('pullIndicator').style.transform='scaleX('+Math.min(dy/100,1)+')';},{passive:true});
-document.addEventListener('touchend',()=>{if(pulling){const ind=$('pullIndicator');if(parseFloat(ind.style.transform.replace('scaleX(',''))>=1)refreshCurrentPage();ind.style.transform='scaleX(0)';pulling=false;}},{passive:true});
-let swipeX=0;
-document.addEventListener('touchstart',e=>{swipeX=e.touches[0].clientX;},{passive:true});
-document.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-swipeX;if(Math.abs(dx)<80)return;const pages=['home','a1','a2','a3','a4','a5','a13'];let idx=pages.indexOf(currentPage);if(dx<0&&idx<pages.length-1)idx++;else if(dx>0&&idx>0)idx--;else return;document.querySelector(`.tab-item[data-page="${pages[idx]}"]`).click();},{passive:true});
-$('btnPause').addEventListener('click',()=>{if(confirm('Pause pipeline?'))fetch('/api/pause',{method:'POST'}).catch(()=>{});});
-$('btnHalt').addEventListener('click',()=>{if(confirm('HALT?'))fetch('/api/halt',{method:'POST'}).catch(()=>{});});
-window._arenaClick=arenaClick;
-refreshHome();
-setInterval(refreshCurrentPage,REFRESH);
+poll();
+setInterval(poll,POLL);
 })();
 </script>
 </body>

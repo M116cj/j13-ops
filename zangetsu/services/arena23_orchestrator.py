@@ -29,6 +29,79 @@ from zangetsu.services.pidlock import acquire_lock
 
 from zangetsu.services.db_audit import log_transition
 
+# ── V10 factor-expression helpers (added by v10_complete_upgrade) ──
+_V10_ALPHA_ENGINE = None
+
+def _get_v10_engine():
+    global _V10_ALPHA_ENGINE
+    if _V10_ALPHA_ENGINE is None:
+        from zangetsu.engine.components.alpha_engine import AlphaEngine
+        _V10_ALPHA_ENGINE = AlphaEngine()
+    return _V10_ALPHA_ENGINE
+
+
+def _v10_get_alpha_expression(passport):
+    """Extract alpha_expression from passport, handling both schema variants."""
+    return (
+        passport.get("alpha_expression")
+        or (passport.get("arena1", {}) or {}).get("alpha_expression")
+        or {}
+    )
+
+
+def _v10_rolling_zscore(x, window=500):
+    """Causal rolling z-score. Mirrors alpha_ensemble._rolling_zscore.
+    Ex-ante only: out[i] uses only x[i-window:i] mean/std."""
+    import numpy as _np
+    n = len(x)
+    out = _np.zeros(n, dtype=_np.float32)
+    for i in range(window, n):
+        w = x[i-window:i]
+        m = _np.mean(w)
+        s = _np.std(w)
+        if s > 1e-10:
+            out[i] = (x[i] - m) / s
+    return out
+
+
+def _v10_alpha_to_signal(*_args, **_kwargs):
+    """DEPRECATED — retired by v2 fix (2026-04-18).
+
+    Old sign(tanh(rolling_zscore(raw))) pipeline caused A2/A3 to see only
+    0-1 trades on V10 champions that A1 had accepted with 30+ trades, because
+    A1 uses percentile-rank crossover via generate_alpha_signals. We now call
+    generate_alpha_signals inline in process_arena2 / process_arena3.
+
+    Kept as a stub so that accidental imports surface loudly rather than
+    silently resurrecting the bug.
+    """
+    raise NotImplementedError(
+        "_v10_alpha_to_signal was removed — A2/A3 now use "
+        "generate_alpha_signals() inline (see v2 fix plan 2026-04-18). "
+        "If you are importing this, you are re-introducing the bridge bug."
+    )
+
+
+def _v10_extract_symbol(champion, data_cache):
+    import json as _json
+    pp = champion.get("passport")
+    if isinstance(pp, str):
+        pp = _json.loads(pp)
+    a1 = pp.get("arena1", {}) or {}
+    sym = a1.get("symbol") or a1.get("arena1_symbol")
+    if sym and sym in data_cache:
+        return sym
+    discovery = pp.get("discovery", {}) or {}
+    sym = discovery.get("symbol")
+    if sym and sym in data_cache:
+        return sym
+    ih = champion.get("indicator_hash", "") or ""
+    for s in data_cache:
+        if ih.endswith(s):
+            return s
+    return None
+
+
 from zangetsu.config.settings import Settings
 from zangetsu.config.cost_model import CostModel
 from zangetsu.engine.components.backtester import Backtester, BacktestResult
@@ -43,6 +116,10 @@ from zangetsu.services.shared_utils import (
     compute_config_hash, half_kelly, extract_symbol, wilson_lower,
     ensure_db_connection, reap_expired_leases,
 )
+
+# v2 fix (2026-04-18): A1 signal-gen alignment. Same module + same env vars as
+# arena_pipeline.py so A1/A2/A3 see identical signals from identical alphas.
+from zangetsu.engine.components.alpha_signal import generate_alpha_signals
 
 from zangetsu.engine.components.logger import StructuredLogger
 
@@ -91,6 +168,21 @@ FIXED_TARGETS = [0.005, 0.008, 0.01, 0.015, 0.02, 0.03]
 
 # v9: Train-inner split ratio for A3 cross-validation
 A3_INNER_SPLIT = 0.80  # 80% of train for fitting, 20% for validation
+
+# ── V10 alpha→signal thresholds (v2 fix) ──────────────────────────
+# Read at module load; MUST match arena_pipeline.py L447-450 env vars so that
+# A1 and A2/A3 see identical signals from the same alpha values. A1 reject at
+# bt.total_trades<30; A2 reject at <25 (looser, already existed).
+_V10_ENTRY_THR = float(os.environ.get("ALPHA_ENTRY_THR", "0.80"))
+_V10_EXIT_THR = float(os.environ.get("ALPHA_EXIT_THR", "0.50"))
+try:
+    _V10_MIN_HOLD = max(1, int(os.environ.get("ALPHA_MIN_HOLD", "60")))
+except ValueError:
+    _V10_MIN_HOLD = 60
+try:
+    _V10_COOLDOWN = max(1, int(os.environ.get("ALPHA_COOLDOWN", "60")))
+except ValueError:
+    _V10_COOLDOWN = 60
 
 
 def recompute_normalized_matrix(
@@ -181,11 +273,16 @@ async def is_duplicate_champion(db: asyncpg.Connection, champion_id: int, passpo
     config_hash = compute_config_hash(configs)
 
     # Filter in Python since we need to compute config_hash from passport JSON
+    # MEDIUM-M3: explicitly exclude V9 engine_hash rows from A2 dedup. V9 LEGACY rows
+    # may keep non-LEGACY status (pre-migration artefacts); config_hash collision
+    # across engines would falsely block V10 champions. Literal is a static string
+    # (no user input), no SQL injection surface.
     rows = await db.fetch("""
         SELECT id, status, arena1_score, passport FROM champion_pipeline
         WHERE id != $1
           AND status NOT IN ('ARENA1_COMPLETE', 'ARENA2_REJECTED', 'ARENA3_REJECTED')
           AND status NOT LIKE 'LEGACY%'
+          AND (engine_hash IS NULL OR engine_hash NOT LIKE 'zv5_v9%')
         ORDER BY arena1_score DESC
         LIMIT 200
     """, champion_id)
@@ -338,6 +435,94 @@ async def process_arena2(
     close, high, low, volume = d["close"], d["high"], d["low"], d["volume"]
     cost_bps = cost_model.get(symbol).total_round_trip_bps
 
+    # ── V10 factor-expression branch (v2 fix 2026-04-18) ──
+    # Align with A1: compile AST, run generate_alpha_signals with SAME env
+    # thresholds A1 uses. The old _v10_alpha_to_signal (sign(tanh(zscore)))
+    # caused 0-1 trades here vs 30+ in A1 → 100% no_valid_combos rejection.
+    _v10_alpha = _v10_get_alpha_expression(passport)
+    _v10_ast = _v10_alpha.get("ast_json")
+    if _v10_ast:
+        import numpy as _np
+        open_arr = d.get("open", close)
+        try:
+            # end-to-end-upgrade fix 2026-04-19: populate singleton indicator_cache
+            # for this symbol before compiling, so the 126 indicator terminals are
+            # evaluated against real indicator data instead of silent zeros.
+            engine = _get_v10_engine()
+            try:
+                from zangetsu.engine.components.indicator_bridge import build_indicator_cache
+                _v10_cache = build_indicator_cache(
+                    _np.ascontiguousarray(close, dtype=_np.float64),
+                    _np.ascontiguousarray(high, dtype=_np.float64),
+                    _np.ascontiguousarray(low, dtype=_np.float64),
+                    _np.ascontiguousarray(volume, dtype=_np.float64),
+                )
+                engine.indicator_cache.clear()
+                engine.indicator_cache.update(_v10_cache)
+            except Exception as _ce:  # noqa: BLE001
+                log.warning(f"A2 indicator_cache build failed for {symbol}: {_ce}")
+            fn = engine.compile_ast(_v10_ast)
+            alpha_values = fn(close, high, low, open_arr, volume)
+            alpha_values = _np.asarray(alpha_values, dtype=_np.float64).ravel()
+            # Length alignment: pad head with nan if shorter, else trim head.
+            if alpha_values.shape[0] != close.shape[0]:
+                if alpha_values.shape[0] < close.shape[0]:
+                    padded = _np.full(close.shape[0], _np.nan)
+                    padded[-alpha_values.shape[0]:] = alpha_values
+                    alpha_values = padded
+                else:
+                    alpha_values = alpha_values[-close.shape[0]:]
+            alpha_values = _np.nan_to_num(alpha_values, nan=0.0, posinf=0.0, neginf=0.0)
+            if not _np.isfinite(alpha_values).all() or _np.std(alpha_values) < 1e-10:
+                log.info(f"A2 REJECTED id={champion_id} {symbol} [V10]: alpha_invalid_or_flat")
+                return None
+            sig, sz, _ = generate_alpha_signals(
+                alpha_values,
+                entry_threshold=_V10_ENTRY_THR,
+                exit_threshold=_V10_EXIT_THR,
+                min_hold=_V10_MIN_HOLD,
+                cooldown=_V10_COOLDOWN,
+            )
+        except Exception as _sg_err:  # noqa: BLE001
+            log.warning(
+                f"A2 V10 signal_gen failed id={champion_id} {symbol}: "
+                f"{type(_sg_err).__name__}:{_sg_err}"
+            )
+            return None
+        bt = backtester.run(sig, close, symbol, cost_bps, 480, high=high, low=low, sizes=sz)
+        if bt.total_trades < 25:
+            log.info(f"A2 REJECTED id={champion_id} {symbol} [V10]: trades={bt.total_trades} < 25")
+            return None
+        _pos = int(bt.net_pnl > 0) + int(bt.sharpe_ratio > 0) + int(bt.pnl_per_trade > 0)
+        if _pos < 2:
+            log.info(f"A2 REJECTED id={champion_id} {symbol} [V10]: pos_count={_pos}")
+            return None
+        passport_patch = {
+            "arena2": {
+                "v10_native": True,
+                "trades": int(bt.total_trades),
+                "pnl": float(bt.net_pnl),
+                "sharpe": float(bt.sharpe_ratio),
+                "ppt": float(bt.pnl_per_trade),
+                "alpha_ic": float(_v10_alpha.get("ic", 0.0)),
+                "alpha_hash": _v10_alpha.get("alpha_hash"),
+                "signal_gen": "generate_alpha_signals",
+                "signal_params": {
+                    "entry_threshold": _V10_ENTRY_THR,
+                    "exit_threshold": _V10_EXIT_THR,
+                    "min_hold": _V10_MIN_HOLD,
+                    "cooldown": _V10_COOLDOWN,
+                },
+            },
+        }
+        log.info(f"A2 PASS id={champion_id} {symbol} [V10]: trades={bt.total_trades} wr={bt.win_rate:.3f} sharpe={bt.sharpe_ratio:.2f}")
+        return True, {
+            "status": "ARENA2_COMPLETE",
+            "arena2_win_rate": float(bt.win_rate),
+            "arena2_n_trades": int(bt.total_trades),
+            "passport_patch": passport_patch,
+        }
+    # ── V9 indicator-combo flow below ──
     # Use RAW indicator values for signal generation (indicator_vote expects raw scales)
     names_raw, arrays_raw = recompute_raw_indicators(configs, close, high, low, volume)
     # Zero-MAD filter: skip indicators with no variance
@@ -559,6 +744,97 @@ async def process_arena3(
 
     # Use RAW indicator values for signal generation (indicator_vote expects raw scales)
     names_raw, arrays_raw = recompute_raw_indicators(configs, close_fit, high_fit, low_fit, vol_fit)
+    # ── V10 factor-expression branch for A3 (v2 fix 2026-04-18) ──
+    # Align with A1: compile AST, run generate_alpha_signals with SAME env
+    # thresholds A1 uses. NOTE: backtest runs on the FULL train window
+    # (full_close/high/low/volume), not the train-inner split — this matches
+    # the original v10 A3 intent (no ATR/TP grid for alpha-native strategies)
+    # and also fixes a latent NameError in the previous code that referenced
+    # undefined `close/high/low/volume` symbols at this scope.
+    _v10_alpha_a3 = _v10_get_alpha_expression(passport)
+    _v10_ast_a3 = _v10_alpha_a3.get("ast_json")
+    if _v10_ast_a3:
+        import numpy as _np
+        open_arr_a3 = d.get("open", full_close)
+        try:
+            # end-to-end-upgrade fix 2026-04-19: populate indicator_cache for full
+            # train window before compiling (see A2 branch above for rationale).
+            engine = _get_v10_engine()
+            try:
+                from zangetsu.engine.components.indicator_bridge import build_indicator_cache
+                _v10_cache_a3 = build_indicator_cache(
+                    _np.ascontiguousarray(full_close, dtype=_np.float64),
+                    _np.ascontiguousarray(full_high, dtype=_np.float64),
+                    _np.ascontiguousarray(full_low, dtype=_np.float64),
+                    _np.ascontiguousarray(full_volume, dtype=_np.float64),
+                )
+                engine.indicator_cache.clear()
+                engine.indicator_cache.update(_v10_cache_a3)
+            except Exception as _ce:  # noqa: BLE001
+                log.warning(f"A3 indicator_cache build failed for {symbol}: {_ce}")
+            fn = engine.compile_ast(_v10_ast_a3)
+            alpha_values = fn(full_close, full_high, full_low, open_arr_a3, full_volume)
+            alpha_values = _np.asarray(alpha_values, dtype=_np.float64).ravel()
+            if alpha_values.shape[0] != full_close.shape[0]:
+                if alpha_values.shape[0] < full_close.shape[0]:
+                    padded = _np.full(full_close.shape[0], _np.nan)
+                    padded[-alpha_values.shape[0]:] = alpha_values
+                    alpha_values = padded
+                else:
+                    alpha_values = alpha_values[-full_close.shape[0]:]
+            alpha_values = _np.nan_to_num(alpha_values, nan=0.0, posinf=0.0, neginf=0.0)
+            if not _np.isfinite(alpha_values).all() or _np.std(alpha_values) < 1e-10:
+                log.info(f"A3 REJECTED id={champion_id} {symbol} [V10]: alpha_invalid_or_flat")
+                return None
+            sig, sz, _ = generate_alpha_signals(
+                alpha_values,
+                entry_threshold=_V10_ENTRY_THR,
+                exit_threshold=_V10_EXIT_THR,
+                min_hold=_V10_MIN_HOLD,
+                cooldown=_V10_COOLDOWN,
+            )
+        except Exception as _sg_err:  # noqa: BLE001
+            log.warning(
+                f"A3 V10 signal_gen failed id={champion_id} {symbol}: "
+                f"{type(_sg_err).__name__}:{_sg_err}"
+            )
+            return None
+        # A3 uses ATR-ish stop. For V10 we use a single moderate ATR/TP as proxy.
+        bt_a3 = backtester.run(
+            sig, full_close, symbol, cost_bps, 480,
+            high=full_high, low=full_low, sizes=sz,
+        )
+        if bt_a3.total_trades < 25:
+            log.info(f"A3 REJECTED id={champion_id} {symbol} [V10]: trades={bt_a3.total_trades}")
+            return None
+        _pos = int(bt_a3.net_pnl > 0) + int(bt_a3.sharpe_ratio > 0) + int(bt_a3.pnl_per_trade > 0)
+        if _pos < 2:
+            log.info(f"A3 REJECTED id={champion_id} {symbol} [V10]: pos_count={_pos}")
+            return None
+        passport_patch = {
+            "arena3": {
+                "v10_native": True,
+                "trades": int(bt_a3.total_trades),
+                "pnl": float(bt_a3.net_pnl),
+                "sharpe": float(bt_a3.sharpe_ratio),
+                "signal_gen": "generate_alpha_signals",
+                "signal_params": {
+                    "entry_threshold": _V10_ENTRY_THR,
+                    "exit_threshold": _V10_EXIT_THR,
+                    "min_hold": _V10_MIN_HOLD,
+                    "cooldown": _V10_COOLDOWN,
+                },
+            },
+        }
+        log.info(f"A3 PASS id={champion_id} {symbol} [V10]: trades={bt_a3.total_trades} sharpe={bt_a3.sharpe_ratio:.2f}")
+        return {
+            "status": "ARENA3_COMPLETE",
+            "arena3_sharpe": float(min(bt_a3.sharpe_ratio, 3.0)),
+            "arena3_pnl": float(bt_a3.net_pnl),
+            "arena3_expectancy": float(bt_a3.pnl_per_trade),
+            "passport_patch": passport_patch,
+        }
+    # ── V9 ATR/TP grid flow below ──
     # Zero-MAD filter: skip indicators with no variance
     valid = [(n, a) for n, a in zip(names_raw, arrays_raw) if np.median(np.abs(a - np.median(a))) > 0]
     if len(valid) < 2:

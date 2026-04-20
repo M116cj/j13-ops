@@ -58,9 +58,10 @@ tool_tracker = ToolTracker(BASE_DIR)
 def log(level, msg):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     line = json.dumps({"ts": ts, "level": level, "msg": str(msg)[:300]})
+    # Emit to stdout only; systemd unit (StandardOutput=append:calcifer.log)
+    # captures stdout into the log file. Writing directly via open(LOG_FILE,"a")
+    # in addition to print() caused every line to be recorded twice.
     print(line, flush=True)
-    with open(LOG_FILE, "a") as f:
-        f.write(line + "\n")
 
 def ask_llm(prompt, max_tokens=1024):
     import urllib.request

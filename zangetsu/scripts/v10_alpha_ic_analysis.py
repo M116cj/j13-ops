@@ -1,3 +1,4 @@
+import os
 #!/usr/bin/env python3
 """V10 IC Distribution Analysis - per-regime, per-symbol.
 Computes: IC histogram, DSR (Deflated Sharpe Ratio), p-value distribution.
@@ -12,7 +13,7 @@ import psycopg2.extras
 from scipy.stats import norm
 
 DSN = os.environ.get('ZV5_DSN',
-    f"postgresql://zangetsu:{os.environ.get('ZV5_DB_PASSWORD', 'REDACTED')}@127.0.0.1:5432/zangetsu")
+    os.environ['ZV5_DSN'])
 
 
 def deflated_sharpe_ratio(observed_sr: float, sr_std: float, num_trials: int, T: int,

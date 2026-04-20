@@ -29,10 +29,7 @@ from zangetsu.engine.components.alpha_engine import AlphaEngine, AlphaResult
 
 log = logging.getLogger(__name__)
 
-DSN = os.environ.get(
-    "ZV5_DSN",
-    "postgresql://zangetsu:REDACTED@127.0.0.1:5432/zangetsu",
-)
+DSN = os.environ["ZV5_DSN"]  # no fallback — must be set in env
 DATA_DIR = Path("/home/j13/j13-ops/zangetsu/data/ohlcv")
 SYMBOLS = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "BNBUSDT", "XRPUSDT"]
 
@@ -109,6 +106,10 @@ async def discover_alphas_for_symbol(
         return 0
 
     inserted = 0
+    # P0b: duplicate counter — honest accounting of rows skipped by the
+    # partial unique index `uniq_alpha_hash_v10`. Computed via RETURNING id:
+    # attempted - len(returned) == skipped.
+    duplicate_alphas_skipped = 0
     try:
         for alpha in results:
             if abs(alpha.ic) < MIN_IC_THRESHOLD:
@@ -124,7 +125,14 @@ async def discover_alphas_for_symbol(
             }
             indicator_hash = f"alpha_{alpha.hash}_{sym}"
             try:
-                await conn.execute(
+                # P0b: ON CONFLICT (alpha_hash) DO NOTHING. The partial unique
+                # index `uniq_alpha_hash_v10` is defined WHERE alpha_hash IS NOT
+                # NULL; since we always pass a non-null $4, the conflict target
+                # is well-defined and the resolution is race-free at the DB
+                # level (single atomic INSERT attempt per row).
+                # RETURNING id lets us distinguish "inserted" from "skipped
+                # duplicate" without a second SELECT.
+                row = await conn.fetchrow(
                     """
                     INSERT INTO champion_pipeline (
                         regime, indicator_hash, alpha_hash, status, n_indicators,
@@ -137,14 +145,20 @@ async def discover_alphas_for_symbol(
                         'DISCOVERED', $3::jsonb, 'zv5_v10_alpha', 'gp_evolution',
                         NOW(), NOW()
                     )
-                    
+                    ON CONFLICT (alpha_hash) WHERE alpha_hash IS NOT NULL DO NOTHING
+                    RETURNING id
                     """,
                     indicator_hash,
                     float(abs(alpha.ic)),
                     json.dumps(passport),
                     alpha.hash,
                 )
-                inserted += 1
+                if row is not None:
+                    inserted += 1
+                else:
+                    # DO NOTHING path: row already existed, caught by
+                    # uniq_alpha_hash_v10 or uniq_regime_indicator_hash_v9.
+                    duplicate_alphas_skipped += 1
             except Exception as e:
                 log.warning(f"Insert alpha failed ({indicator_hash}): {e}")
     finally:
@@ -153,7 +167,11 @@ async def discover_alphas_for_symbol(
         except Exception as e:
             log.debug(f"DB close failed: {e}")
 
-    log.info(f"Inserted {inserted} alphas for {sym}")
+    log.info(
+        "Inserted %d alphas for %s (duplicates_skipped=%d, attempted=%d)",
+        inserted, sym, duplicate_alphas_skipped,
+        inserted + duplicate_alphas_skipped,
+    )
     return inserted
 
 

@@ -24,7 +24,7 @@ log = logging.getLogger(__name__)
 
 DSN = os.environ.get(
     "ZV5_DSN",
-    f"postgresql://zangetsu:{os.environ.get('ZV5_DB_PASSWORD', 'REDACTED')}@127.0.0.1:5432/zangetsu"
+    f"postgresql://zangetsu:{os.environ['ZV5_DB_PASSWORD']}@127.0.0.1:5432/zangetsu"
 )
 
 
