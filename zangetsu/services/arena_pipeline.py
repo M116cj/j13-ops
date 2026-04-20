@@ -483,7 +483,7 @@ async def main():
     try:
         existing_hashes = await db.fetch("""
             SELECT DISTINCT regime, alpha_hash
-            FROM champion_pipeline
+            FROM champion_pipeline_fresh
             WHERE status NOT LIKE 'LEGACY%'
               AND alpha_hash IS NOT NULL
         """)
@@ -601,7 +601,7 @@ async def main():
             try:
                 _rows = await db.fetch("""
                     SELECT DISTINCT regime, alpha_hash
-                    FROM champion_pipeline
+                    FROM champion_pipeline_fresh
                     WHERE status NOT LIKE 'LEGACY%'
                       AND alpha_hash IS NOT NULL
                 """)

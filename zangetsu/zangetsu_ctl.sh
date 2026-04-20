@@ -40,6 +40,11 @@ start_if_not_running() {
 
 case "${1:-status}" in
   start)
+    # v0.7.1 governance rule #5: bare champion_pipeline references abort start
+    if ! bash /home/j13/j13-ops/zangetsu/scripts/verify_no_archive_reads.sh; then
+      echo "Governance pre-flight failed. Fix bare 'champion_pipeline' SQL references before start."
+      exit 1
+    fi
     # Clear stale Numba cache to prevent ModuleNotFoundError on cold restart
     find . -name '*.nbi' -not -path './.venv/*' -delete 2>/dev/null
     find . -name '*.nbc' -not -path './.venv/*' -delete 2>/dev/null
