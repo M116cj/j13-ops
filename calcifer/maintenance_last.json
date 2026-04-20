@@ -1,5 +1,5 @@
 {
-  "start": "2026-04-20T04:01:06.233639+00:00",
+  "start": "2026-04-20T16:00:00.669892+00:00",
   "tasks": {
     "docker_prune": {
       "status": "OK",
@@ -8,40 +8,40 @@
     },
     "postgres_vacuum": {
       "status": "OK",
-      "duration_s": 0.2,
-      "output": "zangetsu:INFO:  analyzing \"public.champion_pipeline\"\nINFO:  \"champion_pipeline\": scanned 295 of 295 pages, containing 1564 live rows and 0 dead rows; 1564 rows in sample, 1564 estimated total rows\nVACUUM\nakasha:ERROR:  VACUUM cannot run inside a transaction block"
+      "duration_s": 0.1,
+      "output": "zangetsu:ERROR:  relation \"champion_pipeline\" does not exist\nakasha:ERROR:  VACUUM cannot run inside a transaction block"
     },
     "redis_health": {
       "status": "OK",
-      "duration_s": 0.1,
-      "output": "magi: used_memory_human:970.80K\nmaxmemory_policy:noeviction\n# Keyspace\ndb0:keys=3,expires=1,avg_ttl=1831168,subexpiry=0\nakasha: used_memory_human:1.02M"
+      "duration_s": 0.2,
+      "output": "magi: used_memory_human:1.26M\nmaxmemory_policy:noeviction\n# Keyspace\ndb0:keys=3,expires=1,avg_ttl=1655039,subexpiry=0\nakasha: used_memory_human:1.19M"
     },
     "akasha_compact": {
       "status": "OK",
       "duration_s": 0.0,
-      "output": "{\"deleted\": 34, \"status\": \"ok\"}"
+      "output": "{\"deleted\": 32, \"status\": \"ok\"}"
     },
     "log_rotation": {
       "status": "OK",
-      "duration_s": 0.5,
+      "duration_s": 0.6,
       "output": "rotation: \nsizes: 39M\t/home/j13/j13-ops/zangetsu/logs"
     },
     "backup_verify": {
       "status": "OK",
       "duration_s": 0.0,
-      "output": "pg:\n-rw-rw-r-- 1 j13 j13 1.2M Apr 18 10:00 /home/j13/backups/postgres/zangetsu-20260418_020001.sql.gz\n-rw-rw-r-- 1 j13 j13 2.2M Apr 19 10:00 /home/j13/backups/postgres/zangetsu-20260419_020001.sql.gz\n-rw-rw-r-- 1 j13 j13 2.2M Apr 20 10:00 /home/j13/backups/postgres/zangetsu-20260420_020001.sql.gz\nredis:\n-rw------- 1 j13 j13 1.9K Apr 18 11:00 /home/j13/backups/redis/magi-20260418_030001.rdb\n-rw------- 1 j13 j13 2.1K Apr 19 11:00 /home/j13/backups/redis/magi-20260419_030001.rdb\n-rw------- 1 j13 j13 2.1K Apr 20 11:00 /home/j13/backups/redis/magi-20260420_030001.rdb\nfresh_pg_24h=4"
+      "output": "pg:\n-rw-rw-r-- 1 j13 j13 1.2M Apr 18 10:00 /home/j13/backups/postgres/zangetsu-20260418_020001.sql.gz\n-rw-rw-r-- 1 j13 j13 2.2M Apr 19 10:00 /home/j13/backups/postgres/zangetsu-20260419_020001.sql.gz\n-rw-rw-r-- 1 j13 j13 2.2M Apr 20 10:00 /home/j13/backups/postgres/zangetsu-20260420_020001.sql.gz\nredis:\n-rw------- 1 j13 j13 1.9K Apr 18 11:00 /home/j13/backups/redis/magi-20260418_030001.rdb\n-rw------- 1 j13 j13 2.1K Apr 19 11:00 /home/j13/backups/redis/magi-20260419_030001.rdb\n-rw------- 1 j13 j13 2.1K Apr 20 11:00 /home/j13/backups/redis/magi-20260420_030001.rdb\nfresh_pg_24h=6"
     },
     "disk_memory_gpu": {
       "status": "OK",
       "duration_s": 0.0,
-      "output": "disk:\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/nvme1n1p2  915G   69G  801G   8% /\n/dev/nvme1n1p2  915G   69G  801G   8% /\n/dev/nvme1n1p2  915G   69G  801G   8% /\nmem:\ntotal        used        free      shared  buff/cache   available\nMem:            31Gi       2.0Gi        27Gi        39Mi       2.2Gi        29Gi\ngpu: NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.\n\nno GPU\nload: 12:01:07 up 0 min,  0 user,  load average: 1.27, 0.27, 0.09"
+      "output": "disk:\nFilesystem      Size  Used Avail Use% Mounted on\n/dev/nvme1n1p2  915G   69G  801G   8% /\n/dev/nvme1n1p2  915G   69G  801G   8% /\n/dev/nvme1n1p2  915G   69G  801G   8% /\nmem:\ntotal        used        free      shared  buff/cache   available\nMem:            31Gi       8.8Gi        10Gi        84Mi        11Gi        22Gi\ngpu: NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.\n\nno GPU\nload: 00:00:02 up 11:59,  2 users,  load average: 9.97, 10.85, 9.46"
     },
     "zangetsu_status": {
       "status": "OK",
       "duration_s": 0.1,
-      "output": "services:\narena-pipeline: inactive\narena23-orchestrator: inactive\narena45-orchestrator: inactive\narena13-feedback.timer: inactive\ndashboard-api: active\nconsole-api: active\ndb:\nchampions=1564 deployable=0"
+      "output": "services:\narena-pipeline: inactive\narena23-orchestrator: inactive\narena45-orchestrator: inactive\narena13-feedback.timer: inactive\ndashboard-api: active\nconsole-api: active\ndb:\nchampions=0 deployable=0"
     }
   },
-  "end": "2026-04-20T04:01:07.987242+00:00",
+  "end": "2026-04-20T16:00:02.505311+00:00",
   "duration_s": 1.8
 }

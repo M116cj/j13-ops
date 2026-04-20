@@ -68,3 +68,13 @@
 {"ts": "2026-04-20T04:01:07Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
 {"ts": "2026-04-20T04:01:07Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
 {"ts": "2026-04-20T04:01:07Z", "level": "INFO", "msg": "Maintenance complete: OK=8 WARN=0 ERR=0 SKIP=0 duration=1.8s"}
+{"ts": "2026-04-20T16:00:00Z", "level": "INFO", "msg": "Calcifer nightly maintenance starting (TW 00:00-01:00)"}
+{"ts": "2026-04-20T16:00:01Z", "level": "INFO", "msg": "[docker_prune] OK (0.8s)"}
+{"ts": "2026-04-20T16:00:01Z", "level": "INFO", "msg": "[postgres_vacuum] OK (0.1s)"}
+{"ts": "2026-04-20T16:00:01Z", "level": "INFO", "msg": "[redis_health] OK (0.2s)"}
+{"ts": "2026-04-20T16:00:01Z", "level": "INFO", "msg": "[akasha_compact] OK (0.0s)"}
+{"ts": "2026-04-20T16:00:02Z", "level": "INFO", "msg": "[log_rotation] OK (0.6s)"}
+{"ts": "2026-04-20T16:00:02Z", "level": "INFO", "msg": "[backup_verify] OK (0.0s)"}
+{"ts": "2026-04-20T16:00:02Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
+{"ts": "2026-04-20T16:00:02Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
+{"ts": "2026-04-20T16:00:02Z", "level": "INFO", "msg": "Maintenance complete: OK=8 WARN=0 ERR=0 SKIP=0 duration=1.8s"}

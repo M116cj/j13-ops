@@ -558,8 +558,8 @@ async def main():
     N_GEN = _env_int("ALPHA_N_GEN", 20, 5)
     POP_SIZE = _env_int("ALPHA_POP_SIZE", 100, 20)
     TOP_K = _env_int("ALPHA_TOP_K", 10, 1)
-    ENTRY_THR = float(os.environ.get("ALPHA_ENTRY_THR", "0.80"))
-    EXIT_THR = float(os.environ.get("ALPHA_EXIT_THR", "0.50"))
+    ENTRY_THR = float(os.environ.get("ALPHA_ENTRY_THR", "0.95"))
+    EXIT_THR = float(os.environ.get("ALPHA_EXIT_THR", "0.65"))
     MIN_HOLD = _env_int("ALPHA_MIN_HOLD", 60, 1)
     COOLDOWN = _env_int("ALPHA_COOLDOWN", 60, 1)
 

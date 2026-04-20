@@ -308,8 +308,13 @@ async def run_for_strategy(strategy_id: str, args):
     fit_mod_name, thresh_mod_name = STRATEGY_MODULES[strategy_id]
     fit_mod = importlib.import_module(fit_mod_name)
     thresh_mod = importlib.import_module(thresh_mod_name)
-    max_hold = int(thresh_mod.MAX_HOLD_BARS)
-    log.info("%s MAX_HOLD_BARS=%s", strategy_id, max_hold)
+    _override = os.environ.get("COLDSTART_OVERRIDE_MAX_HOLD")
+    if _override:
+        max_hold = int(_override)
+        log.info("%s MAX_HOLD_BARS=%s (OPERATOR OVERRIDE, original strategy value=%s)", strategy_id, max_hold, thresh_mod.MAX_HOLD_BARS)
+    else:
+        max_hold = int(thresh_mod.MAX_HOLD_BARS)
+        log.info("%s MAX_HOLD_BARS=%s", strategy_id, max_hold)
 
     # Provenance base — one bundle per strategy run
     from zangetsu.engine.provenance import (
