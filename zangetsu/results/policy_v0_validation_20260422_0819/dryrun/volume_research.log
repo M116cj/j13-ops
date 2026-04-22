@@ -1,0 +1,18 @@
+===== family-strategy-policy v0 =====
+requested_family_id   = 'volume'
+normalized_family_id  = 'volume'
+resolved_family_id    = 'volume'
+normalization_applied = False
+normalization_reason  = 'canonical_name'
+mode                  = 'research'
+route_status          = 'active'
+route_reason          = 'validated_family:volume'
+validated             = True
+evidence_tag          = 'volume_rw250_et090_verified'
+policy_version        = 'v0'
+rank_window           = 250
+entry_threshold       = 0.9
+min_hold              = 60
+exit_threshold        = 0.5
+=====================================
+[policy-integration-v0] dry-run complete; exiting before harness.

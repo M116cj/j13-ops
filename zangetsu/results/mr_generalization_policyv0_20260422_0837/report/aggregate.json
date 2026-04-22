@@ -1,0 +1,313 @@
+{
+  "control": {
+    "arm": "control_rw500_et080",
+    "total_cells": 140,
+    "a1_survivors": 0,
+    "a1_survival_rate": 0.0,
+    "by_gate": {
+      "a1_train_neg_pnl": 102,
+      "a1_val_low_wr": 9,
+      "a1_val_neg_pnl": 25,
+      "a1_val_low_sharpe": 4
+    },
+    "cells_reaching_val": 38,
+    "mean_train_net_pnl": -0.16386344350240523,
+    "median_train_net_pnl": -0.12907645263216994,
+    "mean_val_net_pnl": -0.05094257505228278,
+    "median_val_net_pnl": -0.03528954431122422,
+    "mean_train_sharpe": -0.6154660348243205,
+    "mean_val_sharpe": -0.41002502944255964,
+    "total_train_trades": 9017,
+    "trade_weighted_avg_hold_bars": 66.19108350892758,
+    "pct_trades_in_60_65": 72.56293667516913,
+    "pct_trades_in_115_120": 4.7687701009204835,
+    "pile_15_20": 21,
+    "pile_30_35": 22,
+    "pile_60_65": 6543,
+    "pile_115_120": 430,
+    "exit_signal_total": 9512,
+    "exit_atr_total": 0,
+    "exit_max_hold_total": 417,
+    "primary_invariance_match_all": true,
+    "primary_invariance_mismatch_count": 0,
+    "telemetry_rows": 178,
+    "symbols_with_survivor": 0,
+    "per_symbol_survivor_count": {},
+    "per_symbol_reach_val": {
+      "SOLUSDT": 5,
+      "XRPUSDT": 7,
+      "AAVEUSDT": 5,
+      "DOTUSDT": 4,
+      "FILUSDT": 3,
+      "BTCUSDT": 2,
+      "BNBUSDT": 1,
+      "AVAXUSDT": 2,
+      "LINKUSDT": 1,
+      "GALAUSDT": 2,
+      "ETHUSDT": 2,
+      "1000SHIBUSDT": 2,
+      "1000PEPEUSDT": 1,
+      "DOGEUSDT": 1
+    },
+    "per_symbol_median_train_net_pnl": {
+      "BTCUSDT": -0.05798743207152322,
+      "ETHUSDT": -0.15296587254693908,
+      "BNBUSDT": -0.10120657283568421,
+      "SOLUSDT": 0.005822865085660479,
+      "XRPUSDT": 0.007293215804115554,
+      "DOGEUSDT": -0.253613028989069,
+      "LINKUSDT": -0.14474341702160193,
+      "AAVEUSDT": -0.009653866829590282,
+      "AVAXUSDT": -0.20157729661515128,
+      "DOTUSDT": -0.15529100820662048,
+      "FILUSDT": -0.11257210758518187,
+      "1000PEPEUSDT": -0.4026218345167254,
+      "1000SHIBUSDT": -0.18088285177780222,
+      "GALAUSDT": -0.3112093259972061
+    },
+    "per_symbol_median_val_sharpe": {
+      "SOLUSDT": 0.4605962932485108,
+      "XRPUSDT": -0.2663999413106851,
+      "AAVEUSDT": -1.0857240877548755,
+      "DOTUSDT": -0.23801849914166376,
+      "FILUSDT": -0.8818250587427228,
+      "BTCUSDT": -1.2014989870021895,
+      "BNBUSDT": 0.9684629678939559,
+      "AVAXUSDT": -0.3063751971192666,
+      "LINKUSDT": -0.18616456214285873,
+      "GALAUSDT": -1.0700738236128338,
+      "ETHUSDT": -0.9312052453016357,
+      "1000SHIBUSDT": -0.180226323830543,
+      "1000PEPEUSDT": 0.28781598920970086,
+      "DOGEUSDT": 0.11369743546475772
+    },
+    "per_symbol_reject_breakdown": {
+      "BTCUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_neg_pnl": 2
+      },
+      "ETHUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_neg_pnl": 2
+      },
+      "BNBUSDT": {
+        "a1_train_neg_pnl": 9,
+        "a1_val_low_wr": 1
+      },
+      "SOLUSDT": {
+        "a1_val_low_wr": 3,
+        "a1_train_neg_pnl": 5,
+        "a1_val_neg_pnl": 2
+      },
+      "XRPUSDT": {
+        "a1_val_neg_pnl": 5,
+        "a1_val_low_wr": 2,
+        "a1_train_neg_pnl": 3
+      },
+      "DOGEUSDT": {
+        "a1_train_neg_pnl": 9,
+        "a1_val_low_sharpe": 1
+      },
+      "LINKUSDT": {
+        "a1_train_neg_pnl": 9,
+        "a1_val_neg_pnl": 1
+      },
+      "AAVEUSDT": {
+        "a1_val_neg_pnl": 3,
+        "a1_train_neg_pnl": 5,
+        "a1_val_low_wr": 2
+      },
+      "AVAXUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_neg_pnl": 2
+      },
+      "DOTUSDT": {
+        "a1_val_low_wr": 1,
+        "a1_train_neg_pnl": 6,
+        "a1_val_neg_pnl": 3
+      },
+      "FILUSDT": {
+        "a1_val_low_sharpe": 1,
+        "a1_train_neg_pnl": 7,
+        "a1_val_neg_pnl": 2
+      },
+      "1000PEPEUSDT": {
+        "a1_train_neg_pnl": 9,
+        "a1_val_low_sharpe": 1
+      },
+      "1000SHIBUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_neg_pnl": 1,
+        "a1_val_low_sharpe": 1
+      },
+      "GALAUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_neg_pnl": 2
+      }
+    }
+  },
+  "candidate": {
+    "arm": "candidate_rw250_et090",
+    "total_cells": 140,
+    "a1_survivors": 0,
+    "a1_survival_rate": 0.0,
+    "by_gate": {
+      "a1_val_low_sharpe": 4,
+      "a1_train_neg_pnl": 94,
+      "a1_val_neg_pnl": 31,
+      "a1_val_low_wr": 11
+    },
+    "cells_reaching_val": 46,
+    "mean_train_net_pnl": -0.1351930119066787,
+    "median_train_net_pnl": -0.0986054459076239,
+    "mean_val_net_pnl": -0.05940199320623204,
+    "median_val_net_pnl": -0.049823933770326935,
+    "mean_train_sharpe": -0.4881344378894573,
+    "mean_val_sharpe": -0.5033584732020695,
+    "total_train_trades": 8376,
+    "trade_weighted_avg_hold_bars": 65.86950811843361,
+    "pct_trades_in_60_65": 71.78844317096467,
+    "pct_trades_in_115_120": 4.286055396370583,
+    "pile_15_20": 33,
+    "pile_30_35": 21,
+    "pile_60_65": 6013,
+    "pile_115_120": 359,
+    "exit_signal_total": 9094,
+    "exit_atr_total": 0,
+    "exit_max_hold_total": 372,
+    "primary_invariance_match_all": true,
+    "primary_invariance_mismatch_count": 0,
+    "telemetry_rows": 186,
+    "symbols_with_survivor": 0,
+    "per_symbol_survivor_count": {},
+    "per_symbol_reach_val": {
+      "BTCUSDT": 3,
+      "XRPUSDT": 6,
+      "AAVEUSDT": 6,
+      "ETHUSDT": 3,
+      "DOGEUSDT": 3,
+      "FILUSDT": 3,
+      "1000SHIBUSDT": 3,
+      "BNBUSDT": 2,
+      "SOLUSDT": 5,
+      "LINKUSDT": 4,
+      "1000PEPEUSDT": 2,
+      "GALAUSDT": 2,
+      "DOTUSDT": 2,
+      "AVAXUSDT": 2
+    },
+    "per_symbol_median_train_net_pnl": {
+      "BTCUSDT": -0.050484587678420845,
+      "ETHUSDT": -0.16910606503271552,
+      "BNBUSDT": -0.10069379096990491,
+      "SOLUSDT": -0.00904673950790364,
+      "XRPUSDT": 0.041490532214211694,
+      "DOGEUSDT": -0.041592642591744715,
+      "LINKUSDT": -0.20738563705957738,
+      "AAVEUSDT": 0.18070900663615494,
+      "AVAXUSDT": -0.16548149382142202,
+      "DOTUSDT": -0.29731508841866616,
+      "FILUSDT": -0.1949829996852738,
+      "1000PEPEUSDT": -0.17009701035487207,
+      "1000SHIBUSDT": -0.07859171975428067,
+      "GALAUSDT": -0.27843643700226745
+    },
+    "per_symbol_median_val_sharpe": {
+      "BTCUSDT": -0.265017583762444,
+      "XRPUSDT": -0.8844348305390803,
+      "AAVEUSDT": -0.1415267304546613,
+      "ETHUSDT": -1.5313037279915953,
+      "DOGEUSDT": -0.47510573675852624,
+      "FILUSDT": -0.46791862365381814,
+      "1000SHIBUSDT": -0.5288960342873317,
+      "BNBUSDT": 0.5980112504940144,
+      "SOLUSDT": 0.3794009121736088,
+      "LINKUSDT": -0.9786799806365873,
+      "1000PEPEUSDT": -0.1962299636837813,
+      "GALAUSDT": -0.02399124653586379,
+      "DOTUSDT": -1.2395139218302367,
+      "AVAXUSDT": 0.27904135637021815
+    },
+    "per_symbol_reject_breakdown": {
+      "BTCUSDT": {
+        "a1_val_low_sharpe": 1,
+        "a1_train_neg_pnl": 7,
+        "a1_val_neg_pnl": 2
+      },
+      "ETHUSDT": {
+        "a1_train_neg_pnl": 7,
+        "a1_val_neg_pnl": 3
+      },
+      "BNBUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_low_wr": 1,
+        "a1_val_neg_pnl": 1
+      },
+      "SOLUSDT": {
+        "a1_train_neg_pnl": 5,
+        "a1_val_low_wr": 3,
+        "a1_val_neg_pnl": 2
+      },
+      "XRPUSDT": {
+        "a1_val_neg_pnl": 4,
+        "a1_val_low_wr": 1,
+        "a1_train_neg_pnl": 4,
+        "a1_val_low_sharpe": 1
+      },
+      "DOGEUSDT": {
+        "a1_train_neg_pnl": 7,
+        "a1_val_neg_pnl": 3
+      },
+      "LINKUSDT": {
+        "a1_train_neg_pnl": 6,
+        "a1_val_neg_pnl": 3,
+        "a1_val_low_wr": 1
+      },
+      "AAVEUSDT": {
+        "a1_val_neg_pnl": 4,
+        "a1_train_neg_pnl": 4,
+        "a1_val_low_wr": 2
+      },
+      "AVAXUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_low_wr": 1,
+        "a1_val_low_sharpe": 1
+      },
+      "DOTUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_neg_pnl": 2
+      },
+      "FILUSDT": {
+        "a1_train_neg_pnl": 7,
+        "a1_val_neg_pnl": 2,
+        "a1_val_low_sharpe": 1
+      },
+      "1000PEPEUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_neg_pnl": 1,
+        "a1_val_low_wr": 1
+      },
+      "1000SHIBUSDT": {
+        "a1_train_neg_pnl": 7,
+        "a1_val_neg_pnl": 3
+      },
+      "GALAUSDT": {
+        "a1_train_neg_pnl": 8,
+        "a1_val_low_wr": 1,
+        "a1_val_neg_pnl": 1
+      }
+    }
+  },
+  "delta": {
+    "delta_a1_survivors": 0,
+    "delta_a1_survival_rate": 0.0,
+    "delta_a1_train_neg_pnl": -8,
+    "delta_a1_val_neg_pnl": 6,
+    "delta_a1_val_low_wr": 2,
+    "delta_a1_val_low_sharpe": 0,
+    "delta_mean_val_sharpe": -0.09333344375950986,
+    "delta_mean_train_net_pnl": 0.02867043159572652,
+    "delta_symbol_breadth": 0,
+    "delta_cells_reaching_val": 8
+  }
+}

@@ -1,0 +1,21 @@
+===== family-strategy-policy v0 =====
+requested_family_id   = 'mean_reversion_candidate_test'
+normalized_family_id  = 'mean_reversion_candidate_test'
+resolved_family_id    = 'mean_reversion_candidate_test'
+normalization_applied = False
+normalization_reason  = 'overlay_direct_hit'
+mode                  = 'research'
+route_status          = 'candidate_test'
+route_reason          = 'overlay_candidate_test:mean_reversion_candidate_test'
+validated             = False
+evidence_tag          = 'mr_generalization_candidate_test'
+policy_version        = 'v0'
+registry_source       = 'overlay'
+overlay_path          = '/tmp/mr_candidate_overlay_v0.yaml'
+rank_window           = 250
+entry_threshold       = 0.9
+min_hold              = 60
+exit_threshold        = 0.5
+=====================================
+[policy-integration-v0] NOTICE: family_id='mean_reversion_candidate_test' is an OVERLAY candidate_test route (validated=false, source=overlay:'/tmp/mr_candidate_overlay_v0.yaml'); experimental parameters applied (rank_window=250, entry_threshold=0.9, min_hold=60, exit_threshold=0.5). NOT a production route.
+[policy-integration-v0] dry-run complete; exiting before harness.

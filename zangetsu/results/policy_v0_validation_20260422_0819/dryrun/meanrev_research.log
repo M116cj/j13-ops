@@ -1,0 +1,19 @@
+===== family-strategy-policy v0 =====
+requested_family_id   = 'mean_reversion'
+normalized_family_id  = 'mean_reversion'
+resolved_family_id    = 'mean_reversion'
+normalization_applied = False
+normalization_reason  = 'canonical_name'
+mode                  = 'research'
+route_status          = 'fallback'
+route_reason          = 'unvalidated_family_safe_fallback'
+validated             = False
+evidence_tag          = 'not_verified'
+policy_version        = 'v0'
+rank_window           = 500
+entry_threshold       = 0.8
+min_hold              = 60
+exit_threshold        = 0.5
+=====================================
+[policy-integration-v0] WARNING: family_id='mean_reversion' is unvalidated; using safe fallback parameters (rank_window=500, entry_threshold=0.8, min_hold=60, exit_threshold=0.5).
+[policy-integration-v0] dry-run complete; exiting before harness.

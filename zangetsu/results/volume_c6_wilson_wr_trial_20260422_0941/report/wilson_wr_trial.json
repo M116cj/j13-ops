@@ -1,0 +1,105 @@
+{
+  "trial": {
+    "old_floor": 0.52,
+    "new_floor": 0.48,
+    "other_gates_unchanged": true
+  },
+  "population": {
+    "total": 140,
+    "reached_val": 39,
+    "existing_survivors": 2,
+    "prod_pass_reverified": 2,
+    "trial_pass": 4,
+    "new_survivors": 2,
+    "boundary_pool_size": 2
+  },
+  "new_survivors_detail": [
+    {
+      "symbol": "BTCUSDT",
+      "formula": "decay_20(volume)",
+      "train_net_pnl": 0.1052,
+      "train_sharpe": 0.5939,
+      "val_net_pnl": 0.317,
+      "val_sharpe": 3.1833,
+      "val_wilson_wr": 0.4913,
+      "val_trades": 23,
+      "classification": "Acceptable",
+      "alpha_hash": "0cea1d5ad3806aba"
+    },
+    {
+      "symbol": "DOTUSDT",
+      "formula": "decay_20(volume)",
+      "train_net_pnl": 0.3185,
+      "train_sharpe": 0.9093,
+      "val_net_pnl": 0.2855,
+      "val_sharpe": 1.3583,
+      "val_wilson_wr": 0.4841,
+      "val_trades": 25,
+      "classification": "Acceptable",
+      "alpha_hash": "0cea1d5ad3806aba"
+    }
+  ],
+  "boundary_pool_detail": [
+    {
+      "symbol": "BTCUSDT",
+      "formula": "decay_20(volume)",
+      "train_net_pnl": 0.1052,
+      "train_sharpe": 0.5939,
+      "val_net_pnl": 0.317,
+      "val_sharpe": 3.1833,
+      "val_wilson_wr": 0.4913,
+      "val_trades": 23,
+      "passes_new": true,
+      "classification": "Acceptable",
+      "alpha_hash": "0cea1d5ad3806aba"
+    },
+    {
+      "symbol": "DOTUSDT",
+      "formula": "decay_20(volume)",
+      "train_net_pnl": 0.3185,
+      "train_sharpe": 0.9093,
+      "val_net_pnl": 0.2855,
+      "val_sharpe": 1.3583,
+      "val_wilson_wr": 0.4841,
+      "val_trades": 25,
+      "passes_new": true,
+      "classification": "Acceptable",
+      "alpha_hash": "0cea1d5ad3806aba"
+    }
+  ],
+  "classification_counts": {
+    "Acceptable": 2
+  },
+  "quality_summary": {
+    "breadth": 2,
+    "symbols": {
+      "BTCUSDT": 1,
+      "DOTUSDT": 1
+    },
+    "mean_val_net_pnl": 0.3012,
+    "median_val_net_pnl": 0.3012,
+    "mean_val_sharpe": 2.2708,
+    "median_val_sharpe": 2.2708,
+    "mean_val_wilson_wr": 0.4877,
+    "median_val_wilson_wr": 0.4877,
+    "pnl_consistency": 1.0,
+    "sharpe_consistency": 1.0,
+    "both_consistency": 1.0
+  },
+  "yes_conditions": {
+    "new_survivors_ge_3": false,
+    "breadth_ge_3": false,
+    "acceptable_rate_ge_70pct": true,
+    "mean_val_sharpe_gt_0": true,
+    "mean_val_net_pnl_gt_0": true,
+    "train_val_consistency_ge_80pct": true
+  },
+  "no_conditions": {
+    "new_survivors_eq_0": false,
+    "majority_fragile": false,
+    "mean_shp_le_0": false,
+    "mean_pnl_le_0": false,
+    "consistency_lt_50pct": false
+  },
+  "verdict": "MIXED \u2014 borderline"
+}

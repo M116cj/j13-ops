@@ -1,0 +1,241 @@
+{
+  "input_summary": {
+    "total": 140,
+    "train_blocked": 101,
+    "reached_val": 39,
+    "existing_survivors": 2,
+    "val_blocked": 37
+  },
+  "existing_survivor_keys": [
+    {
+      "alpha_hash": "0cea1d5ad3806aba",
+      "symbol": "SOLUSDT",
+      "formula": "decay_20(volume)"
+    },
+    {
+      "alpha_hash": "0cea1d5ad3806aba",
+      "symbol": "LINKUSDT",
+      "formula": "decay_20(volume)"
+    }
+  ],
+  "thresholds": {
+    "val_neg_pnl_strict_gt": 0.0,
+    "val_low_sharpe_gte": 0.3,
+    "val_low_wr_gte": 0.52
+  },
+  "table_a_gate_attribution": {
+    "total_val_blocked": 37,
+    "by_exclusive_gate": {
+      "val_neg_pnl_only": 0,
+      "val_low_sharpe_only": 0,
+      "val_low_wr_only": 17
+    },
+    "by_overlap": {
+      "neg_pnl_AND_low_sharpe_only": 0,
+      "neg_pnl_AND_low_wr_only": 0,
+      "low_sharpe_AND_low_wr_only": 1,
+      "all_three": 19
+    },
+    "any_gate_hit": {
+      "any_val_neg_pnl": 19,
+      "any_val_low_sharpe": 20,
+      "any_val_low_wr": 37
+    },
+    "val_blocked_that_pass_all_three_gates": 0,
+    "full_attribution": {
+      "val_low_sharpe|val_low_wr": 1,
+      "val_low_sharpe|val_low_wr|val_neg_pnl": 19,
+      "val_low_wr": 17
+    }
+  },
+  "table_b_counterfactual_survivors": [
+    {
+      "id": "G0",
+      "description": "current (no gate removed) - baseline",
+      "counterfactual_survivors": 2,
+      "net_new_vs_G0": 0,
+      "symbols_with_new_survivor": 2,
+      "overlap_with_existing_survivors": 2,
+      "unlock_rate_over_val_blocked": 0.0
+    },
+    {
+      "id": "G1",
+      "description": "remove val_neg_pnl only",
+      "counterfactual_survivors": 2,
+      "net_new_vs_G0": 0,
+      "symbols_with_new_survivor": 2,
+      "overlap_with_existing_survivors": 2,
+      "unlock_rate_over_val_blocked": 0.0
+    },
+    {
+      "id": "G2",
+      "description": "remove val_low_wr only",
+      "counterfactual_survivors": 19,
+      "net_new_vs_G0": 17,
+      "symbols_with_new_survivor": 12,
+      "overlap_with_existing_survivors": 2,
+      "unlock_rate_over_val_blocked": 0.4595
+    },
+    {
+      "id": "G3",
+      "description": "remove val_low_sharpe only",
+      "counterfactual_survivors": 2,
+      "net_new_vs_G0": 0,
+      "symbols_with_new_survivor": 2,
+      "overlap_with_existing_survivors": 2,
+      "unlock_rate_over_val_blocked": 0.0
+    },
+    {
+      "id": "G4",
+      "description": "remove val_neg_pnl + val_low_wr",
+      "counterfactual_survivors": 19,
+      "net_new_vs_G0": 17,
+      "symbols_with_new_survivor": 12,
+      "overlap_with_existing_survivors": 2,
+      "unlock_rate_over_val_blocked": 0.4595
+    },
+    {
+      "id": "G5",
+      "description": "remove val_neg_pnl + val_low_sharpe",
+      "counterfactual_survivors": 2,
+      "net_new_vs_G0": 0,
+      "symbols_with_new_survivor": 2,
+      "overlap_with_existing_survivors": 2,
+      "unlock_rate_over_val_blocked": 0.0
+    },
+    {
+      "id": "G6",
+      "description": "remove val_low_sharpe + val_low_wr",
+      "counterfactual_survivors": 20,
+      "net_new_vs_G0": 18,
+      "symbols_with_new_survivor": 12,
+      "overlap_with_existing_survivors": 2,
+      "unlock_rate_over_val_blocked": 0.4865
+    },
+    {
+      "id": "G7",
+      "description": "remove all three",
+      "counterfactual_survivors": 39,
+      "net_new_vs_G0": 37,
+      "symbols_with_new_survivor": 14,
+      "overlap_with_existing_survivors": 2,
+      "unlock_rate_over_val_blocked": 1.0
+    }
+  ],
+  "table_c_unlock_quality": {
+    "G0": {
+      "unlocked": 0,
+      "viable": 0,
+      "borderline": 0,
+      "junk": 0
+    },
+    "G1": {
+      "unlocked": 0,
+      "viable": 0,
+      "borderline": 0,
+      "junk": 0
+    },
+    "G2": {
+      "unlocked": 17,
+      "clearly_viable": 0,
+      "borderline": 17,
+      "likely_junk": 0,
+      "mean_val_net_pnl": 0.1608,
+      "median_val_net_pnl": 0.1356,
+      "mean_val_sharpe": 1.2141,
+      "median_val_sharpe": 1.0427,
+      "mean_val_wilson_wr": 0.3806,
+      "median_val_wilson_wr": 0.3707
+    },
+    "G3": {
+      "unlocked": 0,
+      "viable": 0,
+      "borderline": 0,
+      "junk": 0
+    },
+    "G4": {
+      "unlocked": 17,
+      "clearly_viable": 0,
+      "borderline": 17,
+      "likely_junk": 0,
+      "mean_val_net_pnl": 0.1608,
+      "median_val_net_pnl": 0.1356,
+      "mean_val_sharpe": 1.2141,
+      "median_val_sharpe": 1.0427,
+      "mean_val_wilson_wr": 0.3806,
+      "median_val_wilson_wr": 0.3707
+    },
+    "G5": {
+      "unlocked": 0,
+      "viable": 0,
+      "borderline": 0,
+      "junk": 0
+    },
+    "G6": {
+      "unlocked": 18,
+      "clearly_viable": 0,
+      "borderline": 18,
+      "likely_junk": 0,
+      "mean_val_net_pnl": 0.1527,
+      "median_val_net_pnl": 0.1272,
+      "mean_val_sharpe": 1.1604,
+      "median_val_sharpe": 1.0145,
+      "mean_val_wilson_wr": 0.3796,
+      "median_val_wilson_wr": 0.3707
+    },
+    "G7": {
+      "unlocked": 37,
+      "clearly_viable": 0,
+      "borderline": 20,
+      "likely_junk": 17,
+      "mean_val_net_pnl": 0.0073,
+      "median_val_net_pnl": -0.0051,
+      "mean_val_sharpe": 0.0427,
+      "median_val_sharpe": -0.0619,
+      "mean_val_wilson_wr": 0.316,
+      "median_val_wilson_wr": 0.3139
+    }
+  },
+  "answers_4q": {
+    "Q1_which_gate_blocks_most_nonjunk": {
+      "val_neg_pnl_exclusive": {
+        "n": 0,
+        "viable": 0,
+        "borderline": 0,
+        "junk": 0
+      },
+      "val_low_sharpe_exclusive": {
+        "n": 0,
+        "viable": 0,
+        "borderline": 0,
+        "junk": 0
+      },
+      "val_low_wr_exclusive": {
+        "n": 17,
+        "viable": 0,
+        "borderline": 17,
+        "junk": 0
+      }
+    },
+    "Q2_remove_val_neg_pnl_alone": {
+      "delta_survivors": 0,
+      "delta_symbols": 0,
+      "net_new_cells": 0,
+      "unlock_rate_over_val_blocked": 0.0
+    },
+    "Q3_unlock_quality_profile_G7": {
+      "unlocked": 37,
+      "clearly_viable": 0,
+      "borderline": 20,
+      "likely_junk": 17,
+      "mean_val_net_pnl": 0.0073,
+      "mean_val_sharpe": 0.0427
+    },
+    "Q4_residual_blocker": {
+      "g7_unlocked": 37,
+      "viable_frac": 0.0,
+      "junk_frac": 0.4595,
+      "mean_val_net_pnl_unlocked": 0.0073
+    }
+  }
+}

@@ -1,0 +1,103 @@
+# Volume C6 Approved Exception Overlay (task-local, narrow allow-list)
+# Created 2026-04-22 per j13's approval of β path after Wilson WR 0.48 trial
+# (MIXED — 2 Acceptable-class rescues, failed YES only on count/breadth).
+#
+# Scope and contract:
+#   - This overlay does NOT change the global Wilson_wr 0.52 floor.
+#   - It does NOT modify the main v0 registry.
+#   - It allows exactly TWO (symbol, formula) pairs to pass A1 val_low_wr
+#     under the already-validated Volume family parameters 250x0.90x60x0.50.
+#   - Primary match key: formula string.
+#   - Secondary (defensive) verification: alpha_hash.
+#   - Hash-only match without formula match is NOT a valid pass.
+#   - This overlay is NOT a family runnable on its own — it only augments the
+#     main "volume" active route when a cell's (symbol, formula) is in the allow_list.
+#
+# Naming discipline (j13 boundary §1):
+#   route_status = "candidate_exception"  (not candidate_test, not active)
+
+policy_version: "v0"
+overlay_kind: "candidate_exception"
+
+defaults:
+  fallback_mode_default: "safe_fallback"
+  fallback_rank_window: 500
+  fallback_entry_threshold: 0.80
+  fallback_min_hold: 60
+  fallback_exit_threshold: 0.50
+
+aliases:
+  volume_c6_approved_exceptions: volume_c6_approved_exceptions
+
+families:
+  volume_c6_approved_exceptions:
+    validated: false
+    route_status: "candidate_exception"
+    evidence_tag: "wilson_wr_0.48_trial_verified_2026-04-22"
+    # Parameters are inherited from the Volume active route semantics — they
+    # apply to cells that match the allow_list only.
+    rank_window: 250
+    entry_threshold: 0.90
+    min_hold: 60
+    exit_threshold: 0.50
+
+    approval_reason: |
+      Met 4 of 6 YES bars in the Wilson_wr 0.48 trial (100% Acceptable,
+      100% train-val pnl/sharpe sign consistency, mean val_sharpe +2.27,
+      mean val_pnl +0.30). Failed YES only on count (2 vs required 3) and
+      breadth (2 vs required 3). j13 approved a narrow allow-list β path
+      2026-04-22 rather than global floor relaxation.
+
+    boundary_condition: |
+      Applies ONLY when (symbol, formula) matches allow_list below. All other
+      Volume cells continue to use the global val_low_wr floor of 0.52 from
+      the main v0 registry 'volume' active route. No cell outside allow_list
+      is ever bypassed.
+
+    # Dual-track review / expiry (j13 boundary §2)
+    review_after_event: "next_volume_L9_cycle"
+    review_by_date_hint: "2026-05-22T00:00:00Z"
+    expiry_after_event: "1_experiment_cycle_or_quality_regression"
+    expires_at: "2026-07-22T00:00:00Z"
+
+    created_at: "2026-04-22T09:41:00Z"
+    created_by: "task 421-5 Wilson WR 0.48 trial, promoted via option beta"
+    review_required: true
+
+    # allow_list — primary key = formula string; alpha_hash is defensive.
+    allow_list:
+      - symbol: "BTCUSDT"
+        formula: "decay_20(volume)"
+        alpha_hash: "0cea1d5ad3806aba"
+        evidence:
+          train_net_pnl: 0.1052
+          train_sharpe: 0.5939
+          val_net_pnl: 0.3170
+          val_sharpe: 3.1833
+          val_wilson_wr: 0.4913
+        source_run: "/home/j13/j13-ops/zangetsu/results/volume_c6_valgate_audit_20260422_0854/run/volume_active.jsonl"
+        classification: "Acceptable"
+        notes: "Strong val profile (sharpe 3.18), train-val sign consistent."
+
+      - symbol: "DOTUSDT"
+        formula: "decay_20(volume)"
+        alpha_hash: "0cea1d5ad3806aba"
+        evidence:
+          train_net_pnl: 0.3185
+          train_sharpe: 0.9093
+          val_net_pnl: 0.2855
+          val_sharpe: 1.3583
+          val_wilson_wr: 0.4841
+        source_run: "/home/j13/j13-ops/zangetsu/results/volume_c6_valgate_audit_20260422_0854/run/volume_active.jsonl"
+        classification: "Acceptable"
+        notes: "Strong train-val coherence, wilson_wr at 0.4841 (just above 0.48 floor)."
+
+    post_check_semantics: |
+      Each recurring use MUST re-verify this allow_list against fresh data.
+      Remove on first observation of any of:
+        - val_sharpe regression >50% vs recorded evidence
+        - val_wilson_wr drift below 0.45
+        - train-val sign divergence on either pnl or sharpe
+      Never auto-promote to 'active' based on repeated exception hits;
+      promotion to active route requires a formal run to main-registry via
+      a dedicated decision-grade task (not this overlay).

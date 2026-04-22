@@ -1,0 +1,18 @@
+===== family-strategy-policy v0 =====
+requested_family_id   = 'breakout'
+normalized_family_id  = 'breakout'
+resolved_family_id    = 'breakout'
+normalization_applied = False
+normalization_reason  = 'canonical_name'
+mode                  = 'research'
+route_status          = 'active'
+route_reason          = 'validated_family:breakout'
+validated             = True
+evidence_tag          = 'breakout_rw500_et080_verified'
+policy_version        = 'v0'
+rank_window           = 500
+entry_threshold       = 0.8
+min_hold              = 60
+exit_threshold        = 0.5
+=====================================
+[policy-integration-v0] dry-run complete; exiting before harness.

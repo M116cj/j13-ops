@@ -1,0 +1,59 @@
+{
+  "total_cells": 140,
+  "allow_list_declared": 2,
+  "allow_list_pairs": [
+    {
+      "symbol": "BTCUSDT",
+      "formula": "decay_20(volume)"
+    },
+    {
+      "symbol": "DOTUSDT",
+      "formula": "decay_20(volume)"
+    }
+  ],
+  "allow_list_hits": 2,
+  "allow_list_no_hits": 0,
+  "non_allow_list_cells": 138,
+  "non_allow_list_fallthrough": 138,
+  "unexpected_exception_hits": 0,
+  "total_exception_hits": 2,
+  "expected_exception_hits": 2,
+  "per_pair_detail": [
+    {
+      "idx": 0,
+      "symbol": "BTCUSDT",
+      "formula": "decay_20(volume)",
+      "in_run": true,
+      "exception_hit": true,
+      "override_applied": true,
+      "first_gate": "A1_PASSED",
+      "survived_a1": true,
+      "route_status": "active",
+      "exception_overlay_name": "volume_c6_approved_exceptions",
+      "exception_pair_key": "BTCUSDT::decay_20(volume)",
+      "exception_evidence_tag": "wilson_wr_0.48_trial_verified_2026-04-22"
+    },
+    {
+      "idx": 1,
+      "symbol": "DOTUSDT",
+      "formula": "decay_20(volume)",
+      "in_run": true,
+      "exception_hit": true,
+      "override_applied": true,
+      "first_gate": "A1_PASSED",
+      "survived_a1": true,
+      "route_status": "active",
+      "exception_overlay_name": "volume_c6_approved_exceptions",
+      "exception_pair_key": "DOTUSDT::decay_20(volume)",
+      "exception_evidence_tag": "wilson_wr_0.48_trial_verified_2026-04-22"
+    }
+  ],
+  "gate_outcome_counts": {
+    "a1_train_neg_pnl": 101,
+    "a1_val_low_sharpe": 1,
+    "a1_val_neg_pnl": 19,
+    "a1_val_low_wr": 15,
+    "A1_PASSED": 4
+  },
+  "verdict": "PASS"
+}

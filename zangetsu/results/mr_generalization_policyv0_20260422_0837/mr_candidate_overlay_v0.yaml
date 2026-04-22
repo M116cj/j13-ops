@@ -1,0 +1,34 @@
+# Task-local overlay policy registry for 421-5 Mean-Reversion generalization test.
+# This overlay does NOT pollute the main v0 registry:
+#   - main registry still marks mean_reversion as unvalidated
+#   - this overlay DEFINES a separate family_id `mean_reversion_candidate_test`
+#     with candidate parameters for the candidate arm only
+#
+# Contract:
+#   - Overlay schema is the same v0 schema with route_status="candidate_test"
+#     permitted (only in overlay context; main registries reject it).
+#   - Overlay family_ids must NOT collide with any main-registry family_id.
+#   - Overlay entries are explicitly scoped to this one experiment.
+
+policy_version: "v0"
+
+defaults:
+  fallback_mode_default: "safe_fallback"
+  fallback_rank_window: 500
+  fallback_entry_threshold: 0.80
+  fallback_min_hold: 60
+  fallback_exit_threshold: 0.50
+
+aliases:
+  mean_reversion_candidate_test: mean_reversion_candidate_test
+
+families:
+  mean_reversion_candidate_test:
+    validated: false
+    route_status: "candidate_test"
+    evidence_tag: "mr_generalization_candidate_test"
+    rank_window: 250
+    entry_threshold: 0.90
+    min_hold: 60
+    exit_threshold: 0.50
+    notes: "Task 421-5 candidate arm. Tests whether Volume-family best-known 250x0.90x60x0.50 generalizes to Mean-Reversion. NOT a production route. Must be paired with the fallback control from the main v0 registry (mean_reversion/research -> 500x0.80x60x0.50)."

@@ -1,0 +1,30 @@
+===== family-strategy-policy v0 =====
+requested_family_id   = 'volume'
+normalized_family_id  = 'volume'
+resolved_family_id    = 'volume'
+normalization_applied = False
+normalization_reason  = 'canonical_name'
+mode                  = 'research'
+route_status          = 'active'
+route_reason          = 'validated_family:volume'
+validated             = True
+evidence_tag          = 'volume_rw250_et090_verified'
+policy_version        = 'v0'
+registry_source       = 'main'
+overlay_path          = None
+exception_hit         = False
+exception_pair_key    = None
+rank_window           = 250
+entry_threshold       = 0.9
+min_hold              = 60
+exit_threshold        = 0.5
+=====================================
+[policy-integration-v0] === EXCEPTION OVERLAY LOADED ===
+[policy-integration-v0] exception_overlay_path = /tmp/volume_c6_exceptions_overlay.yaml
+[policy-integration-v0] overlay family = 'volume_c6_approved_exceptions' (evidence_tag='wilson_wr_0.48_trial_verified_2026-04-22', allow_list size=2)
+[policy-integration-v0]   allow[0] symbol='BTCUSDT' formula='decay_20(volume)' alpha_hash='0cea1d5ad3806aba'
+[policy-integration-v0]   allow[1] symbol='DOTUSDT' formula='decay_20(volume)' alpha_hash='0cea1d5ad3806aba'
+[policy-integration-v0]   expires_at = '2026-07-22T00:00:00Z' (absolute; resolver will fail-close past this)
+[policy-integration-v0]   expiry_after_event = '1_experiment_cycle_or_quality_regression' (event-only; informational)
+[policy-integration-v0] total allow_list entries = 2
+[policy-integration-v0] dry-run complete; exiting before harness.
