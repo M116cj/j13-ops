@@ -265,7 +265,12 @@ Drift entries are evidence, not tasks. Tasks are generated in Phase 7 patch queu
 | MEDIUM | **9** (was 8; -D-15 downgraded, +D-22, +D-23) | L4/L5/L7/L2/L7/L7/L4/L4 |
 | LOW | **3** (was 2; +D-15 downgraded) | L8.G hygiene, L2 process mgmt |
 
-**Blocker count = 1** → confirms Ascension can proceed after L1 control-plane design (Phase 2 control_plane_blueprint.md is the first prerequisite before any migration).
+**Blocker count = 2 (updated v2.1 for cross-doc consistency per Gemini round-2 minor inconsistency #2)**:
+- **D-01** — Control Plane missing entirely (this file)
+- **CS-05** — Docker-exec bypass of all code-level gates (enumerated in `uncontrolled_io_map.md` §CS-05, upgraded HIGHEST→BLOCKER in v2 per Gemini §E.2)
+
+Phase 2 migration must address BOTH before any production patch migration proceeds.
+
 **New symptom drift (D-23)**: cold-start as de-facto default signals that Phase 4 signal-truth audit cannot wait; it's a diagnostic lens for the "no OOS edge" hypothesis.
 
 ---

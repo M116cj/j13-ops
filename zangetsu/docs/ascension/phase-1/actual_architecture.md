@@ -97,7 +97,7 @@ Deployed elsewhere on Alaya:
 
 ## §2 — How responsibilities map to (the absence of) the 10 intended layers
 
-| Intended layer | Actual location | Problem |
+| Intended layer (v2 numbering) | Actual location | Problem |
 |---|---|---|
 | L1 Control Plane | **DOES NOT EXIST as a layer.** Closest thing is `zangetsu_ctl.sh` + `@macmini13bot` + v0.5.5 miniapp. But: no central authoritative store for parameters; no decision-rights enforcement; no rollout-state machine. | Configs scattered across env / settings.py / yaml / ctl / DB function bodies / orchestrator hardcoded literals. |
 | L2 Engine Kernel | Split across `shared_utils.claim_champion/release_champion/reap_expired_leases` + per-orchestrator main loops | No single "kernel" object; state-machine logic duplicated in orchestrators. |
@@ -106,9 +106,8 @@ Deployed elsewhere on Alaya:
 | L5 Evaluation | Embedded inside `arena23_orchestrator.py::process_arena2/3` + `arena45_orchestrator.py::arena4_pass/arena5_*` + `backtester.run` | No unified evaluator; train/holdout/oos split is per-orchestrator-defined; cost model lives in `settings.py` + hardcoded literals. |
 | L6 Gate | Mixed: `admission_validator` PL/pgSQL + orchestrator per-arena gates (hardcoded thresholds) + `PROMOTE_*` in `settings.py` + Calcifer block file | Five different gate authors, no unified registry, no version history. |
 | L7 Output | `champion_pipeline_fresh` table + `/api/zangetsu/live` file snapshot + miniapp + Telegram via calcifer | Output targets are wired ad-hoc; no publish contract; no schema versioning. |
-| L8 Observability | `zangetsu_status` VIEW + `/tmp/*.md` reports + engine.jsonl + Calcifer block file | No metric export (Prometheus etc.); VIEW is the only aggregation; reports are static files. |
-| L9 Governance | `verify_no_archive_reads.sh` + charter §17 + pre-bash hook + decision records + CI (partially) | Most rules in §17 are HUMAN disciplines, not enforced by code. Post-violation detection absent. |
-| L10 Black-box adapter | **DOES NOT EXIST.** | LGBM / future transformer / external agents have no wrapper contract. |
+| **L8 Integrity & Governance** (merged v2: was L8 + L9) | L8.O: `zangetsu_status` VIEW + `/tmp/*.md` reports + engine.jsonl + Calcifer block file. L8.G: `verify_no_archive_reads.sh` + charter §17 + pre-bash hook + decision records + CI (partially). | L8.O: no metric export; L8.G: most rules are HUMAN disciplines, not code-enforced. Post-violation detection absent. |
+| **L9 Black-box Adapter Pattern** (demoted v2: was L10) | **DOES NOT EXIST.** | LGBM / future transformer / external agents have no wrapper contract. Demoted from layer to pattern because only GP is active today (D-07). |
 
 ---
 
