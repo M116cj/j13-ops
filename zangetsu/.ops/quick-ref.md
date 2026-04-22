@@ -18,7 +18,7 @@
 | Shadow runner (no DB writes) | `/tmp/shadow_control_suite.py` | `evaluate_shadow / main`; CLI: `--input yaml --output jsonl --symbols S1,S2,... --strategy j01 --bar-size 15 --run-id ID` |
 | Policy Layer main registry | `config/family_strategy_policy_v0.yaml` | SINGLE SoT for family → parameter |
 | Policy Layer resolver | `engine/policy/family_strategy_policy_v0.py` | `resolve_family_strategy_policy` + `resolve_with_allow_list` |
-| Policy Layer integration wrapper | `/tmp/family_strategy_policy_integration_v0.py` (should migrate to `scripts/` in next commit) | CLI: `--family-id X --policy-mode {research,production} [--overlay-registry / --exception-overlay] [--dry-run]` |
+| Policy Layer integration wrapper | `scripts/family_strategy_policy_integration_v0.py` (should migrate to `scripts/` in next commit) | CLI: `--family-id X --policy-mode {research,production} [--overlay-registry / --exception-overlay] [--dry-run]` |
 | Exception overlay (v0) | `config/volume_c6_exceptions_overlay.yaml` | 2 allow_list pairs, expires 2026-07-22 |
 
 ---
@@ -123,7 +123,7 @@ cat /tmp/calcifer_deploy_block.json   # present + "status":"RED" → deploy bloc
 ### Shadow run through policy layer (canonical invocation)
 ```bash
 STRATEGY_ID=j01 /home/j13/j13-ops/zangetsu/.venv/bin/python \
-  /tmp/family_strategy_policy_integration_v0.py \
+  scripts/family_strategy_policy_integration_v0.py \
   --family-id volume --policy-mode research \
   --input /tmp/doe_volume_l9.yaml \
   --output /path/to/out.jsonl \
