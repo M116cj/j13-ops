@@ -83,7 +83,7 @@ An adapter is ACCEPTED into registry iff:
 1. All fields above are populated with non-placeholder values.
 2. Input + output contracts match the upstream / downstream module's declared contracts.
 3. Integrity hash is verifiable at load time.
-4. Failure modes listed cover: upstream-unreachable, malformed-response, rate-limited, authentication-failure, schema-drift, latency-blowup.
+4. Failure modes listed cover: upstream-unreachable, malformed-response, rate-limited, authentication-failure, schema-drift, latency-blowup, **non-determinism_detected** (v2 per Gemini §F.2 — replay-fixture divergence), **resource_exhaustion** (v2 — RSS / CPU thresholds).
 5. Rollback path is tested in shadow-mode before going CANARY.
 6. Health endpoint is queried by L8.O freshness monitor.
 7. Adapter is registered in `module_registry_spec.md` entry with `blackbox_pattern_applied: true` + `adapter_contract_ref: <path>`.
@@ -123,6 +123,9 @@ adapter:
     - {name: model_not_loaded, detection: predict() throws, recovery: reload from last checkpoint}
     - {name: latency_blowup, detection: p95 > 5s, recovery: circuit-breaker open for 60s}
     - {name: schema_drift, detection: input shape mismatch, recovery: fail-closed}
+    # v2 — added per Gemini §F.2:
+    - {name: non_determinism_detected, detection: replay N (default 50) predictions on fixed-input fixture at startup + every 1h; flag if any two runs diverge beyond float-epsilon, recovery: freeze adapter to last-known-good checkpoint + RED Telegram}
+    - {name: resource_exhaustion, detection: process RSS > config.max_rss_mb OR CPU sustained > config.max_cpu_pct for 60s, recovery: circuit-breaker + degrade to peer search path + RED Telegram}
   rollback_path: "CP: set rollout_tier=OFF; remove module from L4 search_engine registry"
   metrics_emitted: [predict_latency_ms, prediction_count, null_rate, feature_coverage]
 ```

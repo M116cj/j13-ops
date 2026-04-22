@@ -61,11 +61,15 @@ module:
 
 ---
 
-## §4 — Registry storage
+## §4 — Registry storage (v2 — CI/CD-hook sync per Gemini §D.1)
 
 - Canonical registry lives in Postgres `control_plane.modules` table.
-- Human-editable YAMLs under `zangetsu/module_contracts/<module_id>.yaml` are the source of truth for each module's contract; CP sync job reads + upserts.
-- On worker startup, worker self-registers OR verifies its declared contract against registry; mismatch = fail-closed.
+- Human-editable YAMLs under `zangetsu/module_contracts/<module_id>.yaml` are the source of truth for each module's contract.
+- **Sync trigger (v2)**: YAML → Postgres sync happens in a **GitHub Actions workflow on merge to `main`**, NOT a periodic cron. Rationale: cron creates a drift window between commit and sync; CI-hook ensures registry is in lockstep with repo `main` immediately.
+- Workflow fails if: (a) YAML malformed, (b) breaking contract change without ADR, (c) upsert conflicts with live module dependents.
+- **Fallback**: emergency `zctl registry sync --force` with explicit owner token, logged to audit (only when CI pipeline is unavailable).
+- On worker startup, worker self-registers OR verifies its declared contract against registry; mismatch = **fail-closed** (Gemini §D.1 strict enforcement).
+- Drift reconciler (Phase 6 gov_reconciler) periodically compares Postgres registry vs repo HEAD; any mismatch → RED Telegram alert.
 
 ---
 

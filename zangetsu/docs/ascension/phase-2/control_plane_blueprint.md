@@ -108,7 +108,8 @@ Per Ascension spec §12 + `production_safety_contract.md`:
 | Worker counts | YES | YES (within bounds) | CHALLENGE | n/a | n/a | YES (owner-fresh) |
 | Kill switches | YES | YES (for own scope) | CHALLENGE | n/a | EMERGENCY | YES (owner-fresh) |
 | Search params (mutation, pset, horizon) | YES | YES (with ADR) | CHALLENGE | n/a | n/a | YES (with ADR) |
-| Gate thresholds | YES | PROPOSE (requires ADR + before/after) | CHALLENGE | n/a | n/a | NO direct (require ADR path) |
+| Gate thresholds (major, >±5%) | YES | PROPOSE (requires ADR + before/after) | CHALLENGE | n/a | n/a | NO direct (require ADR path) |
+| Gate thresholds (**low-impact, within ±5% of current value, v2 per Gemini §H.4**) | YES | **YES autonomous** (still requires ADR + audit, but no human approval gate) | CHALLENGE | n/a | n/a | YES via miniapp with owner-fresh |
 | Cost models | YES | NO (market truth) | CHALLENGE | n/a | n/a | NO |
 | Data sources | YES | PROPOSE | CHALLENGE | n/a | n/a | YES (read-only changes) |
 | Output routing | YES | YES (within contract) | CHALLENGE | n/a | n/a | YES |
@@ -235,7 +236,16 @@ The docker-exec surface bypasses all code-level gates. CP alone cannot solve thi
 - Running a reconciler cron that compares live DB hash vs expected + flags divergence
 - Emitting an alert when any out-of-band DDL/DML is detected (pg_stat_statements audit)
 
-Hard solution for CS-05 is operational (restrict docker group membership + require MFA for `docker exec`), out of Phase 2 scope. Phase 2 delivers detection; Phase 7 / ops-hardening delivers prevention.
+**v2 per Gemini §H.3 — alert severity mandated**: on detecting **any** out-of-band schema or hash change, `gov_reconciler` MUST emit a **High-Priority RED Telegram alert** immediately (severity=`critical` via `calcifer/notifier.py::notify_telegram`, routed to the infra channel not the publishing channel). This is non-optional; detection without immediate alert is insufficient.
+
+The alert payload MUST include:
+- detecting reconciler run id
+- expected hash vs observed hash
+- pg_stat_statements last-N statements preview (redacted of values)
+- operator PID / tty / user if available
+- suggested immediate action (e.g., "reject next `feat(/vN)` until investigated")
+
+Hard solution for CS-05 is operational (restrict docker group membership + require MFA for `docker exec`), out of Phase 2 scope. Phase 2 delivers detection + mandatory alert; Phase 7 / ops-hardening delivers prevention.
 
 ---
 
