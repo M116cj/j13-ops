@@ -58,7 +58,7 @@ def alpha_to_signal(
         
         if position == 0:
             bars_since_exit += 1
-            if bars_since_exit >= cooldown and size >= entry_rank_threshold - 0.5:
+            if bars_since_exit >= cooldown and size >= 2 * entry_rank_threshold - 1.0:
                 # Decide direction
                 if rank > 0.5:
                     position = 1  # Long: alpha is high (bullish signal)
@@ -72,7 +72,7 @@ def alpha_to_signal(
         else:
             hold_count += 1
             # Exit conditions
-            if hold_count >= min_hold and size < exit_rank_threshold - 0.3:
+            if hold_count >= min_hold and size < exit_rank_threshold:
                 signals[i] = 0
                 position = 0
                 hold_count = 0

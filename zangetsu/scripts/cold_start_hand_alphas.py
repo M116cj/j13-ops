@@ -46,6 +46,8 @@ from zangetsu.engine.components.alpha_engine import AlphaEngine
 from zangetsu.engine.components.alpha_signal import generate_alpha_signals
 from zangetsu.engine.components.backtester import Backtester
 from zangetsu.engine.components.indicator_bridge import build_indicator_cache
+from zangetsu.config.cost_model import CostModel
+_cost_model = CostModel()  # CD-03: per-symbol round-trip cost
 from zangetsu.services.shared_utils import wilson_lower
 
 log = logging.getLogger("cold_start")
@@ -64,8 +66,8 @@ SEED_FORMULAS = [
 TRAIN_SPLIT_RATIO = 0.7
 HOLDOUT_WINDOW_BARS = 200_000
 COST_BPS = 5.0
-ENTRY_THR = 0.80
-EXIT_THR = 0.40
+ENTRY_THR = float(os.environ.get("ALPHA_ENTRY_THR", "0.80"))
+EXIT_THR = float(os.environ.get("ALPHA_EXIT_THR", "0.50"))
 MIN_HOLD = 60
 COOLDOWN = 60
 
@@ -150,7 +152,7 @@ def evaluate_and_backtest(func, data_slice, indicator_cache_to_inject, engine,
         signals,
         data_slice["close"].astype(np.float32),
         symbol,
-        COST_BPS,
+        _cost_model.get(symbol).total_round_trip_bps,  # CD-03: per-symbol real cost
         max_hold_bars,
         high=data_slice["high"].astype(np.float32),
         low=data_slice["low"].astype(np.float32),
@@ -390,6 +392,7 @@ async def run_for_strategy(strategy_id: str, args):
                 if res.get("skipped"):
                     summary["skipped"] += 1
                     reason = res["reason"].split(":")[0]
+                    log.info("[skip] %s %s %s reason=%s", strategy_id, sym, formula[:40], res["reason"])
                     summary["by_reason"][reason] = summary["by_reason"].get(reason, 0) + 1
                 elif res.get("admitted"):
                     summary["admitted"] += 1

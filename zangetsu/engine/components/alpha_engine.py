@@ -356,10 +356,36 @@ class AlphaEngine:
             ARG0="close", ARG1="high", ARG2="low", ARG3="open", ARG4="volume"
         )
 
-        # 126 indicator terminals bound to cache via closure.
+        # Indicator terminals bound to cache via closure.
+        # CD-05 hygiene: env ZANGETSU_PSET_MODE=lean reduces 126 -> 48 terminals
+        # (archive survivors used 0 indicators; GP was wasting evolution budget).
+        import os as _os
+        _pset_mode = _os.environ.get("ZANGETSU_PSET_MODE", "full").lower()
+        if _pset_mode == "lean":
+            try:
+                from zangetsu.engine.components.pset_lean_config import (
+                    LEAN_INDICATOR_NAMES as _pset_indicators,
+                    LEAN_PERIODS as _pset_periods,
+                )
+                log.info(
+                    "PSET_MODE=lean active: %d indicators x %d periods = %d terminals",
+                    len(_pset_indicators), len(_pset_periods),
+                    len(_pset_indicators) * len(_pset_periods),
+                )
+            except ImportError as _e:
+                log.warning(
+                    "PSET_MODE=lean requested but pset_lean_config missing; "
+                    "falling back to full. err=%s", _e,
+                )
+                _pset_indicators = INDICATOR_NAMES
+                _pset_periods = PERIODS
+        else:
+            _pset_indicators = INDICATOR_NAMES
+            _pset_periods = PERIODS
+
         indicator_terminal_names: List[str] = []
-        for ind in INDICATOR_NAMES:
-            for period in PERIODS:
+        for ind in _pset_indicators:
+            for period in _pset_periods:
                 term_name = f"{ind}_{period}"
                 indicator_terminal_names.append(term_name)
 
