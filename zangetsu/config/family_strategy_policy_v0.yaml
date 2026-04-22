@@ -1,0 +1,89 @@
+# Family-Aware Strategy Policy Layer — v0 Registry
+# SINGLE SOURCE OF TRUTH for family -> signal-generation parameter mapping.
+# Created 2026-04-22 per task 421-4.
+#
+# Contract:
+#   - Every family routing decision MUST consult this registry via the resolver.
+#   - No wrapper / runner may embed parameter mappings as constants.
+#   - Schema changes require policy_version bump + explicit ADR.
+#
+# Validated evidence (v0):
+#   - volume   250x0.90x60x0.50  : 421-3 prior-truth (Volume family generalization test)
+#   - breakout 500x0.80x60x0.50  : 421-3 prior-truth (Breakout family reference)
+#   - mean_reversion : unvalidated (421-3 MIXED; 250x0.90 did not generalize)
+#   - min_hold=60   : min_hold_ablation 2026-04-22 confirmed as correct floor at 250x0.90
+
+policy_version: "v0"
+
+defaults:
+  fallback_mode_default: "safe_fallback"
+  fallback_rank_window: 500
+  fallback_entry_threshold: 0.80
+  fallback_min_hold: 60
+  fallback_exit_threshold: 0.50
+
+# Explicit alias table. Fuzzy / contains / partial matching is FORBIDDEN.
+# Canonical names MUST also appear as self-aliases for clean normalization reporting.
+aliases:
+  volume: volume
+  volume_family: volume
+  breakout: breakout
+  breakout_family: breakout
+  mean_reversion: mean_reversion
+  "mean-reversion": mean_reversion
+  mr: mean_reversion
+  momentum: momentum
+  funding: funding
+  divergence: divergence
+  unknown: unknown
+
+families:
+  volume:
+    validated: true
+    rank_window: 250
+    entry_threshold: 0.90
+    min_hold: 60
+    exit_threshold: 0.50
+    route_status: "active"
+    evidence_tag: "volume_rw250_et090_verified"
+    notes: "Per 421-3 prior-truth: 250x0.90 materially outperformed 500x0.80 (A1 survivors 1 -> 3, breadth widened across multiple symbols)."
+
+  breakout:
+    validated: true
+    rank_window: 500
+    entry_threshold: 0.80
+    min_hold: 60
+    exit_threshold: 0.50
+    route_status: "active"
+    evidence_tag: "breakout_rw500_et080_verified"
+    notes: "Per 421-3 prior-truth: 250x0.90 failed on Breakout (survivors 1 -> 0, train_neg_pnl worsened)."
+
+  mean_reversion:
+    validated: false
+    route_status: "unvalidated"
+    evidence_tag: "not_verified"
+    notes: "421-3 MIXED: 250x0.90 widened train gate but val absorbed all extra cells; mean val Sharpe regressed -0.09. Not cleared for family-specific parameters."
+
+  momentum:
+    validated: false
+    route_status: "unvalidated"
+    evidence_tag: "not_verified"
+    notes: "No family-specific experiment run; placeholder only."
+
+  funding:
+    validated: false
+    route_status: "unvalidated"
+    evidence_tag: "not_verified"
+    notes: "No family-specific experiment run; placeholder only."
+
+  divergence:
+    validated: false
+    route_status: "unvalidated"
+    evidence_tag: "not_verified"
+    notes: "No family-specific experiment run; placeholder only."
+
+  unknown:
+    validated: false
+    route_status: "unvalidated"
+    evidence_tag: "not_verified"
+    notes: "Explicit placeholder for any unknown family input (after alias resolution fails)."
