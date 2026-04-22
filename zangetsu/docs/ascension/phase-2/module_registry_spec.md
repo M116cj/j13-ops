@@ -80,7 +80,7 @@ module:
 2. Gemini adversarial review.
 3. Claude Lead approves.
 4. ADR `docs/decisions/YYYYMMDD-module-<id>.md` committed.
-5. CP sync job picks it up on next cron; module becomes SHADOW tier.
+5. **GitHub Actions workflow on merge to `main` syncs YAML → Postgres `control_plane.modules`** (per §4 v2 CI/CD-hook rule; replaces previous cron-based sync). Module becomes SHADOW tier as part of the same workflow.
 6. Rollout tier advances per operational policy.
 
 ### §5.2 Existing module contract change
