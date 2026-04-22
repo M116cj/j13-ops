@@ -449,7 +449,12 @@ async def process_arena2(
         log.warning(f"A2 skip id={champion_id}: no data for {symbol}")
         return None
 
-    d = data_cache[symbol]
+    # CD-14 (deep fix): A2 V10 MUST evaluate on holdout OOS segment.
+    # Raise hard if holdout missing — no silent fallback to train.
+    if "holdout" not in data_cache[symbol]:
+        log.error(f"A2 HARD FAIL id={champion_id} {symbol}: data_cache missing holdout — CD-14 load block broken")
+        return None
+    d = data_cache[symbol]["holdout"]
     close, high, low, volume = d["close"], d["high"], d["low"], d["volume"]
     cost_bps = cost_model.get(symbol).total_round_trip_bps
 
@@ -507,7 +512,7 @@ async def process_arena2(
                 f"{type(_sg_err).__name__}:{_sg_err}"
             )
             return None
-        bt = backtester.run(sig, close, symbol, cost_bps, 480, high=high, low=low, sizes=sz)
+        bt = backtester.run(sig, close, symbol, cost_bps, _strategy_max_hold(champion.get("strategy_id", "j01")), high=high, low=low, sizes=sz)
         if bt.total_trades < 25:
             log.info(f"A2 REJECTED id={champion_id} {symbol} [V10]: trades={bt.total_trades} < 25")
             return None
@@ -748,7 +753,8 @@ async def process_arena3(
         log.warning(f"A3 skip id={champion_id}: no data for {symbol}")
         return None
 
-    d = data_cache[symbol]
+    # CD-14: V9 legacy path explicitly uses train slice via top-level alias
+    d = data_cache[symbol]["train"] if "train" in data_cache[symbol] else data_cache[symbol]
     full_close, full_high, full_low, full_volume = d["close"], d["high"], d["low"], d["volume"]
     cost_bps = cost_model.get(symbol).total_round_trip_bps
 
@@ -1212,6 +1218,14 @@ async def main():
                     "low": df["low"].to_numpy()[-w:-w+split].astype(np.float32),
                     "volume": df["volume"].to_numpy()[-w:-w+split].astype(np.float32),
                 },
+                # CD-14: holdout slice now loaded so A2 V10 can OOS-test on same segment as A1 val
+                "holdout": {
+                    "open": df["open"].to_numpy()[-w+split:].astype(np.float32),
+                    "close": df["close"].to_numpy()[-w+split:].astype(np.float32),
+                    "high": df["high"].to_numpy()[-w+split:].astype(np.float32),
+                    "low": df["low"].to_numpy()[-w+split:].astype(np.float32),
+                    "volume": df["volume"].to_numpy()[-w+split:].astype(np.float32),
+                },
             }
 
             # Load funding rate (forward-filled to 1m)
@@ -1221,6 +1235,7 @@ async def main():
             )
             if funding_arr is not None:
                 data_cache[sym]["train"]["funding_rate"] = funding_arr[-w:][:split].astype(np.float32)
+                data_cache[sym]["holdout"]["funding_rate"] = funding_arr[-w:][split:].astype(np.float32)
 
             # Load OI (forward-filled to 1m)
             oi_arr = merge_oi_to_1m(
@@ -1229,8 +1244,9 @@ async def main():
             )
             if oi_arr is not None:
                 data_cache[sym]["train"]["oi"] = oi_arr[-w:][:split].astype(np.float32)
+                data_cache[sym]["holdout"]["oi"] = oi_arr[-w:][split:].astype(np.float32)
 
-            log.info(f"Loaded {sym}: {split} bars (train only, {TRAIN_SPLIT_RATIO:.0%} of {w})")
+            log.info(f"Loaded {sym}: train={split} + holdout={w-split} bars ({TRAIN_SPLIT_RATIO:.0%}/{(1-TRAIN_SPLIT_RATIO):.0%} of {w})")
         except Exception as e:
             log.warning(f"Skip {sym}: {e}")
 
@@ -1238,7 +1254,8 @@ async def main():
     enrich_data_cache(data_cache)
     log.info(f"Data cache: {len(data_cache)} symbols loaded (train split only, factor-enriched)")
 
-    # Backward compat: arena23 accesses data_cache[sym]["close"] directly
+    # Backward compat: top-level data_cache[sym]["close"] aliases TRAIN (legacy V9 + arena45 path).
+    # CD-14: V10 A2 path MUST use data_cache[sym]["holdout"] explicitly — see :452.
     for sym in list(data_cache.keys()):
         if "train" in data_cache[sym]:
             for k, v in data_cache[sym]["train"].items():
@@ -1345,7 +1362,7 @@ async def main():
                     result = await process_arena2(champion, data_cache, cost_model, backtester, log)
                     if result is None:
                         await release_champion(db, champion["id"], "ARENA2_REJECTED", {
-                            "passport_patch": {"arena2": {"error": "no_valid_combos"}},
+                            "passport_patch": {"arena2": {"error": "see_engine_log_for_reject_reason"}},
                         })
                         a2_rejected += 1
                     else:

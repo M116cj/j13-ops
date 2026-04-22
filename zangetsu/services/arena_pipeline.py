@@ -558,8 +558,8 @@ async def main():
     N_GEN = _env_int("ALPHA_N_GEN", 20, 5)
     POP_SIZE = _env_int("ALPHA_POP_SIZE", 100, 20)
     TOP_K = _env_int("ALPHA_TOP_K", 10, 1)
-    ENTRY_THR = float(os.environ.get("ALPHA_ENTRY_THR", "0.95"))
-    EXIT_THR = float(os.environ.get("ALPHA_EXIT_THR", "0.65"))
+    ENTRY_THR = float(os.environ.get("ALPHA_ENTRY_THR", "0.80"))
+    EXIT_THR = float(os.environ.get("ALPHA_EXIT_THR", "0.50"))
     MIN_HOLD = _env_int("ALPHA_MIN_HOLD", 60, 1)
     COOLDOWN = _env_int("ALPHA_COOLDOWN", 60, 1)
 
@@ -943,10 +943,15 @@ async def main():
 
         elapsed = time.time() - t0
 
-        if round_champions == 0 and round_number % 10 == 0:
+        if round_number % 10 == 0:
             log.info(
-                f"R{round_number} | {sym}/{regime} | no champions from "
-                f"{len(alphas)} alphas | {elapsed:.1f}s"
+                f"R{round_number} | {sym}/{regime} | "
+                f"champions={round_champions}/{len(alphas)} | {elapsed:.1f}s | "
+                f"rejects: few_trades={stats['reject_few_trades']} "
+                f"val_few={stats['reject_val_few_trades']} "
+                f"val_neg_pnl={stats['reject_val_neg_pnl']} "
+                f"val_sharpe={stats['reject_val_low_sharpe']} "
+                f"val_wr={stats['reject_val_low_wr']}"
             )
 
         if total_champions > 0 and total_champions % 200 == 0:
