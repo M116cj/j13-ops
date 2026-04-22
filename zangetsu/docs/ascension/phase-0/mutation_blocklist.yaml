@@ -1,41 +1,36 @@
 # Zangetsu — Mutation Blocklist
 # Program: Zangetsu Engine Ascension v1
 # Phase:   0
-# Version: 1
+# Version: 2 (post-Gemini-adversarial)
 # Date:    2026-04-23
-# Source:  state_of_truth.md + mutation_surface_map.md + charter §17 + Ascension §4
+# Source:  state_of_truth.md + mutation_surface_map.md (v2) + charter §17 + Ascension §4
+#          + Gemini Phase 0 adversarial findings (REJECT verdict → integrated)
 #
 # Semantics:
 #   - `forbidden`:    agent MUST refuse the action and escalate
 #   - `requires`:     agent may proceed ONLY if the listed gate(s) are all satisfied
 #   - `allowed`:      free action (still subject to Q1 hygiene)
 #
-# Version history is kept at the bottom of this file.
+# v2 adds a `detection` field to every rule — how the rule is verified AFTER the fact.
+# If detection is "none" → the rule is pre-only; listed as DISPROVEN in state_of_truth §8.
 
-version: 1
+version: 2
 
 forbidden:
   - id: BL-F-001
     rule: "Silent production mutation of any shared DB table / file / service state"
-    trigger_examples:
-      - "Direct SQL UPDATE/INSERT/DELETE on champion_pipeline_fresh without ADR"
-      - "File rewrite under /home/j13/j13-ops/zangetsu/config/ without ADR"
-      - "Restart of services/arena*.py without pre-commit state-of-truth capture"
     enforcement: "Claude Lead refuses + writes docs/decisions/YYYYMMDD-refused-*.md"
+    detection: "pipeline_audit_log row scan against contract — Phase 6"
 
   - id: BL-F-002
     rule: "Threshold or gate change outside services/ or config/ without ADR + before/after evidence"
-    trigger_examples:
-      - "Changing ENTRY_THR / EXIT_THR / TRAIN_SPLIT_RATIO via env override alone"
-      - "Hardcoding a new DROP_ALPHA or MIN_TRADES constant in orchestrator"
     enforcement: "Commit body must contain before_metrics / after_metrics section"
+    detection: "CI grep in commit body + ADR-file date match — Phase 7"
 
   - id: BL-F-003
     rule: "Direct INSERT/UPDATE into champion_pipeline_fresh bypassing admission_validator"
-    trigger_examples:
-      - "SQL INSERT INTO champion_pipeline_fresh (...) VALUES (...)"
-      - "Any path that UPDATEs fresh.status from non-terminal to any state without going through admission_validator($staging_id) or release_champion()"
     enforcement: "v0.7.1 governance rule #5 via verify_no_archive_reads.sh + code review"
+    detection: "Periodic reconciliation: count fresh rows where admitted_at is NULL or missing staging predecessor (every 5 min) — Phase 6"
 
   - id: BL-F-004
     rule: "SELECT/FROM on bare champion_pipeline outside whitelisted files"
@@ -47,17 +42,21 @@ forbidden:
       - "scripts/rescan_legacy_with_new_gates.py"
       - "scripts/verify_no_archive_reads.sh"
     enforcement: "verify_no_archive_reads.sh invoked in zangetsu_ctl.sh start"
+    detection: "SHA-256 integrity check on whitelisted files (added v2 per Gemini §D.2): rename bypass would change SHA"
+    v2_action: "Add .claude/hooks/.integrity file listing SHA-256 for each whitelisted file; check on every ctl.sh invocation."
 
   - id: BL-F-005
     rule: "feat(zangetsu/vN) commit while Calcifer deploy block is RED"
     trigger_condition: "/tmp/calcifer_deploy_block.json.status == 'RED'"
     enforcement: "pre-receive hook regex-matches ^feat\\([^)]+/v"
     reference: "CLAUDE.md §17.3"
+    detection: "Post-commit CI scan: for each pushed commit matching pattern, verify block file state at commit-ts was GREEN (requires Calcifer log retention). Known TOCTOU gap per Gemini §D.1 — until nonce-based gate added, any agent noticing block-file deletion within 60s of matching commit MUST alert."
 
   - id: BL-F-006
     rule: "feat(zangetsu/vN) commit authored by any path other than bin/bump_version.py"
     enforcement: "pre-commit hook + git trailer check"
     reference: "CLAUDE.md §17.5"
+    detection: "git log scan for trailer `bumped-by: bin/bump_version.py`; CI alerts on mismatch"
 
   - id: BL-F-007
     rule: "Destructive git operation without explicit j13 authorization"
@@ -68,19 +67,23 @@ forbidden:
       - "git branch -D"
     scope: "main branch on origin, or any branch j13 did not authorize"
     enforcement: "pre-bash hook pattern + manual review"
+    detection: "reflog + GitHub Actions event log: alert on force-push or branch deletion events to origin/main"
 
   - id: BL-F-008
     rule: "Service restart without §17.6 stale-service check"
     trigger: "zangetsu_ctl.sh restart (or equivalent pkill + respawn)"
     enforcement: "hook ~/.claude/hooks/pre-done-stale-check.sh"
+    detection: "PID start-time vs services/*.py mtime comparison on 5-min cadence; STALE → alert"
 
   - id: BL-F-009
     rule: "Destructive @macmini13bot action without 2-step /confirm flow"
     enforcement: "bot _confirm_tokens TTL + miniapp require_owner_fresh"
+    detection: "Audit log entry for every shortcut call includes confirm_token; absence → alert"
 
   - id: BL-F-010
     rule: "Commit that drops tests/ without passing replacement + ADR"
     enforcement: "CI + code review"
+    detection: "CI diff check: flag commits where any tests/ file is deleted without matching addition"
 
   - id: BL-F-011
     rule: "Add black-box module without wrapper contract"
@@ -94,27 +97,59 @@ forbidden:
       - "rollback_surface"
       - "version_identity"
     reference: "Ascension §3.6"
+    detection: "Phase 2 module registry scan: flag modules without complete contract metadata"
 
   - id: BL-F-012
     rule: "Efficiency optimization changing scientific semantics without explicit disclosure"
-    trigger_examples:
-      - "Caching a computed value that becomes stale across a regime boundary"
-      - "Vectorizing a loop that changes NaN / inf handling silently"
     enforcement: "Q1 5-dim audit must include 'semantic equivalence' evidence"
+    detection: "Markl + Gemini co-review on every `refactor`/`perf` commit; manual flag"
 
   - id: BL-F-013
     rule: "Performance claim without evidence file"
-    trigger_examples:
-      - "Commit message says 'now 2× faster' without benchmark output path"
     enforcement: "Markl + Gemini co-review requires benchmark artifact"
+    detection: "CI grep for 'faster|speedup|optimized' in commit body without evidence file link"
 
   - id: BL-F-014
     rule: "Hidden agent disagreement"
     enforcement: "docs/decisions/YYYYMMDD-disagreement-*.md required before closure"
+    detection: "Weekly retrospective scan: session transcripts mentioning disagreement without matching doc"
 
   - id: BL-F-015
     rule: "Modularization that hides scientific drift rather than revealing it"
     enforcement: "Phase 4 gate + Gemini adversarial"
+    detection: "Post-modularization IC / PnL comparison before vs after; drift > 2% → alert"
+
+  - id: BL-F-016
+    rule: "Unbounded flush / retry loop that can DoS DB / AKASHA / Telegram (added v2 per Gemini §C.1)"
+    trigger: "> 50 calls/min sustained to engine_telemetry, pipeline_audit_log, AKASHA /memory, or Telegram"
+    enforcement: "Producer must have rate-limit + circuit-breaker + dropped-on-overflow policy"
+    detection: "Row-count delta on engine_telemetry / pipeline_audit_log — alert > 10k rows/min. For AKASHA/Telegram: HTTP error rate monitor."
+
+  - id: BL-F-017
+    rule: "Silent high-frequency retry on failed external POST (added v2 per Gemini §C.2)"
+    trigger: "> 10 retry attempts in 60s from same service for same error"
+    enforcement: "Exponential backoff + max-attempts cap + dead-letter path"
+    detection: "Structured log scan: alert on same error_code > 50 times in 60s from same service"
+
+  - id: BL-F-018
+    rule: "Silent replacement of admission_validator PL/pgSQL body (added v2 per Gemini §D.3)"
+    enforcement: "Body change requires migration file + ADR + hash attestation in migration"
+    detection: "Periodic SHA-256 of pg_proc.prosrc for admission_validator, compared to expected hash pinned in latest v0.7.x migration (every 10 min)"
+
+  - id: BL-F-019
+    rule: "Ad-hoc docker exec psql for DML/DDL outside approved migration path (added v2 per Gemini §A.3)"
+    enforcement: "Must go through named migration file with rollback, committed to git before execution"
+    detection: "Enable pg_stat_statements; flag DDL/DML from localhost without matching migration-file hash in commit log"
+
+  - id: BL-F-020
+    rule: "Unsupervised AKASHA POST /compact call (added v2 per Gemini §A.1)"
+    enforcement: "Requires explicit owner sign-off + pre-flight chunk-count snapshot + post-compact delta report"
+    detection: "AKASHA chunk-count monitor: alert on > 1000 chunk delta without matching ADR"
+
+  - id: BL-F-021
+    rule: "TOCTOU bypass of /tmp/calcifer_deploy_block.json (added v2 per Gemini §D.1)"
+    enforcement: "Until nonce-based gate added, treat as known gap; agent alert required on block-file deletion within 60s of `feat(/v` commit attempt"
+    detection: "File-system watcher on /tmp/calcifer_deploy_block.json + commit log correlation"
 
 requires:
   - id: BL-R-001
@@ -125,6 +160,7 @@ requires:
       - "Matching ADR docs/decisions/YYYYMMDD-*.md"
       - "Smoke test tests/test_v{N}_smoke.py green"
       - "Independent AKASHA witness (§17.2)"
+    detection: "CI per-commit check; AKASHA witness record absent → alert"
 
   - id: BL-R-002
     action: "Edit services/*.py in production"
@@ -132,7 +168,8 @@ requires:
       - "Isolated branch or worktree"
       - "ff-merge to main"
       - "§17.6 stale-check post-restart"
-      - "ADR linked in commit body"
+      - "ADR file present AT EXPECTED PATH with same-day date AND body ≥ 400 bytes (added v2 per Gemini §C.3)"
+    detection: "Post-commit CI: verify ADR file exists at docs/decisions/YYYYMMDD-*.md with same date as commit and size ≥ 400 bytes"
 
   - id: BL-R-003
     action: "Schema migration (SQL)"
@@ -140,42 +177,50 @@ requires:
       - "Paired rollback SQL in same step directory"
       - "Idempotent DDL"
       - "State-of-truth re-capture before next phase"
+    detection: "CI: every new migration file must have rollback pair; auto-fail if missing"
 
   - id: BL-R-004
     action: "Manual seed / reseed"
     gates:
       - "admission_validator called for each row"
+      - "admission_validator PL/pgSQL body hash matches pinned hash (added v2 per Gemini §D.3)"
       - "Legacy path requires --i-know-deprecated-v071"
+    detection: "Row audit: every new fresh row must have matching staging predecessor + admission_validator call log"
 
   - id: BL-R-005
     action: "Reaping stuck rows"
     gates:
       - "First invocation must be --dry-run"
       - "Age filter >= 30 min default"
+    detection: "Audit log + row-count delta before/after"
 
   - id: BL-R-006
     action: "Update champion_pipeline_fresh.status"
     gates:
       - "Via release_champion() OR explicit --reenqueue review"
       - "ADR if bulk update"
+    detection: "Non-release_champion callers flagged in code review"
 
   - id: BL-R-007
     action: "Restart workers"
     gates:
       - "§17.6 stale-check PASS on all restarted services"
       - "No concurrent discovery batch runs"
+    detection: "PID/mtime cron check"
 
   - id: BL-R-008
     action: "Write /tmp/calcifer_deploy_block.json"
     gates:
       - "Authored by Calcifer daemon only"
       - "Manual override only via /unblock telegram command from MINIAPP_OWNER_TG_ID"
+    detection: "File writer PID audit — non-Calcifer writer → alert"
 
   - id: BL-R-009
     action: "Publish to Telegram"
     gates:
       - "Via calcifer/notifier.py::notify_telegram() OR documented alert hook"
       - "Severity in {critical, warning, high, medium}"
+    detection: "Telegram API response monitor + source-file audit"
 
   - id: BL-R-010
     action: "Destructive miniapp shortcut"
@@ -184,12 +229,38 @@ requires:
       - "2-step confirm_token flow"
       - "owner whitelist match (MINIAPP_OWNER_TG_ID)"
       - "CONFIRM_TOKEN_TTL_S enforced"
+    detection: "Audit log entry per call; token-expired / owner-mismatch alerts"
 
   - id: BL-R-011
     action: "POST to AKASHA /memory for version-bump witness"
     gates:
       - "Authored by independent agent (§17.2)"
       - "deployable_count delta verified"
+    detection: "AKASHA chunk metadata attribute agent_name != committing_agent"
+
+  - id: BL-R-012
+    action: "Edit ~/.claude/hooks/*.sh or .plist (added v2)"
+    gates:
+      - "Integrity SHA updated in .claude/hooks/.integrity same commit"
+      - "Gemini review of diff"
+      - "ADR documenting behavior change"
+    detection: "Hook SHA-256 check on every CLI launch; mismatch → refuse + alert"
+
+  - id: BL-R-013
+    action: "Run AKASHA POST /compact (added v2)"
+    gates:
+      - "Explicit owner command"
+      - "Pre-flight chunk-count snapshot"
+      - "Post-compact chunk-count delta report in ADR"
+    detection: "Monitor AKASHA chunk count before/after; alert on large delta without ADR"
+
+  - id: BL-R-014
+    action: "Ad-hoc docker exec psql admin work (added v2)"
+    gates:
+      - "Named migration file in repo"
+      - "Rollback file paired"
+      - "ADR dated same day"
+    detection: "pg_stat_statements audit + commit log correlation"
 
 allowed:
   - id: BL-A-001
@@ -213,9 +284,29 @@ allowed:
   - id: BL-A-010
     action: "Update this blocklist via ADR + Claude Lead approval"
 
+detection_coverage:
+  rules_with_active_detection: 0
+  rules_with_planned_detection: 20
+  rules_pre_only: 0
+  status: "PRE-only until Phase 6 observability + Phase 7 patch queue implement detection hooks. Acknowledged weakness — see state_of_truth.md §8 'Safety-contract rules have POST-violation detection' = DISPROVEN."
+
 version_history:
   - version: 1
     date: "2026-04-23"
     author: "Claude Lead"
-    phase: "Ascension Phase 0"
-    notes: "Initial blocklist derived from charter §17 + Ascension §4 + Explore mutation surface survey (48 surfaces catalogued)."
+    phase: "Ascension Phase 0 initial"
+    notes: "Initial blocklist derived from charter §17 + Ascension §4 + Explore mutation surface survey (48 surfaces)."
+  - version: 2
+    date: "2026-04-23"
+    author: "Claude Lead"
+    phase: "Ascension Phase 0 post-Gemini-adversarial"
+    notes: |
+      Gemini REJECT verdict integrated:
+        - Added F16 (telemetry/write spam), F17 (retry bombs), F18 (validator body swap),
+          F19 (docker psql bypass), F20 (AKASHA compact), F21 (TOCTOU block file).
+        - Added R-012 (hook edit integrity), R-013 (/compact gate), R-014 (docker psql).
+        - Strengthened R-002 (ADR file presence + date + size check, not just link).
+        - Added `detection` field to every forbidden + requires rule.
+        - Documented that detection is PLANNED for Phase 6/7; PRE-only today.
+      Mutation surface map v2 also adds: 6 new surfaces (AKASHA /memory + /compact,
+      3 hook surfaces, 1 cross-process dependency) and 1 docker-exec bypass risk.

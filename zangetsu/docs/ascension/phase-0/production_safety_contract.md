@@ -33,6 +33,12 @@
 - **F13** Performance claim without an evidence file (benchmark run, JSONL output, or measurable metric).
 - **F14** Hidden agent disagreement — if Claude / Gemini / Codex diverge, the disagreement MUST be logged in `docs/decisions/YYYYMMDD-disagreement-*.md` and escalated to j13.
 - **F15** Silent rollout of a modularization that hides (rather than reveals) scientific drift.
+- **F16** (added v2 per Gemini §C.1) Unbounded flush / retry loop that can DoS the DB, AKASHA, or Telegram. Any producer writing to `engine_telemetry`, `pipeline_audit_log`, AKASHA `/memory`, or Telegram at > 50 calls / minute sustained must have an explicit rate-limit + circuit-breaker + dropped-on-overflow policy. Unbounded writes with no backpressure are FORBIDDEN.
+- **F17** (added v2 per Gemini §C.2) Silent high-frequency retry on failed external POST. Any failing POST to AKASHA / Telegram / Claude Inbox must have (a) exponential backoff with upper bound, (b) max-attempts cap, (c) dead-letter path. Retry storms (>10 attempts in 60s) are FORBIDDEN.
+- **F18** (added v2 per Gemini §D.3) Silent replacement of `admission_validator` PL/pgSQL body without migration + ADR + hash attestation in the v0.7.2.X+ migration file.
+- **F19** (added v2 per Gemini §A.3) Direct `docker exec deploy-postgres-1 psql -c 'UPDATE/INSERT/DELETE …'` outside an approved migration path. Ad-hoc operator SQL inside the container MUST go through a named migration file with rollback, committed to git before execution.
+- **F20** (added v2 per Gemini §A.1) Unsupervised call to AKASHA `POST /compact`. This endpoint is currently ungated and may delete chunks globally. Any `/compact` invocation requires explicit owner sign-off + pre-flight chunk-count snapshot.
+- **F21** (added v2 per Gemini §D.1) TOCTOU bypass of `/tmp/calcifer_deploy_block.json`. The block file alone is insufficient; version-bump gate should also consume a signed nonce from Calcifer that is invalidated on any state change. Until such a nonce exists, this rule stands as a known gap — any agent noticing block-file deletion within 60s of a `feat(/v` commit attempt MUST alert.
 
 ---
 
@@ -42,7 +48,10 @@
 |---|---|---|
 | `feat(zangetsu/vX.X)` version bump | (a) Calcifer GREEN, (b) `bin/bump_version.py` with pre-flight checks, (c) matching ADR dated same day | pre-commit + CI (§17.7) |
 | Hotfix (non-version-bump): `fix(…)` | Adversarial review by Gemini OR Q1 self-audit, + commit message explains risk + rollback | human discipline |
-| Edit `services/` in prod | Must be in isolated worktree or branch; ff-merge to main; §17.6 stale-check post-restart | §17.6 hook |
+| Edit `services/` in prod | (1) Isolated worktree or branch; (2) ff-merge to main; (3) §17.6 stale-check post-restart; (4) ADR file MUST exist and have `YYYYMMDD` matching commit date (not just linked — presence + date verified by pre-commit); (5) ADR body ≥ 400 bytes (no placeholder stubs) | §17.6 hook + strengthened §17.7 CI |
+| Edit `~/.claude/hooks/*.sh` or `.plist` (added v2) | (1) Integrity hash in `.claude/hooks/.integrity` updated same commit; (2) Gemini review of the diff; (3) ADR documenting what behavior changed | manual discipline + future integrity check |
+| Run AKASHA `POST /compact` (added v2 per F20) | Explicit owner command; pre-flight chunk count snapshot; post-compact chunk count delta reported | manual |
+| `docker exec deploy-postgres-1 psql` for admin work (added v2 per F19) | Only via named migration file in repo; rollback file paired; ADR dated same day | code review |
 | Schema migration | SQL file pair: `vX.Y.Z_*.sql` + `rollback_*.sql`. Idempotent. Live verify in state-of-truth before next task. | manual discipline |
 | Manual seed / reseed | `admission_validator` trigger; `--i-know-deprecated-v071` flag if legacy | code guard |
 | Reaping stuck rows | `zangetsu_ctl.sh reap` with `--dry-run` first | ctl script |
@@ -153,4 +162,24 @@ This contract is updated only by ADR at `docs/decisions/YYYYMMDD-safety-contract
 - Q1 5-dim self-audit
 - j13 approval
 
-Version history (initial): v1 — 2026-04-23, this doc.
+Version history:
+- v1 — 2026-04-23 initial
+- v2 — 2026-04-23 Gemini adversarial integration: added F16 (telemetry spam), F17 (retry bombs), F18 (validator body swap), F19 (docker psql bypass), F20 (AKASHA compact), F21 (TOCTOU block file). Tightened §2 GATED rules for services/ edits (ADR presence + size check), added hook/plist + /compact + docker psql gate rows.
+
+## §10 — POST-violation detection (added v2 per Gemini §D.4)
+
+Pre-execution gates are insufficient. The following DETECTION mechanisms must be added in Phase 6 (observability) or Phase 7 (patch queue):
+
+| Rule | Detection signal | Cadence |
+|---|---|---|
+| BL-F-003 (direct fresh INSERT) | Periodic reconciliation: count fresh rows where `admitted_at` is NULL or missing staging predecessor | every 5 min |
+| BL-F-005 (feat/vN + Calcifer RED) | Post-commit CI scan: for each pushed commit matching `^feat\([^)]+/v`, verify block file state at commit-ts was GREEN (requires Calcifer log retention) | per commit |
+| BL-F-018 (validator body swap) | Periodic hash of `pg_proc.prosrc` for `admission_validator`, compared to expected SHA from migration file | every 10 min |
+| BL-F-016 (telemetry spam) | Row-count delta on `engine_telemetry` and `pipeline_audit_log`: alert if > 10,000 rows / min | continuous |
+| BL-F-017 (retry bombs) | Structured-log scan: alert on same `error_code` appearing > 50 times in 60s from same `service` | continuous |
+| HOOK-001/002 integrity | SHA-256 comparison with `.claude/hooks/.integrity` | on every shell / CLI launch |
+| File producer freshness (XPD-001/002) | Compare writer mtime to expected cadence; alert if writer silent > 2× cadence | per-file, minute cadence |
+| DKR-001 ad-hoc docker exec | Enable `pg_stat_statements` + query-audit; alert on any DDL or DML from localhost outside known migration paths | continuous |
+| EXT-003 AKASHA /compact | Before/after chunk count delta; alert if delta > 1000 without matching ADR | per-invocation |
+
+Until these detectors exist, the contract is **PRE-only**. This is an acknowledged weakness (labeled DISPROVEN in `state_of_truth.md` §8).

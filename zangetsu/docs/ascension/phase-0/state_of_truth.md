@@ -80,8 +80,14 @@ Per §17.3, any `feat(zangetsu/vN)` commit is BLOCKED.
   - `f098ead5 fix(zangetsu/v0.7.2.2): signal threshold 0.80→0.95`
 - Uncommitted (out of this scope lock): calcifer/* state files only
 
-### §4.4 Mutation surfaces (summary; full detail in `mutation_surface_map.md`)
-48 total: **42 SQL writes + 3 file writes + 3 process mutations**.
+### §4.4 Mutation surfaces (summary; full detail in `mutation_surface_map.md` v2)
+**54 total** in v2 (was 48 in v1 — **6 surfaces added** after Gemini Phase 0 review):
+- **42 SQL writes** (unchanged count, but note one flagged for spam risk: `engine_telemetry` flush in SQL-001/005)
+- **3 file writes**
+- **3 process / signal mutations**
+- **+2 external-service mutations** added v2: AKASHA `POST /memory` (write via `write_to_akasha_sync`), AKASHA `POST /compact` (ungated chunk-deletion surface — **HIGH BLAST**)
+- **+3 hook / launchd surfaces** added v2: `~/.claude/hooks/pre-bash.sh`, `~/.claude/hooks/pre-done-stale-check.sh`, `com.j13.d-mail.v2.plist` (launchd Mac→Alaya auth sync)
+- **+1 cross-process dependency** added v2: `/tmp/zangetsu_live.json` writer → A1 / arena13_feedback reader (state leaks from snapshot into live workers)
 
 By subsystem:
 | Subsystem | SQL writes | File | Process | Notes |
@@ -187,20 +193,22 @@ Ascension Phase 4 will disambiguate with VERIFIED / PROBABLE / INCONCLUSIVE / DI
 
 ---
 
-## §8 — Confidence labels (per Ascension §4 rule)
+## §8 — Confidence labels (per Ascension §4 rule; downgraded v2 after Gemini review)
 
-| Claim | Label |
-|---|---|
-| Workers running from bd91face / services mtime 17:52:14Z | VERIFIED (live ps + stat + §17.6 FRESH) |
-| 42 SQL mutation surfaces catalogued | VERIFIED (Explore survey file:line citations) |
-| Admission validator gates correctness | VERIFIED (function body read from pg_proc) |
-| 89 ARENA2_REJECTED under CD-14 all pos_count=0 | VERIFIED (engine.jsonl + re-enqueue test) |
-| Calcifer RED reflects real outcome absence | VERIFIED (file content + VIEW match) |
-| "No OOS edge at 60-bar 15m OHLCV+indicator" | PROBABLE (multiple phases of offline + R2 live all converge, but not exhaustive hypothesis ruling) |
-| "Archive champions would survive different horizon" | INCONCLUSIVE (not tested) |
-| pset_v0 is insufficient | INCONCLUSIVE (D1-D horizon-swept SNR needed) |
-| AKASHA/telegram/miniapp surfaces are REAL | VERIFIED (live endpoint probe + Gemini audit adjusted for v0.5.5 truth) |
-| Control plane exists | DISPROVEN (scattered per §6-10) |
+| Claim | Label | Caveat |
+|---|---|---|
+| Workers running from bd91face / services mtime 17:52:14Z | **PROBABLE** (downgraded from VERIFIED) | `ps` + `stat` can be true while live Python runs stale bytecode via `imp.reload` / `exec()`. Upgrade to VERIFIED requires in-process bytecode hash probe (Phase 6 observability). |
+| 54 mutation surfaces catalogued (v2) | **PROBABLE** (downgraded from VERIFIED) | Single-agent Explore survey is survey-limited. Exhaustive verification requires multi-agent cross-check (Gemini + Codex + manual diff) — Phase 3. |
+| Admission validator gates correctness | **PROBABLE** (downgraded from VERIFIED) | Function body read from `pg_proc` matches migration source, but DB-side triggers / cascades / side-effects (pg_notify / plpython) not yet fully audited. |
+| 89 ARENA2_REJECTED under CD-14 all pos_count=0 | **PROBABLE** (downgraded from VERIFIED) | `engine.jsonl` parsing assumed 100% reliable; async logging / rotation / disk-full can lose lines. Gemini §B caveat accepted. |
+| Calcifer RED reflects real outcome absence | VERIFIED (file content + VIEW match) | |
+| "No OOS edge at 60-bar 15m OHLCV+indicator" | PROBABLE (multiple phases of offline + R2 live all converge, but not exhaustive hypothesis ruling) | |
+| "Archive champions would survive different horizon" | INCONCLUSIVE (not tested) | |
+| pset_v0 is insufficient | INCONCLUSIVE (D1-D horizon-swept SNR needed) | |
+| AKASHA/telegram/miniapp surfaces are REAL | VERIFIED (live endpoint probe + Gemini audit adjusted for v0.5.5 truth) | |
+| Control plane exists | DISPROVEN (scattered per §6-10) | |
+| **Safety-contract rules have POST-violation detection** (added v2) | **DISPROVEN** | Gemini §D — rules are PRE-commit / PRE-execution only. No reconciler cron currently audits DB/files against contract rules. Phase 6 observability must add. |
+| **Ingress data integrity (Binance OHLCV) verified** (added v2) | **INCONCLUSIVE** (added as non-goal §9) | Phase 0 assumes data_collector output is trustworthy. Corruption/tamper not in Phase 0 scope. |
 
 ---
 
@@ -211,6 +219,8 @@ Ascension Phase 4 will disambiguate with VERIFIED / PROBABLE / INCONCLUSIVE / DI
 - NOT deciding whether to change horizon / target / pset — that's Phase 4 + D1.
 - NOT touching production — zero mutation.
 - NOT promoting any optimization — Phase 5.
+- **NOT verifying ingress data integrity** (added v2 per Gemini §E): Phase 0 treats Binance OHLCV + funding + OI parquet as authoritative input. If the `daily_data_collect.sh` pipeline or upstream exchange API is tampered with, the entire state-of-truth is built on corrupt evidence. Ingress integrity is explicitly OUT-OF-SCOPE for Phase 0 — no attempt to protect against it here. Phase 6 observability may add content-hash attestation and Phase 7 patch plan may add a deterministic replay audit, but neither is promised by Phase 0.
+- **NOT attesting multi-owner commit races** (added v2 per Gemini §C.4): Phase 0 assumes a single `j13` identity. If Mac + Alaya submit `feat(…/vN)` simultaneously, `bin/bump_version.py` is not protected by distributed locking. Explicit non-goal here; a fix is Phase 7 backlog.
 
 ---
 

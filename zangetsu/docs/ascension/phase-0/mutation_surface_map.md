@@ -8,17 +8,20 @@
 
 ---
 
-## §1 — Summary
+## §1 — Summary (v2 — post Gemini Phase 0 review)
 
-| Class | Count | Blast range |
-|---|---:|---|
-| SQL write mutations | 42 | single-row → multi-table → multi-row-batch |
-| File write mutations | 3 | shared file system |
-| Process / signal mutations | 3 | process-local → all-of-pipeline |
-| Outbound network writes | 0 | (read-only Binance ingress is not a mutation) |
-| **TOTAL** | **48** | |
+| Class | v1 | v2 | Blast range |
+|---|---:|---:|---|
+| SQL write mutations | 42 | 42 | row → mtab → batch |
+| File write mutations | 3 | 3 | shared FS |
+| Process / signal mutations | 3 | 3 | process → pipe |
+| **External-service writes** (added v2) | 0 | **2** | AKASHA `/memory` + `/compact` — **GLOBAL MEMORY mutation** for /compact |
+| **Hook / launchd surfaces** (added v2) | 0 | **3** | `pre-bash.sh` + `pre-done-stale-check.sh` + `com.j13.d-mail.v2.plist` |
+| **Cross-process state dependency** (added v2) | 0 | **1** | `/tmp/zangetsu_live.json` writer → A1 / arena13_feedback reader (stale-read risk) |
+| Outbound POST/PUT/DELETE from production **workers** | 0 | 0 | still true; all external writes via wrapped intermediaries |
+| **TOTAL** | 48 | **54** | |
 
-Zero outbound POST/PUT/DELETE from Zangetsu production workers. All external writes are channelled through wrapped intermediaries (AKASHA notifier → /memory, Telegram via calcifer/notifier.py).
+Assumption that was wrong in v1: "all external writes channelled through wrapped intermediaries" — technically true per-call, but the intermediaries themselves (`calcifer/notifier.py` → Telegram, `write_to_akasha_sync` → AKASHA) are mutation surfaces and must be catalogued explicitly.
 
 ---
 
@@ -115,6 +118,44 @@ Plus telemetry files at `/tmp/*.md` from hourly analysis crons (signal_quality, 
 | PROC-003 | zangetsu_ctl.sh (start/stop) | systemd / lockfile | start_if_not_running, graceful stop | CNF (must invoke ctl) | reversible | pipe |
 
 ---
+
+## §4.1 External-service writes (added v2)
+
+| ID | File:Line | Target | Path | Gate | Reversibility | Blast |
+|---|---|---|---|---|---|---|
+| EXT-001 | calcifer/notifier.py:179 `notify_telegram` | Telegram Bot API `sendMessage` | severity-gated notification to chat_id + thread_id | severity ∈ {critical, warning, high, medium} | **irreversible** (sent message) | cross-service (Telegram users) |
+| EXT-002 | calcifer/notifier.py:98 `write_to_akasha_sync` | AKASHA `POST /memory` | upsert chunks for project + agent_name + finding | ungated (shared infra) | reversible (via manual delete from AKASHA) | AKASHA chunk-table-wide |
+| EXT-003 | AKASHA `POST /compact` | AKASHA chunk storage | global compaction (potentially destructive merge) | **ungated** (explicit gap) | **destructive** if chunks are discarded; AKASHA docs silent on this | **GLOBAL** across all projects — **HIGHEST-BLAST surface on this list** |
+
+**Action item (Phase 7):** EXT-003 must be gated. If `/compact` deletes chunks, it needs owner-fresh equivalent + dry-run pre-flight + chunk-count delta evidence.
+
+## §4.2 Hook / launchd surfaces (added v2)
+
+| ID | File:Line | Target | Path | Gate | Reversibility | Blast |
+|---|---|---|---|---|---|---|
+| HOOK-001 | ~/.claude/hooks/pre-bash.sh | ALL bash tool invocations by Claude agents | dangerous-command regex + audit log append | self-contained regex checks | reversible (file rewrite) | **global agent-behavior** — a bad edit disables safety contract |
+| HOOK-002 | ~/.claude/hooks/pre-done-stale-check.sh | `claimed_done` events before Claude declares complete | `process_start > source_mtime` verification | self-contained | reversible | **global agent-behavior** |
+| HOOK-003 | /Users/a13/Library/LaunchAgents/com.j13.d-mail.plist | @macmini13bot agent_v2.py process lifecycle | RunAtLoad + KeepAlive | launchctl bootstrap required | reversible (launchctl bootout) | bot process |
+| HOOK-004 | (pre-commit / pre-push hooks on j13-ops repo, if any) | git commit / push gating | regex match on commit message per §17.7 | pre-commit framework | reversible | per-commit |
+
+**Action item (Phase 7):** HOOK-001/002 must gain integrity check (SHA-256 pinned in .claude/hooks/.integrity) so silent edits are detected.
+
+## §4.3 Cross-process state dependencies (added v2)
+
+| ID | Writer | Reader | Surface | Blast |
+|---|---|---|---|---|
+| XPD-001 | cron `zangetsu_snapshot.sh` every 1 min → `/tmp/zangetsu_live.json` | miniapp `/api/zangetsu/live`; potentially arena13_feedback or A1 worker (suspected) | If writer halts, readers see stale state; if writer malformed, readers may silently accept old VIEW values | cross-process stale-read |
+| XPD-002 | Mac Claude CLI `Stop` hook → `/tmp/j13-current-task.md` (likely synced to Alaya) | miniapp `/api/current-task` | Writer is Mac process; sync mechanism uncatalogued | cross-host stale-read |
+
+**Action item (Phase 1):** enumerate every `read()` on these paths in the reader code to quantify propagation risk.
+
+## §4.4 Docker-exec bypass risk (new surface, added v2)
+
+| ID | Description | Blast |
+|---|---|---|
+| DKR-001 | Any `docker exec deploy-postgres-1 psql -U ... -c '…'` from operator / script path bypasses `verify_no_archive_reads.sh`, admission_validator trigger (if the command drops/replaces triggers), and §17.x governance rules | **full DB mutation bypass** if the operator has docker access |
+
+**Existing mitigation (weak):** docker group membership limited to j13. No per-command audit trail inside the container. Phase 6 observability must add query-level audit.
 
 ## §5 — Existing defensive gates cross-reference
 
