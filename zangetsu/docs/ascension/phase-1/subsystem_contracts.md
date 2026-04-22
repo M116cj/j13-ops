@@ -228,19 +228,31 @@ Per `subsystem × 10 fields`:
 | Policy Layer v0 | 8 / 10 | 2 | MEDIUM (wiring) |
 | Pidlock + shared_utils | 7 / 10 | 3 | LOW |
 
-**Average**: 5.8 / 10 fields populated — well below the "explicit module" bar of Ascension §3.4.
-**r2_n4_watchdog is the reference pattern** — reuse its shape as the template for Phase 2 contract.
+**Average**: 5.8 / 10 fields populated — **note v2 (Gemini §F.1): this is a VANITY METRIC**. Uniform-weighted averaging is misleading — "replacement boundary" for a read-only snapshot (§2.7) is noise; "replacement boundary" for admission_validator (§2.4) is load-bearing. Phase 2 must define **criticality-weighted** contract metrics before using this as a priority signal.
+
+**r2_n4_watchdog as template — caveat (added v2 per Gemini §F.2)**: it scores 9/10 for **alerting-shape** subsystems but only ~2/10 for **kernel-state-shape** or **research-engine-shape**. Use as reference ONLY for the alert/observability family. L2 kernel + L4 research need their own shape templates — Phase 2 work.
+
+**Policy Layer v0 rated 8/10 but INERT — correction (added v2 per Gemini §F.3)**: tabular view is 8/10 for design-completeness. But because the design is never wired, the operational rating is more like 4/10 (contract exists, contract is lies). Effective rating = **-6 wiring penalty**, i.e. 8 design / 2 operational / net 4 for decision purposes.
 
 ---
 
-## §4 — What Phase 2 must produce from this
+## §4 — What Phase 2 must produce from this (v2 — scope-bleed fixed per Gemini §G)
 
-1. **Canonical contract template** (likely based on r2_n4_watchdog shape).
-2. **Per-subsystem contract files** under `zangetsu/contracts/` or inline in `zangetsu/services/*/__contract__.yaml`.
-3. **Migration plan** that converts each subsystem from 5/10 to 10/10 field coverage.
-4. **Module registry** at L1 control plane so consumers can discover contracts.
+Phase 1 only STATES requirements; Phase 2 designs + produces the deliverables. Phase 1 must not propose concrete templates.
 
-Phase 2 takes these + `architecture_drift_map.md` + `scattered_config_map.md` as inputs.
+Required Phase 2 inputs (from Phase 1):
+- This subsystem-contract gap inventory (14 subsystems × 10 fields)
+- `architecture_drift_map.md` severity roll-up
+- `scattered_config_map.md` canonical-registry requirement
+- `uncontrolled_io_map.md` governance-surface list
+
+Required Phase 2 outputs (Phase 2's scope, not Phase 1's):
+- Contract template shape (whatever Phase 2 decides — may or may not resemble r2_n4_watchdog)
+- Concrete per-subsystem contract artifacts
+- Migration plan from current gap coverage to target
+- Module registry design
+
+Phase 1 deliberately refuses to specify these.
 
 ---
 

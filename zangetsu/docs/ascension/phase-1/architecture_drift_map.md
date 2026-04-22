@@ -90,7 +90,7 @@ Drift entries are evidence, not tasks. Tasks are generated in Phase 7 patch queu
 | Layer / Contract | L4 pluggable search strategies |
 | Intended | `SearchEngine` contract with pluggable implementations (GP, LGBM, transformer, factor-zoo as peers). |
 | Actual | GP via DEAP is the only active search. LGBM baseline was one-off (Phase 4A), never productionised. Factor-zoo / alpha-discovery are frozen by deprecated-flag. |
-| Severity | MEDIUM (single-formulation risk per charter §2.2). |
+| Severity | **HIGH (escalated v2 per Gemini §C.1)**. A discovery engine locked into a single formulation is a STRUCTURAL failure of the charter §2.2 "no optimising a failed formulation" rule. The Phase 4A LGBM probe confirmed that a peer search path is feasibly implementable, yet it remains offline. |
 | Root cause | Historical mono-approach. |
 | Remediation | Phase 2 design SearchEngine contract; Phase 7 re-introduce LGBM as peer once D4 (Model Gate) validates feasibility. |
 
@@ -170,9 +170,9 @@ Drift entries are evidence, not tasks. Tasks are generated in Phase 7 patch queu
 | Layer / Contract | L2 kernel process lifecycle |
 | Intended | Worker lifecycle owned by a service manager with auto-restart + resource caps + log rotation. |
 | Actual | `pidlock.py` + `watchdog.sh` cron handle both lifecycle and liveness. No cgroup / memory caps / CPU affinity (touched only via `nice -n 10` for alpha_discovery). Zangetsu does not use systemd unit despite plist examples elsewhere. |
-| Severity | MEDIUM. |
+| Severity | **LOW (downgraded v2 per Gemini §C.1).** Lockfile + 5-min cron watchdog is idiomatic and sufficient for current single-host scale. Upgrade only if multi-host. |
 | Root cause | Simplicity choice; works under current load. |
-| Remediation | Phase 5 compute_topology_map should score whether systemd migration is worth it. |
+| Remediation | Phase 5 compute_topology_map may re-evaluate but not a blocker. |
 
 ### D-16 — Cross-process file dependency (XPD)
 | Field | Value |
@@ -217,25 +217,56 @@ Drift entries are evidence, not tasks. Tasks are generated in Phase 7 patch queu
 ### D-20 — DEPRECATED modules still have cron entries (or would, if unfrozen)
 | Field | Value |
 |---|---|
-| Layer / Contract | L9 hygiene |
+| Layer / Contract | L9 hygiene (now L8.G post-merge) |
 | Intended | Deprecated code deleted OR fenced behind explicit enable flag with loud startup warning AND no cron invocation. |
 | Actual | `alpha_discovery.py` is flag-frozen, BUT crontab still has `*/30 * * * * alpha_discovery.py >> /tmp/alpha_discovery.log`. If someone removes the flag, cron lights up immediately. |
 | Severity | LOW (currently frozen, just ugly). |
 | Root cause | Cron entries live separately from deprecation metadata. |
 | Remediation | Phase 7 remove cron OR add guard in script. |
 
+### D-21 — DB schema-hash attestation missing (added v2 per Gemini §H.5)
+| Field | Value |
+|---|---|
+| Layer / Contract | L3 / L8.G DB schema integrity |
+| Intended | Migration files declare expected `pg_dump --schema-only` hash; live DB schema is verified against the latest applied migration's hash before any worker start. Out-of-band DDL (someone running `ALTER TABLE …` via docker exec) would be detected. |
+| Actual | Migrations live under `zangetsu/migrations/` (v0.7.1 / v0.7.2.3 etc.). No hash pinning. `admission_validator` body has no prosrc hash check (D-06 covers the function body; this entry covers the table/constraint schema). DKR-001 docker exec can silently `ALTER TABLE` and workers wouldn't notice until runtime error. |
+| Severity | HIGH (pairs with DKR-001 BLOCKER). |
+| Root cause | Migration discipline never included post-migration hash attestation. |
+| Remediation | Phase 2 design a schema-hash manifest; Phase 6 reconciler cron verifies. |
+
+### D-22 — Numba cache invalidation (added v2 per Gemini §C.2)
+| Field | Value |
+|---|---|
+| Layer / Contract | L4 indicator_bridge / L5 backtester |
+| Intended | Numba JIT cache is version-aware (e.g. includes source hash or explicit cache-bust on code edit). Workers reload with fresh-compiled functions when source changes. |
+| Actual | `engine/components/indicator_bridge.py` uses numba; cache lives in `__pycache__` + numba's own cache dir. No explicit version-key on cache; R2-N2 restart workflow cleared cache via zangetsu_ctl.sh side-effect but this is implicit. After R2 restart, Numba cache was cleared because zangetsu_ctl.sh does it — the invalidation is **coupled to ctl script**, not to indicator_bridge itself. |
+| Severity | MEDIUM (manifests as silent stale-compute after code edit without restart). |
+| Root cause | Numba cache treated as implementation detail. |
+| Remediation | Phase 5 compute topology covers caches; Phase 7 add version key. |
+
+### D-23 — cold_start_hand_alphas as workaround-turned-default (added v2 per Gemini §C.2)
+| Field | Value |
+|---|---|
+| Layer / Contract | L4 Search / L2 Kernel |
+| Intended | Cold-start is a one-time bootstrap; routine production does not rely on hand-seeded alphas. |
+| Actual | Hand-seeded cold-start alphas (89 rows visible during R2) have become the ONLY rows in `fresh`. GP evolution produces 0 passing. So hand-seed has effectively become the main path to having *any* rows in fresh, not the bootstrap path. Supported by `--allow-dirty-tree` flag normalization + cold_start_hand_alphas.py cron + seed_hand_alphas.py. |
+| Severity | MEDIUM (indicates the main path is impaired; workaround filling the gap). |
+| Root cause | 60-bar formulation market efficiency (per Phase 0 PROBABLE label) → GP produces no passing rows → cold-start seed is relied on. |
+| Remediation | Phase 4 signal-truth audit + D1 target-gate redesign. This drift is a SYMPTOM of the deeper issue, not an independent problem. |
+
 ---
 
-## §3 — Drift severity roll-up
+## §3 — Drift severity roll-up (v2 post-Gemini)
 
 | Severity | Count | Layers hit |
 |---|---:|---|
 | BLOCKER | 1 | L1 (D-01) |
-| HIGH | 9 | L2/L4/L5/L6/L8/L9/L10/L3/L9 |
-| MEDIUM | 8 | L4/L5/L6/L7/L10/L2/L7/L7 |
-| LOW | 2 | L9 hygiene |
+| HIGH | **11** (was 9; +D-07 escalated, +D-21 added) | L2/L4/L5/L6/L8.G/L3/L4/L6 |
+| MEDIUM | **9** (was 8; -D-15 downgraded, +D-22, +D-23) | L4/L5/L7/L2/L7/L7/L4/L4 |
+| LOW | **3** (was 2; +D-15 downgraded) | L8.G hygiene, L2 process mgmt |
 
 **Blocker count = 1** → confirms Ascension can proceed after L1 control-plane design (Phase 2 control_plane_blueprint.md is the first prerequisite before any migration).
+**New symptom drift (D-23)**: cold-start as de-facto default signals that Phase 4 signal-truth audit cannot wait; it's a diagnostic lens for the "no OOS edge" hypothesis.
 
 ---
 

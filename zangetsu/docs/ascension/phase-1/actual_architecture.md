@@ -87,6 +87,12 @@ Deployed elsewhere on Alaya:
 - AKASHA at `:8769`, Claude Inbox at `:8765`, Redis `localhost:6379` (native)
 - Docker: `deploy-postgres-1` (Postgres for zangetsu DB)
 
+**Added v2 per Gemini §B (paths previously missed)**:
+- `/home/j13/zangetsu-reports/` — **permanent report artifacts** archive (not transient `/tmp/*.md`). Git-tracked separate checkout; distinct from the zangetsu source tree.
+- `/home/j13/strategic-research/` — **white-box control surface for human intent**; research artifacts codifying what we *want* Zangetsu to do. Not yet integrated into control plane.
+- `/home/j13/zangetsu-phase3e/` — **latent shadow worktree** of `feat/zangetsu-phase3e-rearch` branch. Not "stashed" — present on disk, invokeable if someone cds into it. Treat as L4 peer-shadow until explicitly removed.
+- **Claude Inbox backchannel** (`:8765`) — not merely a "queue". Per Gemini §B.1: this is the primary L1 bypass for the Claude CLI. When Claude CLI pulls from Inbox, it bypasses the `@macmini13bot` auth + miniapp owner-fresh layers. Needs explicit control-plane mapping in Phase 2.
+
 ---
 
 ## §2 — How responsibilities map to (the absence of) the 10 intended layers
@@ -141,7 +147,21 @@ Deployed elsewhere on Alaya:
 | Policy Layer v0 (`config/family_strategy_policy_v0.yaml`) | N1.4 said "family_tag is NULL on all 89 fresh rows — not wired into signal generation" |
 | Exception Overlay (`config/volume_c6_exception_overlay.yaml`) | part of Policy Layer; same inert status |
 | Lean pset (`engine/components/pset_lean_config.py`) | env-gated by `PSET_MODE=lean`; currently disabled in production |
-| Zoo-alpha injection (`scripts/alpha_zoo_injection.py`) | DOE probe, not production-wired |
+
+### §3.3.1 Active-Restricted subsystems (reclassified v2 per Gemini §B.2)
+Previously labelled "inert" but actually invokeable by operator during DOE probes. Classification change: **Active-Restricted** means "production workers don't touch it, but operator CLI can invoke it during authorized sessions."
+
+| Name | Status | Activation trigger |
+|---|---|---|
+| `scripts/alpha_zoo_injection.py` | Active-Restricted | operator invocation for zoo probes (seen Apr 22 DOE session) |
+| `scripts/zangetsu_combo_run.py` | Active-Restricted | operator invocation for DOE combo runs |
+| `scripts/zangetsu_zoo_run.py` | Active-Restricted | operator invocation |
+| `scripts/validate_lean_pset.py` | Active-Restricted | operator invocation to sanity-check lean pset |
+| `scripts/rescan_legacy_with_new_gates.py` | Active-Restricted | manual re-evaluation runs |
+| `scripts/reseed_from_legacy_top.py` | Active-Restricted | manual reseed |
+| `scripts/wilson_wr_rescore.py` | Active-Restricted | manual rescore batch |
+| `scripts/valgate_counterfactual.py` | Active-Restricted | manual counterfactual runs |
+| `scripts/cold_start_hand_alphas.py` | Active-Restricted + **workaround-turned-default risk** (see drift D-23) | operator invocation; `--allow-dirty-tree` guard |
 
 ---
 

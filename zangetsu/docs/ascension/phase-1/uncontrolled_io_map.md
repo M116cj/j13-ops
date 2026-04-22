@@ -225,8 +225,8 @@ Paths below may work correctly most of the time — the issue is absence of gove
 ### CS-05 — direct DB access via docker exec
 - **Path**: anyone with Alaya SSH + docker group access can `docker exec deploy-postgres-1 psql`
 - **Commands**: any SQL
-- **Gap**: DKR-001 in Phase 0 v2 (BL-F-019 covers it)
-- **Severity**: **HIGHEST** — bypasses all code-level gates
+- **Gap**: DKR-001 in Phase 0 v2 (BL-F-019 covers it). Gemini Phase 1 §E.2 elevates this: renders L8.G Governance UNENFORCEABLE — no code-level gate can block what runs inside the container.
+- **Severity**: **BLOCKER (upgraded v2 from HIGHEST)** — treat with BLOCKER discipline equal to D-01 Control Plane gap. Phase 2 BLOCKER-list = {D-01, CS-05}.
 
 ### CS-06 — crontab -e on Alaya
 - **Path**: `crontab -e` (operator)
@@ -234,19 +234,39 @@ Paths below may work correctly most of the time — the issue is absence of gove
 - **Gap**: cron truth lives outside git; no code review of cron changes
 - **Severity**: HIGH
 
+### CS-07 — Shell history as de facto mutation log (added v2 per Gemini §E.1)
+- **Path**: `~/.bash_history` / `~/.zsh_history` on Mac + Alaya; `~/.claude/hooks/audit.log` on Mac
+- **Commands**: any interactive / SSH-session command typed by operator
+- **Gap**: shell history is local, rotates, has no durable retention policy. The pre-bash hook `audit.log` is more durable but not consulted by any monitoring
+- **Severity**: HIGH — this is the **primary bypass of CS-01** audit visibility
+
+### CS-08 — systemd journal as event log (added v2 per Gemini §E.1)
+- **Path**: `journalctl` on Alaya
+- **Commands**: records start/stop/restart of systemd-managed services (console-api, dashboard-api)
+- **Gap**: Zangetsu workers are lockfile-managed not systemd, so workers don't appear here. But d-mail-miniapp + calcifer-supervisor are systemd (per Phase 0 team-meeting findings). Journal retention is OS-default, not policy-controlled
+- **Severity**: MEDIUM — useful signal, poorly integrated into Zangetsu observability
+
+### XP-07 — `/tmp/*.md` hourly report consumption (added v2 per Gemini §E.1)
+- **Writers**: cron scripts `signal_quality_report.py`, `v10_alpha_ic_analysis.py`, `v10_factor_zoo_report.py`, `v8_vs_v9_metrics.py` writing `/tmp/v9_*.md`, `/tmp/v10_*.md`
+- **Readers**: unmapped in repo; may be read by miniapp, Telegram bot, or human operator via tail
+- **Gap**: report files are written but consumption path not documented — a hidden cross-process dependency
+- **Severity**: MEDIUM
+
 ---
 
-## §7 — Roll-up
+## §7 — Roll-up (v2 post-Gemini)
 
 | Direction | Total | Severity distribution |
 |---|---:|---|
 | Inbound | 5 | HIGH 1, MEDIUM 3, LOW 1 |
 | Outbound | 5 (+ future 1) | HIGH 2, MEDIUM 2, LOW 1, GLOBAL 1 |
-| Cross-process | 6 | HIGH 1, MEDIUM 3, LOW 2 |
+| Cross-process | **7** (+XP-07 reports) | HIGH 1, MEDIUM 4, LOW 2 |
 | Cross-host | 5 | HIGH 2, MEDIUM 2, LOW 1 |
-| Control surface | 6 | HIGHEST 1, HIGH 2, MEDIUM 2, LOW 1 |
+| Control surface | **8** (+CS-07 shell history, +CS-08 systemd journal) | BLOCKER 1, HIGH 3, MEDIUM 3, LOW 1 |
 
-**Total IO paths = 27**. **Uncontrolled or loosely-controlled: 27**. (Everything here qualifies as "not centrally governed" by definition of this doc.)
+**Total IO paths = 30**. **Uncontrolled or loosely-controlled: 30**. (Everything here qualifies as "not centrally governed" by definition of this doc.)
+
+**Added v2**: +3 paths (CS-07, CS-08, XP-07). CS-05 reclassified HIGHEST → BLOCKER.
 
 ---
 

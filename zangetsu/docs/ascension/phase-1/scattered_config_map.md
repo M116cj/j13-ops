@@ -28,6 +28,12 @@
 
 13 storage classes — **no single source of truth**.
 
+**Missing categories (added v2 per Gemini §D.1):**
+- **Resource Budgets** — per-worker CPU quota, RAM limit, IO weight. Currently ZERO storage location; `nice -n 10` is the only resource knob in use (alpha_discovery cron).
+- **Concurrency Scaling** — max total worker count across all strategy IDs. Currently unbounded by code; `zangetsu_ctl.sh start` picks hardcoded `A1_WORKERS=4`. No mechanism to scale up/down based on load or time-of-day.
+
+These categories belong in the future L1 control plane.
+
 ---
 
 ## §2 — Per-parameter inventory
@@ -45,7 +51,7 @@
 | AD3 baseline | `arena23_orchestrator.py:568,578,632,869,877,914` hardcoded literal | 0.55 / 0.30 |
 | A2 grid | `arena23_orchestrator.py:156-157 ENTRY_THRESHOLDS/EXIT_THRESHOLDS` | [0.60,0.70,0.80,0.85,0.90,0.95] × [0.20,0.30,0.40,0.50] |
 
-**Drift**: 9 locations hold the same semantic. 4 different active values. Policy Layer v0 values are advertised but never reach production.
+**Drift**: 9 locations hold the same semantic. **6 distinct active values (updated v2 per Gemini §D.2)**: 0.80/0.50 (three modules), 0.95/0.65 (HEAD arena_pipeline default), 0.55/0.30 (AD3 baseline), 0.90/0.50 (yaml volume, inert), 0.80/0.50 (yaml breakout, inert), 0.60..0.95 × 0.20..0.50 (grid lists, many points). Policy Layer v0 values are advertised but never reach production.
 
 ### §2.2 Data & slicing
 | Parameter | Locations | Current |
@@ -166,8 +172,12 @@ Parameters with env fallback to a literal, where literal is rarely overridden an
 - `CURRENT_TASK_PATH` unset → `/tmp/j13-current-task.md`
 - `DMAIL_WARN_TURNS` unset → 80
 - `DMAIL_COMPACT_TURNS` unset → 150
+- `STRATEGY_ID` unset → (per code path default, usually `j01`) — **silent behavioral branch** (added v2 per Gemini §D.3)
+- `A1_LANE` unset → default lane (see zangetsu_ctl.sh start logic) — **silent behavioral branch** (added v2)
+- `A1_WORKER_COUNT` unset → 1 (worker scaling)
+- `A1_WORKER_ID` unset → 0
 
-**Risk**: an operator running a worker with no env vars gets a fully-functioning but silently-configured process. They wouldn't know what values are in play.
+**Risk**: an operator running a worker with no env vars gets a fully-functioning but silently-configured process. They wouldn't know what values are in play. **STRATEGY_ID and A1_LANE in particular change which fitness function and which DB lane the worker writes to — silently.**
 
 ---
 

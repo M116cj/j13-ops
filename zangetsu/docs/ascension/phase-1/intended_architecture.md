@@ -113,31 +113,33 @@ Identity to preserve (per §2):
 **Test boundary**: fake subscribers + schema validation.
 **Replacement boundary**: pluggable sinks.
 
-### L8 — Observability Layer
-**Purpose**: expose health / pipeline / truth / search signals; anomaly rules.
-**Responsibilities**: collect metrics from L2-L7, expose VIEWs (zangetsu_status), emit Prometheus-like streams, run alert rules, run reconciliation crons (per mutation_blocklist detection entries).
-**Inputs**: metrics, logs, state from all layers.
-**Outputs**: dashboards, alerts, status JSON snapshots.
-**Configs**: alert rule registry, dashboard registry, retention.
-**States**: metric cardinality, alert state machine.
-**Metrics**: alert lag, false-alert rate, retention compliance.
-**Failure modes**: metrics pipeline down → fallback to log-based alerts.
-**Test boundary**: replay recorded metric streams.
-**Replacement boundary**: pluggable exporters (Prometheus, Loki, ClickHouse).
+### L8 — Integrity & Governance Layer (merged v2 per Gemini §A.1)
 
-### L9 — Governance Layer
-**Purpose**: enforce contracts at every boundary; audit log; rollback surface.
-**Responsibilities**: PR / commit gates (charter §17), mutation blocklist runtime enforcement, rollout sign-off, decision records.
-**Inputs**: commit events, pipeline events, operator commands.
-**Outputs**: audit log entries, allow/deny verdicts, rollback scripts.
-**Configs**: mutation_blocklist.yaml, charter rules, decision-rights matrix.
-**States**: current block state (Calcifer RED/GREEN), pending approvals.
-**Metrics**: block hits, approval latency, audit coverage.
-**Failure modes**: audit down → block writes (fail-closed).
-**Test boundary**: rule unit tests + integration via mocked events.
-**Replacement boundary**: pluggable policy engines.
+**Scope change (v2):** L8 Observability and L9 Governance merged into a single layer. Rationale: governance IS applied policy on observability signals; two layers created an artificial boundary where metric-consumers had to cross-call rule-engines constantly. Sub-modules remain distinct.
 
-### L10 — Black-Box Adapter Layer
+**Sub-module L8.O — Observability signal collection**
+- Purpose: collect metrics, logs, state from L2-L7; emit structured streams.
+- Responsibilities: expose VIEWs (zangetsu_status); emit Prometheus-like streams; maintain alert-rule registry; run reconciliation crons per mutation_blocklist detection entries.
+- Outputs: dashboards, alerts, status JSON snapshots, audit-source events.
+- Metrics: alert lag, false-alert rate, retention compliance, metric cardinality.
+- Failure modes: metrics pipeline down → fallback to log-based alerts.
+
+**Sub-module L8.G — Governance enforcement**
+- Purpose: apply charter §17 + mutation_blocklist rules to signals from L8.O and to commit events; produce allow/deny verdicts + rollback handles.
+- Responsibilities: PR / commit gates, mutation blocklist runtime enforcement, rollout sign-off, decision-records authoring.
+- Inputs: commit events, pipeline events, operator commands, observability signals.
+- Outputs: audit log entries, allow/deny verdicts, rollback scripts.
+- Configs: mutation_blocklist.yaml, charter rules, decision-rights matrix.
+- States: current block state (Calcifer RED/GREEN), pending approvals.
+- Failure modes: governance-stream down → block writes (fail-closed).
+
+**Joint test boundary**: signal-replay tests + golden rule-outcome fixtures.
+**Joint replacement boundary**: pluggable exporters (Prometheus/Loki/ClickHouse) + pluggable policy engines.
+
+### L9 (was L10) — Black-Box Adapter Pattern (demoted scope v2 per Gemini §A.1)
+
+**Scope change (v2):** demoted from top-level layer to **architectural pattern applied inside L4/L5** when needed. Rationale: today only GP is active (D-07 single-search); adapter pattern only materialises when D4 model-gate introduces a second peer (LGBM, transformer). Keeping as pattern not layer avoids a "ghost layer" per Gemini §A.3. Re-promoted to layer if/when ≥2 peer black-boxes exist.
+
 **Purpose**: wrap any black-box model / external agent with explicit contract (per spec §3.6).
 **Responsibilities**: enforce input/output/config/state/health/version/failure/rollback schemas on wrapped components.
 **Inputs**: black-box module reference + contract manifest.
@@ -232,23 +234,22 @@ None of these should live as hardcoded literals in `services/*.py`, scattered en
 
 ---
 
-## §6 — Contracts required at each boundary
+## §6 — Contracts required at each boundary (v2 — scope-bleed fixed per Gemini §G)
 
-For every cross-layer call, an explicit data schema + error schema + backward-compat policy. Contracts live in `zangetsu/contracts/`:
+For every cross-layer call, an explicit data schema + error schema + backward-compat policy is REQUIRED. Phase 1 only states this requirement and enumerates the **categories** of contract. **Concrete file names, paths, and canonical template are Phase 2 deliverables** (per Ascension §7 execution order, Phase 1 must not do Phase 2 work).
 
-```
-zangetsu/contracts/
-├── data_schema.yaml          # L3 ↔ L4/L5
-├── candidate_schema.yaml     # L4 → L6 (admission) / L2
-├── metrics_schema.yaml       # L5 → L6
-├── gate_outcome_schema.yaml  # L6 → L2
-├── champion_state_schema.yaml# L2 internal transitions
-├── alert_schema.yaml         # L8 → L9 / consumers
-├── audit_schema.yaml         # L9 append-only log format
-└── adapter_contract.yaml     # L10 black-box wrapper schema
-```
+**Required contract categories** (Phase 2 owns names + layout):
+- Data schema contract (L3 ↔ L4/L5)
+- Candidate schema contract (L4 → L6 admission / L2)
+- Metrics schema contract (L5 → L6)
+- Gate outcome contract (L6 → L2)
+- Champion state contract (L2 internal transitions)
+- Alert contract (L8.O → consumers)
+- Audit contract (L8.G append-only log format)
+- Adapter contract (applied when black-box pattern materialises — see demoted L10→pattern §L9)
+- Order-execution contract (future, for OUT-06 Binance order API — **added v2 per Gemini §E.3**: plan now to avoid ad-hoc Phase 7)
 
-Phase 2 migration will produce these; Phase 1 lists them as intended artefacts only.
+Phase 2 outputs will name + structure these. Phase 1 just records the requirement.
 
 ---
 
