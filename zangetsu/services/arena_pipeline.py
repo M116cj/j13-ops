@@ -109,6 +109,29 @@ try:
 except Exception:
     _ARENA_PASS_RATE_TELEMETRY_AVAILABLE = False
 
+# 0-9O-A — generation profile identity.
+# Wires the black-box generation profile_id / fingerprint into Arena
+# pass-rate telemetry. Identity resolution is exception-safe; missing or
+# invalid configs yield the UNKNOWN_PROFILE / UNAVAILABLE fallbacks.
+try:
+    from zangetsu.services.generation_profile_identity import (
+        safe_resolve_profile_identity as _safe_resolve_profile_identity,
+    )
+    _GENERATION_PROFILE_IDENTITY_AVAILABLE = True
+except Exception:
+    _GENERATION_PROFILE_IDENTITY_AVAILABLE = False
+
+    def _safe_resolve_profile_identity(*_args, **_kwargs):
+        return {
+            "profile_id": _UNKNOWN_PROFILE_ID
+            if "_UNKNOWN_PROFILE_ID" in globals()
+            else "UNKNOWN_PROFILE",
+            "profile_fingerprint": _UNAVAILABLE_FINGERPRINT
+            if "_UNAVAILABLE_FINGERPRINT" in globals()
+            else "UNAVAILABLE",
+            "profile_name": "UNKNOWN_PROFILE",
+        }
+
 
 def _make_a1_batch_metrics_safe(*, run_id: str = "", batch_id: str = ""):
     """Return a new A1 ArenaStageMetrics accumulator (or None if module
@@ -144,6 +167,8 @@ def _emit_a1_batch_metrics_safe(accumulator, *, deployable_count=None, log=None)
 def _emit_a1_batch_metrics_from_stats_safe(
     *, run_id: str, batch_id: str, entered_count: int, passed_count: int,
     stats: dict, log=None,
+    generation_profile_id: str | None = None,
+    generation_profile_fingerprint: str | None = None,
 ) -> None:
     """Build + emit an A1 arena_batch_metrics event directly from the
     existing stats dict used by arena_pipeline. Zero-intrusion wrapper for
@@ -153,6 +178,8 @@ def _emit_a1_batch_metrics_from_stats_safe(
     entered_count = len(alphas) for the round
     passed_count  = round_champions
     stats[reject_*] keys supply the reject_reason_distribution (canonical-mapped).
+    generation_profile_id / fingerprint (0-9O-A): optional profile identity.
+        When omitted, UNKNOWN_PROFILE / UNAVAILABLE fallbacks are used.
     """
     if not _ARENA_PASS_RATE_TELEMETRY_AVAILABLE:
         return
@@ -161,8 +188,12 @@ def _emit_a1_batch_metrics_from_stats_safe(
             arena_stage="A1",
             run_id=run_id,
             batch_id=batch_id,
-            generation_profile_id=_UNKNOWN_PROFILE_ID,
-            generation_profile_fingerprint=_UNAVAILABLE_FINGERPRINT,
+            generation_profile_id=(
+                generation_profile_id or _UNKNOWN_PROFILE_ID
+            ),
+            generation_profile_fingerprint=(
+                generation_profile_fingerprint or _UNAVAILABLE_FINGERPRINT
+            ),
         )
         # Record entered/passed directly (aggregate view, no per-candidate hook).
         acc.entered_count = int(entered_count)
@@ -725,6 +756,24 @@ async def main():
     MIN_HOLD = _env_int("ALPHA_MIN_HOLD", 60, 1)
     COOLDOWN = _env_int("ALPHA_COOLDOWN", 60, 1)
 
+    # 0-9O-A: resolve the black-box generation profile identity for
+    # this worker. Read-only — does not affect GP parameters or Arena
+    # decisions. Identity resolution is exception-safe.
+    _gen_profile_identity = _safe_resolve_profile_identity(
+        {
+            "generator_type": "gp_v10",
+            "strategy_id": STRATEGY_ID,
+            "n_gen": N_GEN,
+            "pop_size": POP_SIZE,
+            "top_k": TOP_K,
+            "entry_thr": ENTRY_THR,
+            "exit_thr": EXIT_THR,
+            "min_hold": MIN_HOLD,
+            "cooldown": COOLDOWN,
+        },
+        profile_name=f"gp_v10_{STRATEGY_ID}",
+    )
+
     while running:
         round_number += 1
         load_a13_guidance(log)
@@ -1145,6 +1194,9 @@ async def main():
         # `stats[reject_*]`. Emission is exception-safe — emitter failure
         # cannot alter Arena decisions above. The _pb provenance bundle
         # provides run_id where available.
+        # 0-9O-A: generation_profile_id / fingerprint resolved from GP
+        # parameters at worker startup (`_gen_profile_identity`). Read-only
+        # identity — does not affect Arena decisions.
         _emit_a1_batch_metrics_from_stats_safe(
             run_id=getattr(_pb, "run_id", "") or "",
             batch_id=f"R{round_number}-{sym}-{regime}",
@@ -1152,6 +1204,10 @@ async def main():
             passed_count=round_champions,
             stats=stats,
             log=log,
+            generation_profile_id=_gen_profile_identity.get("profile_id"),
+            generation_profile_fingerprint=_gen_profile_identity.get(
+                "profile_fingerprint"
+            ),
         )
 
         if total_champions > 0 and total_champions % 200 == 0:
