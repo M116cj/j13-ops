@@ -1,0 +1,75 @@
+=== LOCAL-ONLY INFRA / MONITORING CODE AUDIT ===
+2026-04-23T01:21:28Z
+
+--- L1. any file referenced by live systemd units but untracked in git? ---
+=== calcifer-miniapp.service ===
+ExecStart: /home/j13/calcifer-miniapp/.venv/bin/python server.py
+  → (no python/shell script in ExecStart or file missing)
+
+=== calcifer-supervisor.service ===
+ExecStart: /usr/bin/python3 /home/j13/j13-ops/calcifer/supervisor.py
+  → tracked in /home/j13/j13-ops
+
+=== console-api.service ===
+ExecStart: /home/j13/j13-ops/zangetsu/.venv/bin/uvicorn zangetsu.console.run:app --app-dir /home/j13/j13-ops --host 0.0.0.0 --port 9900
+  → (no python/shell script in ExecStart or file missing)
+
+=== dashboard-api.service ===
+ExecStart: /home/j13/j13-ops/zangetsu/.venv/bin/uvicorn zangetsu.dashboard.run:app --app-dir /home/j13/j13-ops --host 0.0.0.0 --port 9901
+  → (no python/shell script in ExecStart or file missing)
+
+=== d-mail-miniapp.service ===
+ExecStart: /home/j13/d-mail-miniapp/.venv/bin/python server.py
+  → (no python/shell script in ExecStart or file missing)
+
+
+--- L2. cron jobs referencing local-only paths ---
+0 2 * * * /home/j13/backups/pg-backup.sh >> /var/log/alaya/pg-backup.log 2>&1
+0 3 * * * /home/j13/backups/redis-backup.sh >> /var/log/alaya/redis-backup.log 2>&1
+0 4 * * * /home/j13/backups/redis-trim.sh >> /var/log/alaya/redis-trim.log 2>&1
+
+# === Maintenance Automation (added 2026-03-28) ===
+# Docker cleanup — weekly Sunday 02:00 UTC
+# Docker image prune (keep images from last 7 days) — Sunday 03:00 UTC
+0 1-3,9-23 * * * [ -n "$(grep -m1 "X_API_KEY=." ~/r-steiner/.env)" ] && bash ~/r-steiner/scheduler.sh >> ~/r-steiner/data/run.log 2>&1
+0 18 * * * bash ~/r-steiner/run_series.sh >> ~/r-steiner/data/run.log 2>&1
+0 13 * * * bash ~/r-steiner/run_series.sh >> ~/r-steiner/data/run.log 2>&1
+# Line P: 亞洲時區工程日誌 — UTC 12:00 (台灣 20:00)
+0 12 * * * bash ~/r-steiner/run_progress.sh >> ~/r-steiner/data/run.log 2>&1
+30 0-2,8-22 * * * python3 ~/r-steiner/kol_preconfig.py >> ~/r-steiner/data/run.log 2>&1
+0 14 * * * python3 ~/r-steiner/monitor_rsteiner.py >> ~/r-steiner/data/run.log 2>&1
+*/5 * * * * ~/j13-ops/zangetsu/watchdog.sh >> /tmp/zangetsu_watchdog.log 2>&1
+0 */6 * * * /home/j13/j13-ops/zangetsu/scripts/daily_data_collect.sh
+*/5 * * * * cd ~/j13-ops/zangetsu && .venv/bin/python services/arena13_feedback.py >> /tmp/zangetsu_a13fb.log 2>&1
+0 3 * * 0 find /tmp -maxdepth 1 \( -name "zangetsu_*.log.[0-9]" -o -name "zangetsu-*.txt" -o -name "zangetsu-*.bak" \) -mtime +7 -delete 2>/dev/null
+0 * * * * cd ~/j13-ops/zangetsu && .venv/bin/python3 scripts/v8_vs_v9_metrics.py > /tmp/v9_metrics_latest.md 2>&1
+30 * * * * cd ~/j13-ops/zangetsu && .venv/bin/python3 scripts/signal_quality_report.py > /tmp/v9_signal_quality_latest.md 2>&1
+
+--- L3. calcifer repo state ---
+ls: cannot access '/home/j13/calcifer/': No such file or directory
+NO .git — calcifer runtime dir outside VCS
+
+--- L4. calcifer-miniapp repo state ---
+total 88
+drwxrwxr-x  5 j13 j13  4096 Apr 18 16:36 .
+drwxr-x--- 35 j13 j13  4096 Apr 22 16:17 ..
+-rw-r--r--  1 j13 j13   384 Apr  7 17:22 calcifer-miniapp.service
+-rw-r--r--  1 j13 j13   536 Apr  7 17:22 deploy.sh
+lrwxrwxrwx  1 j13 j13    29 Apr  7 17:23 .env -> /home/j13/alaya/calcifer/.env
+drwxrwxr-x  2 j13 j13  4096 Apr 18 16:36 __pycache__
+-rw-r--r--  1 j13 j13    81 Apr  7 17:22 requirements.txt
+-rw-r--r--  1 j13 j13 38451 Apr 18 16:36 server.py
+-rw-r--r--  1 j13 j13 12364 Apr 18 16:36 server.py.bak_v03_20260419_003612
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+
+--- L5. d-mail-miniapp repo ---
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+fatal: not a git repository (or any of the parent directories): .git
+
+--- L6. arena13_feedback.py cron env issue ---
+crontab cron entry:
+*/5 * * * * cd ~/j13-ops/zangetsu && .venv/bin/python services/arena13_feedback.py >> /tmp/zangetsu_a13fb.log 2>&1
+script env requirement:
+99:DB_PASSWORD: str = os.environ["ZV5_DB_PASSWORD"]  # no fallback — must be set in env

@@ -1,0 +1,96 @@
+=== ZANGETSU FAILED FORMULATION FREEZE — EVIDENCE SNAPSHOT ===
+Captured: 2026-04-23T00:35:04Z
+Order: /home/j13/claude-inbox/0-1 Phase A action 1
+
+--- A1. zangetsu_status VIEW (§17.1) ---
+ deployable_count | deployable_historical | deployable_fresh | deployable_live_proven | active_count | candidate_count | champions_last_1h | last_live_at_age_h |              ts               
+------------------+-----------------------+------------------+------------------------+--------------+-----------------+-------------------+--------------------+-------------------------------
+                0 |                     0 |                0 |                      0 |            0 |               0 |                 0 |                    | 2026-04-23 00:35:04.961334+00
+(1 row)
+
+
+--- A2. champion pipeline counts ---
+    t     |  n   |            last_ts            
+----------+------+-------------------------------
+ fresh    |   89 | 2026-04-21 04:34:21.954696+00
+ staging  |  184 | 2026-04-21 04:34:21.954696+00
+ rejected |    0 | 
+ legacy   | 1564 | 2026-04-19 03:28:58.410936+00
+(4 rows)
+
+
+--- A3. pipeline status breakdowns ---
+     status      | count 
+-----------------+-------
+ ARENA2_REJECTED |    89
+(1 row)
+
+     status      | count 
+-----------------+-------
+ ARENA1_COMPLETE |   184
+(1 row)
+
+
+--- A4. engine.jsonl tail (last 10 rounds) ---
+{"ts": "2026-04-23T00:22:17", "level": "INFO", "msg": "R50930 | BTCUSDT/BULL_PULLBACK | champions=0/10 | 14.2s | rejects: few_trades=46 val_few=6 val_neg_pnl=14724 val_sharpe=9 val_wr=15"}
+{"ts": "2026-04-23T00:24:36", "level": "INFO", "msg": "R323390 | ETHUSDT/BULL_TREND | champions=0/10 | 14.7s | rejects: few_trades=1 val_few=0 val_neg_pnl=14891 val_sharpe=5 val_wr=2"}
+{"ts": "2026-04-23T00:25:00", "level": "INFO", "msg": "R50940 | 1000SHIBUSDT/BEAR_TREND | champions=0/10 | 13.8s | rejects: few_trades=46 val_few=6 val_neg_pnl=14824 val_sharpe=9 val_wr=15"}
+{"ts": "2026-04-23T00:27:02", "level": "INFO", "msg": "R323400 | ETHUSDT/BULL_TREND | champions=0/10 | 14.7s | rejects: few_trades=1 val_few=0 val_neg_pnl=14991 val_sharpe=5 val_wr=2"}
+{"ts": "2026-04-23T00:27:24", "level": "INFO", "msg": "R50950 | AVAXUSDT/BEAR_TREND | champions=0/10 | 14.6s | rejects: few_trades=46 val_few=6 val_neg_pnl=14924 val_sharpe=9 val_wr=15"}
+{"ts": "2026-04-23T00:29:48", "level": "INFO", "msg": "R323410 | DOTUSDT/BULL_PULLBACK | champions=0/10 | 14.7s | rejects: few_trades=1 val_few=0 val_neg_pnl=15091 val_sharpe=5 val_wr=2"}
+{"ts": "2026-04-23T00:30:08", "level": "INFO", "msg": "R50960 | BTCUSDT/BULL_PULLBACK | champions=0/10 | 14.4s | rejects: few_trades=46 val_few=6 val_neg_pnl=15021 val_sharpe=10 val_wr=17"}
+{"ts": "2026-04-23T00:32:13", "level": "INFO", "msg": "R323420 | ETHUSDT/BULL_TREND | champions=0/10 | 14.9s | rejects: few_trades=1 val_few=0 val_neg_pnl=15191 val_sharpe=5 val_wr=2"}
+{"ts": "2026-04-23T00:32:35", "level": "INFO", "msg": "R50970 | 1000SHIBUSDT/BEAR_TREND | champions=0/10 | 15.4s | rejects: few_trades=46 val_few=6 val_neg_pnl=15121 val_sharpe=10 val_wr=17"}
+{"ts": "2026-04-23T00:34:55", "level": "INFO", "msg": "R323430 | ETHUSDT/BULL_TREND | champions=0/10 | 14.3s | rejects: few_trades=1 val_few=0 val_neg_pnl=15291 val_sharpe=5 val_wr=2"}
+
+--- A5. engine.jsonl file stats ---
+  File: /home/j13/j13-ops/zangetsu/logs/engine.jsonl
+  Size: 38637328  	Blocks: 75472      IO Block: 4096   regular file
+Device: 259,7	Inode: 31196197    Links: 1
+Access: (0664/-rw-rw-r--)  Uid: ( 1000/     j13)   Gid: ( 1000/     j13)
+Access: 2026-04-23 00:35:02.120485040 +0000
+Modify: 2026-04-23 00:34:55.790377961 +0000
+Change: 2026-04-23 00:34:55.790377961 +0000
+ Birth: 2026-04-16 04:21:50.089155532 +0000
+
+--- A6. current PIDs / CPU / RSS / elapsed ---
+    PID     ELAPSED %CPU %MEM   RSS STAT COMMAND
+2385765    06:42:34  100  5.7 1862216 Rl /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena_pipeline.py
+2385788    06:42:33  100  5.7 1862656 Rl /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena_pipeline.py
+2385996    06:42:32  0.1  3.2 1049616 Sl /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena23_orchestrator.py
+2386067    06:42:32  0.0  1.9 628780 Sl  /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena45_orchestrator.py
+
+--- A7. load avg + mem snapshot ---
+ 00:35:05 up 1 day, 23:36,  2 users,  load average: 4.32, 4.93, 4.76
+               total        used        free      shared  buff/cache   available
+Mem:            31Gi       6.6Gi        11Gi        87Mi        13Gi        24Gi
+Swap:          8.0Gi       1.1Gi       6.9Gi
+
+--- A8. git SHA + branch (main) ---
+fd7cc34eb36402d7a5cb92eff96d47027d2bedf1 docs(zangetsu/ascension-phase-2): v2.1 — module_registry §5.1.5 align with §4 CI/CD sync
+j13 2026-04-22 19:56:58 +0000
+main
+
+--- A9. git SHA + branch (phase3e worktree) ---
+480976c18a94967ab8b467eddc29c7317faffe0e docs(zangetsu/policy-layer): fixup internal path refs from /tmp to repo-relative
+j13 2026-04-22 10:57:20 +0000
+feat/zangetsu-phase3e-rearch
+
+--- A10. active decision references ---
+-rw-rw-r-- 1 j13 j13 12746 Apr 22 17:52 /home/j13/j13-ops/zangetsu/docs/decisions/20260422-alpha-os-2.0-charter.md
+-rw-rw-r-- 1 j13 j13  2555 Apr 22 17:52 /home/j13/j13-ops/zangetsu/docs/decisions/20260422-r2-hotfix.md
+
+--- A11. Calcifer RED state (§17.3) ---
+-rw-r--r-- 1 j13 j13 195 Apr 23 00:32 /tmp/calcifer_deploy_block.json
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776904340,
+  "iso": "2026-04-23T00:32:20.844876+00:00",
+  "reason": "deployable_count==0 AND age=Noneh>6.0h"
+}
+--- A12. GPU driver state (parallel infra issue) ---
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+

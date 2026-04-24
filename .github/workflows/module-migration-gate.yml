@@ -1,0 +1,151 @@
+name: Module Migration Gate (Gate-B)
+# MOD-6 Phase 2 — server-side enforcement of per-module migration gate
+# Triggers on any PR touching module source or contract YAML paths (path-based,
+# un-omittable per MOD-3 gate_b_trigger_correction.md §3.1).
+
+on:
+  pull_request:
+    paths:
+      - 'zangetsu/src/modules/**'
+      - 'zangetsu/src/l[0-9]*/**'
+      - 'zangetsu/module_contracts/**'
+    paths-ignore:
+      - 'zangetsu/src/**/*.md'
+      - 'zangetsu/src/**/test_*.py'
+      - 'zangetsu/src/**/tests/**'
+      - 'zangetsu/src/**/__pycache__/**'
+      - 'zangetsu/src/**/*.pyc'
+  push:
+    branches: [main]
+    paths:
+      - 'zangetsu/src/modules/**'
+      - 'zangetsu/src/l[0-9]*/**'
+      - 'zangetsu/module_contracts/**'
+    paths-ignore:
+      - 'zangetsu/src/**/*.md'
+      - 'zangetsu/src/**/test_*.py'
+      - 'zangetsu/src/**/tests/**'
+      - 'zangetsu/src/**/__pycache__/**'
+      - 'zangetsu/src/**/*.pyc'
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: module-migration-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  identify_affected_modules:
+    name: Identify affected modules
+    runs-on: ubuntu-latest
+    outputs:
+      module_ids: ${{ steps.extract.outputs.module_ids }}
+      noop: ${{ steps.extract.outputs.noop }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: extract
+        name: Extract affected module IDs from changed paths
+        run: |
+          BASE_REF="${{ github.event.pull_request.base.sha || 'HEAD^' }}"
+          CHANGED=$(git diff --name-only "$BASE_REF" HEAD 2>/dev/null || echo "")
+          MODULE_IDS=$(echo "$CHANGED" | awk -F/ '
+            /^zangetsu\/src\/modules\// {print $4}
+            /^zangetsu\/src\/l[0-9]/ {print $4}
+            /^zangetsu\/module_contracts\/.*\.(yaml|yml)$/ {
+              fname=$NF; sub(/\.(yaml|yml)$/, "", fname); print fname
+            }
+          ' | sort -u | grep -v '^$' || true)
+          if [ -z "$MODULE_IDS" ]; then
+            echo "noop=true" >> $GITHUB_OUTPUT
+            echo "module_ids=" >> $GITHUB_OUTPUT
+            echo "::notice::No module-affecting paths changed; Gate-B noop"
+          else
+            echo "noop=false" >> $GITHUB_OUTPUT
+            MODULE_IDS_JSON=$(echo "$MODULE_IDS" | python3 -c 'import sys,json; print(json.dumps([l.strip() for l in sys.stdin if l.strip()]))')
+            echo "module_ids=$MODULE_IDS_JSON" >> $GITHUB_OUTPUT
+            echo "::notice::Affected modules: $MODULE_IDS"
+          fi
+
+  gate_b_per_module:
+    name: Gate-B checks per module
+    needs: identify_affected_modules
+    if: needs.identify_affected_modules.outputs.noop == 'false'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module_id: ${{ fromJSON(needs.identify_affected_modules.outputs.module_ids) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: B.1 module YAML contract present
+        run: |
+          YAML="zangetsu/module_contracts/${{ matrix.module_id }}.yaml"
+          test -f "$YAML" || { echo "::error::Contract YAML missing: $YAML"; exit 1; }
+          echo "::notice::Contract YAML present: $YAML"
+
+      - name: B.1 module YAML contract shape (15-field minimum)
+        run: |
+          YAML="zangetsu/module_contracts/${{ matrix.module_id }}.yaml"
+          python3 -c "
+          import yaml, sys
+          d = yaml.safe_load(open('$YAML'))
+          m = d.get('module', d)
+          required = ['module_name','purpose','responsibilities','inputs','outputs',
+                      'config_schema','state_schema','metrics','failure_surface',
+                      'rollback_surface','test_boundary','replacement_boundary',
+                      'blackbox_allowed','console_controls','execution_environment']
+          missing = [k for k in required if k not in m]
+          if missing:
+              print(f'::error::Module YAML $YAML missing fields: {missing}', file=sys.stderr)
+              sys.exit(1)
+          print(f'::notice::Module YAML passes 15-field schema check')
+          "
+
+      - name: B.1 Gemini sign-off ADR present
+        run: |
+          ADR_PATTERN="docs/decisions/*-module-${{ matrix.module_id }}.md"
+          if ! ls $ADR_PATTERN 1>/dev/null 2>&1; then
+            echo "::error::Gemini sign-off ADR missing: $ADR_PATTERN"
+            exit 1
+          fi
+          ADR=$(ls $ADR_PATTERN | head -1)
+          grep -iqE 'Gemini.*(ACCEPT|verdict.*accept)' "$ADR" || {
+            echo "::warning::ADR exists but Gemini ACCEPT not clearly recorded: $ADR"
+          }
+          echo "::notice::Sign-off ADR = $ADR"
+
+      - name: B.3 rollback runbook present
+        run: |
+          RUNBOOK="docs/rollback/${{ matrix.module_id }}.md"
+          if [ ! -f "$RUNBOOK" ]; then
+            echo "::warning::Rollback runbook missing: $RUNBOOK"
+            # Soft-fail in MOD-6 skeleton; hard-fail once Phase 7 scaffolding populates
+          else
+            echo "::notice::Rollback runbook = $RUNBOOK"
+          fi
+
+  gate_b_summary:
+    name: Gate-B summary
+    needs: [identify_affected_modules, gate_b_per_module]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Summarize
+        run: |
+          if [ "${{ needs.identify_affected_modules.outputs.noop }}" = "true" ]; then
+            echo "::notice::Gate-B NOOP — no module-affecting paths changed"
+            exit 0
+          fi
+          if [ "${{ needs.gate_b_per_module.result }}" = "success" ]; then
+            echo "::notice::Gate-B PASS for all affected modules"
+          else
+            echo "::error::Gate-B FAIL — see per-module logs"
+            exit 1
+          fi

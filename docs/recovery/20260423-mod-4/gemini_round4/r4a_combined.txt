@@ -1,0 +1,443 @@
+You are Gemini — external adversarial reviewer for Zangetsu, round 4.
+
+CONTEXT: Round-3 surfaced 1 CRITICAL (R3b-F1 gate_calcifer_bridge missing) + 2 HIGH (R3a-F8 GPG enforcement vacuum, R3b-F2 M9 rate_limit mixed channels) + 4 MEDIUM + 1 LOW. MOD-4 team order 0-5 executed remediation. This round-4 segment A asks you to verify the CRITICAL is closed.
+
+MOD-4 AMENDMENTS FOR THIS SEGMENT:
+
+1. gate_calcifer_bridge (R3b-F1 CRITICAL) — **FOLD decision**: ceases to exist as separate module. Its Calcifer-state-read behavior is absorbed into M8 gate_contract.
+   - M8 inputs now include `CalciferBlockFile (from filesystem)` instead of `CalciferBlockState (from gate_calcifer_bridge)`
+   - M8 Field 15 adds `filesystem_read_paths: [/tmp/calcifer_deploy_block.json]`
+   - M8 failure_surface adds `calcifer_flag_missing_or_stale` mode with fail-closed
+   - Boundary map v3 keeps 9-module mandatory set (NO new module)
+
+2. Mandatory set v2: unchanged count (9) — FOLD not PROMOTE chosen.
+
+3. Dependency graph post-FOLD:
+   - M8 edges: MetricsContract from M6, ThresholdLookup from M2 (via M9 library), CalciferBlockFile from filesystem
+   - No external gate_calcifer_bridge edge remains
+   - Transitive-egress rule declared: library egress declared in library's contract, not consumer's
+
+MANDATE:
+1. Is the FOLD decision genuinely structural or cosmetic? Does M8 now truly own Calcifer state handling or is the dependency re-hidden under a different name?
+2. Can the 9-module set actually run end-to-end without reference to anything outside (i.e., `zangetsu` schema Postgres, `control_plane` schema, Calcifer file are the only externals)?
+3. Does `filesystem_read_paths: [/tmp/calcifer_deploy_block.json]` create a new class of hidden dependency — what if the Calcifer daemon stops writing the file? Is the fail_closed behavior right?
+4. Does the FOLD create a new NEW finding (previously unknown)?
+5. Under the transitive-egress rule, does M9 cp_worker_bridge's declaration of `localhost:8773` mean M8 (which indirectly reads CP params through M9) is OK with `permitted_egress_hosts: []`? Verify this logic.
+
+OUTPUT FORMAT (STRICT, <500 words):
+- FINDING-N blocks: severity (CRITICAL/HIGH/MEDIUM/LOW/NONE), claim, evidence, recommended_delta
+- State R3b-F1 status: CLOSED / PARTIAL / NOT_CLOSED / NEW
+- End with: `VERDICT_4A = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Labels VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN
+
+
+=== gate_calcifer_bridge_resolution.md ===
+# gate_calcifer_bridge Resolution — MOD-4 Phase 1
+
+**Order**: `/home/j13/claude-inbox/0-5` Phase 1 primary deliverable
+**Produced**: 2026-04-23T09:30Z
+**Resolves**: Gemini R3b-F1 CRITICAL — `gate_calcifer_bridge` depended on by M8 `gate_contract` but not in mandatory set
+**Decision**: **FOLD** — `gate_calcifer_bridge` is folded into `gate_contract` (M8). No new mandatory module added.
+
+---
+
+## 1. Decision
+
+**FOLD** — gate_calcifer_bridge ceases to exist as a separate sub-module. Its sole behavior (read `/tmp/calcifer_deploy_block.json`, publish state) is absorbed directly into M8 `gate_contract`.
+
+Alternative considered: **PROMOTE** to 10th mandatory module. Rejected.
+
+## 2. Rationale for FOLD vs PROMOTE
+
+### 2.1 What gate_calcifer_bridge does today
+
+Per MOD-1 `module_boundary_map.md §2` Ascension table:
+> "gate_calcifer_bridge: Calcifer block file reader (scattered today); Upstream contract: calcifer block JSON; Downstream contract: GateOutcomeContract (veto)"
+
+Scope: thin read wrapper around `/tmp/calcifer_deploy_block.json`. Publishes a boolean-veto signal into gate promotion logic.
+
+### 2.2 FOLD arguments (chosen)
+
+- **Simplicity**: the bridge is 50–100 lines of code at most. Creating a separate module + registry entry + contract review for 50 lines is overhead without benefit.
+- **Cohesion**: reading Calcifer state is PART of gate decision logic. The gate needs to know "is deployable blocked?" — that IS a gate property, not a data-plane concern.
+- **Consistency with existing pattern**: M8 `gate_contract` already absorbs 6 evaluators (admission / A2 / A3 / A4 / promote / calcifer). Separating one of them is arbitrary.
+- **Smaller mandatory set**: staying at 9 mandatory modules is architecturally tighter than 10.
+- **No loss of auditability**: M8 `failure_surface` already covers `calcifer_red_active` detection; folding makes this explicit rather than cross-module.
+
+### 2.3 PROMOTE arguments (rejected)
+
+- **Mirror cp_worker_bridge (M9)**: cp_worker_bridge was promoted because 6 modules depended on it universally. gate_calcifer_bridge is used by M8 ONLY. Different shape; different conclusion.
+- **Explicit versioning**: a separate module could evolve independently. Not needed — Calcifer's block-file schema is fixed (see `calcifer/zangetsu_outcome.py` §17.3). No evolution pressure.
+- **Register separate failure surface**: already covered in M8 `failure_surface.calcifer_red_active`.
+
+### 2.4 Adversarial check
+
+Q: "If folded, how does M8 avoid violating the `execution_environment.filesystem_read_paths` discipline?"
+A: M8 Field 15 adds explicit `filesystem_read_paths: ["/tmp/calcifer_deploy_block.json"]`. Legitimate, declared, auditable. Not a hidden side channel.
+
+Q: "Is there any failure mode where folding hides a bug that separating would have made visible?"
+A: No. Folding changes the location of the code, not the observability. M8 metrics already include `gate_contract_calcifer_block_active_total` counter — this is already exposed.
+
+Q: "Does folding make M8 responsibility count exceed the 2–7 rule?"
+A: M8 pre-fold had 6 responsibilities. Folding does NOT add a responsibility — "evaluate Calcifer block state" is implicit within "evaluate promote gate" (per M8 original responsibilities). No count change.
+
+## 3. Concrete changes to M8 gate_contract contract
+
+### 3.1 `responsibilities` — unchanged
+All 6 entries remain; "evaluate Calcifer block state" is sub-task of "evaluate final promotion gate".
+
+### 3.2 `inputs` — change
+
+Old (MOD-3):
+```yaml
+- contract_name: CalciferBlockState
+  source_module: gate_calcifer_bridge (external sibling consumer of /tmp/calcifer_deploy_block.json)
+  cardinality: stream
+  frequency: polling_60_seconds
+```
+
+New (MOD-4):
+```yaml
+- contract_name: CalciferBlockFile
+  source_module: filesystem (direct read of /tmp/calcifer_deploy_block.json)
+  cardinality: on_demand_per_promote_decision
+  frequency: event (read on every promote gate evaluation; bounded to ≤ 1/s given arena cadence)
+```
+
+### 3.3 `failure_surface` — strengthened
+
+Add explicit failure mode:
+```yaml
+- name: calcifer_flag_missing_or_stale
+  detection: "os.stat() reports mtime > 10min OR file missing OR json parse fail"
+  recovery: "treat as RED (fail-closed — deny promotion; log to obs_metrics; emit audit row)"
+  observable_via: gate_contract_calcifer_flag_stale_total
+  alert_rule: "rate(gate_contract_calcifer_flag_stale_total[5m]) > 0 → WARN"
+```
+
+### 3.4 `execution_environment` (Field 15) — amended
+
+Old:
+```yaml
+execution_environment:
+  permitted_egress_hosts: []
+  filesystem_write_paths: []
+```
+
+New:
+```yaml
+execution_environment:
+  permitted_egress_hosts: []
+  filesystem_read_paths:           # NEW MOD-4 addition
+    - "/tmp/calcifer_deploy_block.json"
+  filesystem_write_paths: []
+  # other fields unchanged
+```
+
+Note: `filesystem_read_paths` is a NEW sub-field of Field 15 (see `amended_module_contract_template_v3.md`). Adds read allowlisting alongside the write-path allowlisting.
+
+### 3.5 `metrics` — add 2
+
+```yaml
+- {name: gate_contract_calcifer_flag_stale_total, type: counter, unit: events, labels: [reason], cardinality_cap: 5, sample_sla: event}
+- {name: gate_contract_calcifer_read_duration_seconds, type: histogram, unit: seconds, labels: [], cardinality_cap: 1, sample_sla: event}
+```
+
+## 4. Concrete changes to boundary map
+
+### 4.1 `module_boundary_map.md §2` Ascension table row
+
+Old:
+```
+| gate_calcifer_bridge | Calcifer block file reader (scattered today) | Calcifer daemon internals | calcifer block JSON | GateOutcomeContract (veto) |
+```
+
+New (MOD-4):
+```
+| gate_calcifer_bridge | FOLDED INTO gate_contract (MOD-4 Phase 1) | — | — | — |
+```
+
+Marked as FOLDED rather than removed — preserves historical trace.
+
+### 4.2 `§MOD-1.C` mapping table row for M8
+
+Old:
+```
+| gate_contract (NEW M8) | gate_admission + gate_a2 + gate_a3 + gate_a4 + gate_promote + gate_calcifer_bridge (execution side) | ADDED |
+```
+
+New (MOD-4):
+```
+| gate_contract (M8) | gate_admission + gate_a2 + gate_a3 + gate_a4 + gate_promote + gate_calcifer_bridge (ALL absorbed via FOLD) | ABSORBED gate_calcifer_bridge per MOD-4 Phase 1 |
+```
+
+## 5. Changes to modular_target_architecture
+
+Per `modular_target_architecture_amendment.md §2` L6 Gate section — old:
+> "gate_contract (M8, execution-plane: ...) — absorbs: gate_admission + gate_a2 + gate_a3 + gate_a4 + gate_promote + gate_calcifer_bridge (as internal evaluators)"
+
+MOD-4 confirms this — previously ambiguous whether gate_calcifer_bridge was a sub-module or internal evaluator; MOD-4 FOLDS IT as INTERNAL EVALUATOR definitively. No external edge.
+
+## 6. Non-negotiable rules compliance
+
+| Rule | Compliance |
+|---|---|
+| 1. No silent production mutation | ✅ — MOD-4 is spec-level; no runtime change |
+| 3. No live gate change | ✅ — Calcifer RED logic unchanged; only the MODULE boundary changes |
+| 8. No broad refactor | ✅ — FOLD is the minimal-surface remediation |
+| 9. No black-box control surface | ✅ — M8 absorbs Calcifer state visibly with declared Field 15 read path |
+
+## 7. Impact on Phase 7 implementation plan
+
+When Phase 7 builds M8 `gate_contract`:
+- Implementation includes direct `json.load(open("/tmp/calcifer_deploy_block.json"))` (or mmap for perf)
+- No separate `gate_calcifer_bridge/*.py` module files
+- No `zangetsu/module_contracts/gate_calcifer_bridge.yaml`
+- Single module test suite covers all 6 evaluators including Calcifer
+
+Net LOC estimate: folding saves ~50–100 lines vs separate module (no duplicated contract scaffolding).
+
+## 8. Q1 adversarial
+
+| Dim | Verdict |
+|---|---|
+| Input boundary | PASS — FOLD explicitly declares filesystem_read_paths; egress declaration unchanged |
+| Silent failure | PASS — calcifer_flag_stale as explicit failure mode |
+| External dep | PASS — only local filesystem read; no new network dep |
+| Concurrency | PASS — read is on-demand per promote gate; no concurrent write |
+| Scope creep | PASS — FOLD is the smaller-scope option |
+
+## 9. Label per 0-5 rule 10
+
+- §1 decision: **VERIFIED** (reasoned trade-off between FOLD vs PROMOTE)
+- §2 rationale: **VERIFIED** (adversarial-checked)
+- §3 M8 contract changes: **PROBABLE** (design; VERIFIED when Phase 7 yaml validates)
+- §4 boundary map changes: **PROBABLE** (textual delta; landed in `amended_module_boundary_map_v3.md`)
+
+## 10. Exit condition (0-5 §Phase 1)
+
+"No mandatory-path dependency remains outside the mandatory-path definition." **MET** — M8 absorbs gate_calcifer_bridge; no external edge.
+
+
+=== amended_mandatory_module_set_v2.md ===
+# Amended Mandatory Module Set v2 — MOD-4 Phase 1
+
+**Order**: `/home/j13/claude-inbox/0-5` Phase 1 deliverable
+**Produced**: 2026-04-23T09:35Z
+**Supersedes**: `amended_module_boundary_map.md §2` (MOD-3 v1) via delta
+**Version**: v2 (post-MOD-4 FOLD decision)
+
+---
+
+## 1. The 9-module mandatory set (UNCHANGED count from MOD-3)
+
+MOD-4 preserves the 9-module count. gate_calcifer_bridge is FOLDED into M8, NOT promoted to M10.
+
+| # | Module | Layer | MOD-4 status |
+|---|---|---|---|
+| 1 | engine_kernel | L2 | unchanged |
+| 2 | gate_registry | L6 data-plane | unchanged |
+| 3 | obs_metrics | L8.O | unchanged |
+| 4 | gov_contract_engine | L8.G | unchanged (MOD-3 rollout-authority split stays) |
+| 5 | search_contract | L4 | unchanged |
+| 6 | eval_contract | L5 | unchanged (MOD-3 snapshot amendments stay) |
+| 7 | adapter_contract | L9 pattern | unchanged |
+| 8 | gate_contract | L6 execution | **absorbs gate_calcifer_bridge via FOLD (MOD-4 Phase 1)** |
+| 9 | cp_worker_bridge | L1 worker-side | unchanged (MOD-3 M9 contract; rate_limit split coming in MOD-4 Phase 2B) |
+
+No new mandatory modules. No removed modules. One module (M8) gets wider scope via FOLD.
+
+## 2. What changed vs MOD-3
+
+| Aspect | MOD-3 (v1) | MOD-4 (v2) |
+|---|---|---|
+| Mandatory count | 9 | 9 (no change) |
+| M8 inputs | 3 edges incl. CalciferBlockState from gate_calcifer_bridge | 3 edges incl. CalciferBlockFile from filesystem (no external bridge) |
+| M8 Field 15 filesystem_read_paths | absent | `["/tmp/calcifer_deploy_block.json"]` added |
+| M8 failure_surface | 7 modes | 8 modes (calcifer_flag_missing_or_stale added) |
+| gate_calcifer_bridge status | sub-module with implicit dependency | FOLDED INTO M8; no separate existence |
+
+## 3. Mandatory path coherence check
+
+0-5 §Phase 1 exit: "No mandatory-path dependency remains outside the mandatory-path definition."
+
+Verification — for each mandatory module, every declared input source_module:
+
+| Module | Inputs' source_modules | All in mandatory? |
+|---|---|---|
+| M1 engine_kernel | search_*, eval_*, gate_* (via kernel_dispatcher), cp_worker_bridge, gov_contract_engine | ✅ all M2-M9 |
+| M2 gate_registry | cp_worker_bridge | ✅ M9 |
+| M3 obs_metrics | every module (via kernel_logger) | ✅ all |
+| M4 gov_contract_engine | gov_ci_hooks (sub-module), cp_api (sub-module of L1), obs_metrics, cp_api, engine_kernel | ✅ (sub-modules are inside L1 CP umbrella or M4 itself) |
+| M5 search_contract | cp_worker_bridge, data_provider (L3 sub), obs_metrics | ✅ (data_provider is L3 sub-module of main architecture — see note below) |
+| M6 eval_contract | kernel_dispatcher (inside M1), data_provider (L3), cp_worker_bridge | ✅ |
+| M7 adapter_contract | L4/L5 modules with blackbox_allowed=true, obs_freshness | ✅ |
+| M8 gate_contract | eval_contract (M6), gate_registry (M2), **filesystem** (MOD-4 FOLD) | ✅ (no external module dep; filesystem is declared in Field 15) |
+| M9 cp_worker_bridge | cp_notifier (L1 sub) | ✅ (L1 umbrella) |
+
+Cross-module deps: all resolved within the 9-module set OR within clearly-named sub-modules of L1/L3/L8 umbrellas.
+
+## 4. Hidden-dependency scan
+
+0-5 spirit: no mandatory-path component can have upstream deps outside the mandatory set. Per-module `inputs` field audit:
+
+| Module | External deps flagged | Resolution |
+|---|---|---|
+| M1 | Postgres (DB) | acceptable — infrastructure dependency, not a module |
+| M3 | Prometheus scrapers | external consumer, not module |
+| M4 | AKASHA endpoint | external service; declared in Field 15 egress |
+| M4 | Telegram api | external service; declared in Field 15 egress |
+| M8 | /tmp/calcifer_deploy_block.json | declared in Field 15 filesystem_read_paths (MOD-4 FOLD) ✅ |
+| M9 | cp_api | internal L1 sub-module; declared in Field 15 |
+
+All external deps are DECLARED in Field 15 `execution_environment`. None are hidden. The pattern R2-F3 (hidden cp_worker_bridge) and R3b-F1 (hidden gate_calcifer_bridge) are both closed by:
+- R2-F3: promote to M9
+- R3b-F1: fold + Field 15 declaration
+
+## 5. L3 data_provider status
+
+Note from §3: `search_contract` (M5) + `eval_contract` (M6) both list `data_provider` as input source. Is this a hidden dependency like gate_calcifer_bridge was?
+
+**Analysis**: data_provider is L3 Data Input layer — explicitly part of the 10-layer intended architecture (per MOD-1 `intended_architecture.md §2`). It's a SUB-MODULE of L3, not mandatory-path. Missing from mandatory doesn't create ambiguity because L3 is a declared peer layer.
+
+**Decision**: data_provider does NOT need promotion. Different shape from R2-F3 / R3b-F1:
+- R2-F3 / R3b-F1: dependency was cross-referenced by multiple mandatory modules but had NO layer home
+- data_provider: has a home layer (L3) and is architecturally obvious
+
+Gemini round-4 may challenge this; if so, MOD-5 resolution.
+
+## 6. Relationship to amended_module_boundary_map_v3.md
+
+MOD-4 Phase 4 will produce `amended_module_boundary_map_v3.md` — the FULL replacement with all MOD-4 amendments applied. This v2 file specifies the MOD-4 DELTA against MOD-3's v1. The v3 full file is the readable authoritative document.
+
+## 7. Non-negotiable rules
+
+| Rule | Compliance |
+|---|---|
+| 1. No silent mutation | ✅ — delta explicit |
+| 8. No broad refactor | ✅ — FOLD preserves 9-count |
+| 10. Labels applied | ✅ |
+
+## 8. Q1 adversarial
+
+| Dim | Verdict |
+|---|---|
+| Input boundary | PASS — every input edge resolved to mandatory OR sub-module OR declared external |
+| Silent failure | PASS — hidden-dep scan §4 enumerates |
+| External dep | PASS — AKASHA / Telegram / filesystem all declared in Field 15 |
+| Concurrency | PASS — static spec |
+| Scope creep | PASS — maintains 9-module discipline |
+
+## 9. Label per 0-5 rule 10
+
+- §1 module set: **VERIFIED** (9 modules, FOLD confirmed in `gate_calcifer_bridge_resolution.md`)
+- §3 coherence check: **VERIFIED** (per-module edge audit)
+- §4 hidden-dep scan: **VERIFIED** (all remaining deps declared)
+- §5 data_provider decision: **PROBABLE** (Gemini round-4 may revisit)
+
+## 10. Exit condition
+
+Mandatory-path coherence verified. Phase 1 succeeds.
+
+
+=== gate_contract_dependency_update.md ===
+# gate_contract (M8) Dependency Update — MOD-4 Phase 1
+
+**Order**: `/home/j13/claude-inbox/0-5` Phase 1 deliverable
+**Produced**: 2026-04-23T09:38Z
+**Supersedes**: `gate_contract_module_spec.md §2` (MOD-3) inputs + failure_surface + execution_environment sections
+**Resolves**: Gemini R3b-F1 CRITICAL via FOLD (see `gate_calcifer_bridge_resolution.md`)
+
+---
+
+## 1. Complete amended M8 contract (drop-in replacement for Phase 7 YAML)
+
+```yaml
+module:
+  module_name: gate_contract
+  purpose: "Execution engine for every L6 gate; consumes MetricsContract from eval_contract + ThresholdLookup from gate_registry + Calcifer block state from filesystem; produces GateOutcomeContract for kernel_dispatcher."
+  responsibilities:
+    - evaluate admission gate (3 checks: min_trades / pos_count / improvement OR economic-viability)
+    - evaluate A2 OOS holdout gate (CD-14: hard-fail on missing holdout)
+    - evaluate A3 train-slice gate (legacy V9 path)
+    - evaluate A4 multi-metric promotion gate
+    - evaluate final promotion gate (PROMOTE_WILSON_LB + PROMOTE_MIN_TRADES + Calcifer block check)
+    - emit GateOutcomeContract for each gate decision including decisive-reason code
+  inputs:
+    - contract_name: MetricsContract
+      source_module: eval_contract
+      cardinality: one_per_evaluation
+      frequency: event
+    - contract_name: ThresholdLookup
+      source_module: gate_registry
+      cardinality: n_per_request
+      frequency: on_demand (cached 60s)
+    - contract_name: CalciferBlockFile
+      source_module: filesystem (direct read of /tmp/calcifer_deploy_block.json)
+      cardinality: on_demand_per_promote_decision
+      frequency: event (read on every promote gate evaluation; bounded to ≤ 1/s given arena cadence)
+  outputs:
+    - contract_name: GateOutcomeContract
+      consumer_modules: [engine_kernel (via kernel_dispatcher), obs_metrics, gov_audit_stream]
+      cardinality: one_per_input_metrics_event
+      guarantees:
+        delivery: exactly_once
+        ordering: total_per_champion_per_gate
+        idempotency: true (keyed by champion_id + gate_id + metrics_hash)
+      rate_limit:   # MOD-4 addition
+        max_events_per_second: 100
+        max_events_per_minute: 5000
+        burst_size: 500
+        backpressure_policy: drop_newest (with audit)
+  config_schema:
+    ref: zangetsu/module_contracts/gate_contract.yaml
+    cp_params:
+      - gate.admission.min_trades_required
+      - gate.admission.pos_count_required
+      - gate.admission.improvement_required
+      - gate.a2.holdout_hard_fail
+      - gate.a3.train_slice_policy
+      - gate.a4.multi_metric_weights
+      - gate.promote.wilson_lb
+      - gate.promote.min_trades
+      - gate.promote.calcifer_stale_max_seconds  # MOD-4 addition
+      - gate.enforcement.strictness_mode
+  state_schema:
+    - name: gate_decision_cache
+      type: keyed_cache
+      storage: in_memory
+      ownership: EXCLUSIVE
+      lifecycle: session
+    - name: gate_decision_audit
+      type: row
+      storage: postgres.pipeline_audit_log
+      ownership: SHARED[kernel_dispatcher, gate_contract]
+      lifecycle: persistent
+    - name: calcifer_flag_cache  # MOD-4 addition
+      type: json
+      storage: in_memory (single record; refreshed per promote-gate read)
+      ownership: EXCLUSIVE
+      lifecycle: request
+  metrics:
+    # unchanged from MOD-3 + 2 new (calcifer-specific)
+    - {name: gate_contract_up, type: gauge, unit: bool, labels: [version], cardinality_cap: 10, sample_sla: 1s}
+    - {name: gate_contract_decisions_total, type: counter, unit: events, labels: [gate_id, outcome, decisive_reason], cardinality_cap: 300, sample_sla: event}
+    - {name: gate_contract_decision_duration_seconds, type: histogram, unit: seconds, labels: [gate_id], cardinality_cap: 30, sample_sla: event}
+    - {name: gate_contract_threshold_miss_rate, type: gauge, unit: ratio, labels: [gate_id], cardinality_cap: 20, sample_sla: 5min}
+    - {name: gate_contract_calcifer_block_active_total, type: counter, unit: events, labels: [], cardinality_cap: 1, sample_sla: event}
+    - {name: gate_contract_calcifer_flag_stale_total, type: counter, unit: events, labels: [reason], cardinality_cap: 5, sample_sla: event}  # MOD-4 addition
+    - {name: gate_contract_calcifer_read_duration_seconds, type: histogram, unit: seconds, labels: [], cardinality_cap: 1, sample_sla: event}  # MOD-4 addition
+  failure_surface:
+    - {name: upstream_missing_metrics, detection: MetricsContract schema violation, recovery: reject_input + audit}
+    - {name: threshold_lookup_unavailable, detection: gate_registry stale or down > config.max_stale_s, recovery: fail_closed (deny all promotions) + RED Telegram}
+    - {name: holdout_hard_fail, detection: A2 gate receives MetricsContract without holdout slice attribution, recovery: reject_champion + RED Telegram}
+    - {name: calcifer_red_active, detection: /tmp/calcifer_deploy_block.json.status == RED (read on promote gate), recovery: block_promote_gate_only (other gates still run for evidence collection)}
+    - {name: calcifer_flag_missing_or_stale, detection: "os.stat() mtime > config.gate.promote.calcifer_stale_max_seconds (default 600) OR file missing OR json parse fail", recovery: fail_closed (treat as RED; deny promotion; log + audit row; emit alert)}  # MOD-4 addition per FOLD
+    - {name: decision_timeout, detection: gate decision > 10s, recovery: timeout_as_deny + audit + alert}
+    - {name: resource_exhaustion, detection: gate_decision_cache > config.max_cache_mb, recovery: evict_oldest + degrade}
+    - {name: non_deterministic_output, detection: same (champion_id, gate_id, metrics_hash) produces different outcomes across workers, recovery: freeze_gate + RED Telegram}
+  rollback_surface:
+    # unchanged from MOD-3
+    code_rollback: git-revert to prior gate_contract SHA
+    state_rollback: "pipeline_audit_log entries are append-only; no retroactive change. In-memory cache discarded on restart."
+    downstream_effect: "kernel_dispatcher sees gate decisions from rev

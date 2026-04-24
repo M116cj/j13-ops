@@ -1,0 +1,54 @@
+=== GPU DRIVER DIAGNOSTIC ===
+2026-04-23T01:21:05Z
+
+--- G1. nvidia-smi attempt ---
+NVIDIA-SMI has failed because it couldn't communicate with the NVIDIA driver. Make sure that the latest NVIDIA driver is installed and running.
+
+
+--- G2. kernel modules ---
+
+--- G3. dmesg (needs sudo -n) ---
+
+--- G4. lspci ---
+01:00.0 VGA compatible controller: NVIDIA Corporation GA102 [GeForce RTX 3080 12GB] (rev a1)
+01:00.1 Audio device: NVIDIA Corporation GA102 High Definition Audio Controller (rev a1)
+
+--- G5. driver package state ---
+ii  libaccinj64-12.0:amd64                          12.0.146~12.0.1-4build4                 amd64        NVIDIA ACCINJ Library (64-bit)
+ii  libcu++-dev                                     1.9.0-3                                 all          NVIDIA C++ Standard Library
+ii  libcublas12:amd64                               12.0.2.224~12.0.1-4build4               amd64        NVIDIA cuBLAS Library
+ii  libcublaslt12:amd64                             12.0.2.224~12.0.1-4build4               amd64        NVIDIA cuBLASLt Library
+ii  libcudart12:amd64                               12.0.146~12.0.1-4build4                 amd64        NVIDIA CUDA Runtime Library
+ii  libcufft11:amd64                                11.0.1.95~12.0.1-4build4                amd64        NVIDIA cuFFT Library
+ii  libcufftw11:amd64                               11.0.1.95~12.0.1-4build4                amd64        NVIDIA cuFFTW Library
+ii  libcuinj64-12.0:amd64                           12.0.146~12.0.1-4build4                 amd64        NVIDIA CUINJ Library (64-bit)
+ii  libcupti-dev:amd64                              12.0.146~12.0.1-4build4                 amd64        NVIDIA CUDA Profiler Tools Interface development files
+ii  libcupti-doc                                    12.0.146~12.0.1-4build4                 all          NVIDIA CUDA Profiler Tools Interface documentation
+ii  libcupti12:amd64                                12.0.146~12.0.1-4build4                 amd64        NVIDIA CUDA Profiler Tools Interface runtime library
+ii  libcurand10:amd64                               11.1.1+~10.3.1.124~12.0.1-4build4       amd64        NVIDIA cuRAND Library
+ii  libcusolver11:amd64                             11.4.3.1~12.0.1-4build4                 amd64        NVIDIA cuSOLVER Library
+ii  libcusolvermg11:amd64                           11.4.3.1~12.0.1-4build4                 amd64        NVIDIA cuSOLVERmg Library
+ii  libcusparse12:amd64                             12.0.1.140~12.0.1-4build4               amd64        NVIDIA cuSPARSE Library
+
+--- G6. installed driver persistence ---
+backlight
+fbdev
+vgastate.ko.zst
+
+--- G7. last kernel update (uname -a) ---
+Linux alaya 6.8.0-110-generic #110-Ubuntu SMP PREEMPT_DYNAMIC Thu Mar 19 15:09:20 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux
+
+--- G8. nvidia-persistenced ---
+inactive
+○ nvidia-persistenced.service - NVIDIA Persistence Daemon
+     Loaded: loaded (/usr/lib/systemd/system/nvidia-persistenced.service; static)
+     Active: inactive (dead)
+
+--- G9. any /proc/driver/nvidia ---
+ls: cannot access '/proc/driver/nvidia': No such file or directory
+
+--- G10. boot journal for nvidia errors ---
+Apr 21 00:58:55 alaya kernel: input: HDA NVidia HDMI/DP,pcm=3 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input5
+Apr 21 00:58:55 alaya kernel: input: HDA NVidia HDMI/DP,pcm=7 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input6
+Apr 21 00:58:55 alaya kernel: input: HDA NVidia HDMI/DP,pcm=8 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input7
+Apr 21 00:58:55 alaya kernel: input: HDA NVidia HDMI/DP,pcm=9 as /devices/pci0000:00/0000:00:01.0/0000:01:00.1/sound/card1/input8

@@ -1,0 +1,155 @@
+# Module Registry Spec — Zangetsu MOD-1 (optional)
+
+**Order**: `/home/j13/claude-inbox/0-2` optional deliverable
+**Produced**: 2026-04-23T03:30Z
+**Author**: Claude (Lead)
+**Base authoritative source**: `zangetsu/docs/ascension/phase-2/module_registry_spec.md` (Gemini round-2 ACCEPTED v2.1).
+
+---
+
+## §MOD-1.A — Envelope
+
+This file defines WHERE module contracts live and HOW they sync. Companion to `module_contract_template.md` (which defines WHAT each entry looks like).
+
+Key properties preserved from base:
+- canonical registry in `control_plane.modules` (Postgres)
+- source of truth for each module is `zangetsu/module_contracts/<id>.yaml` (human-editable)
+- CI/CD sync on merge to `main` (NOT cron — eliminates drift window)
+- worker self-registers OR verifies its declared contract at startup; mismatch = fail-closed
+- drift reconciler compares Postgres registry vs repo HEAD
+
+---
+
+## §MOD-1.B — Post-MOD-1 addition
+
+MOD-1 deliverables add 7 new module contracts (per `module_boundary_map.md §MOD-1.B`). Registry workflow requires these to each be split into their own `zangetsu/module_contracts/<id>.yaml` file during Phase 7 kickoff. Naming convention per field 1 of `module_contract_template.md §2`.
+
+---
+
+## §MOD-1.C — Label per 0-2 rule 10
+
+- §3 registration entry schema: **PROBABLE** (design; becomes VERIFIED on first registration)
+- §4 CI/CD-hook sync: **PROBABLE** (depends on future workflow creation during Phase 7)
+- §5 registration workflow: **PROBABLE**
+- §7 mutation_blocklist mapping: **VERIFIED** (blocklist exists; mapping is declared)
+
+---
+
+## §MOD-1.D — Authoritative content (preserved)
+
+---
+
+# Zangetsu — Module Registry Spec (Phase 2)
+
+**Program:** Ascension v1 Phase 2
+**Date:** 2026-04-23
+**Status:** DESIGN.
+
+---
+
+## §1 — Purpose
+
+Define WHAT a module registry is in Zangetsu and HOW modules register. This is a specification, not an implementation.
+
+---
+
+## §2 — Requirements
+
+1. Every runtime module self-declares its contract (per Ascension §3.4 ten fields).
+2. Registry is queryable at runtime from CP.
+3. Module version is bound to its contract version; contract breaking change = major version.
+4. Health is reported to L8.O.
+5. Replacement is possible without rebuilding the world.
+
+---
+
+## §3 — Registration entry schema
+
+```
+module:
+  id: <canonical name — matches modular_target_architecture.md>
+  layer: L1|L2|L3|L4|L5|L6|L7|L8.O|L8.G|L9(pattern)
+  version: <semver>
+  contract_version: <major.minor>
+  repo_path: <path/to/module>
+  owner: <agent or team — claude_lead | gemini | codex | markl | calcifer | j13>
+
+  # Ascension §3.4 fields
+  purpose: <one-line>
+  responsibilities: [<list>]
+  inputs:
+    - contract: <ContractName>
+      description: <text>
+  outputs:
+    - contract: <ContractName>
+      description: <text>
+  config_schema: <ref or inline>
+  state_schema: <ref or inline>
+  metrics: [<metric name + unit>]
+  error_surface: [<failure mode>]
+  rollback_surface: <how to revert changes this module made>
+  test_boundary: <test suite location>
+  replacement_boundary: <what replacing this module entails>
+
+  # Operational
+  blackbox_pattern_applied: bool
+  adapter_contract_ref: <path if blackbox>
+  rollout_tier: OFF|SHADOW|CANARY|FULL
+  health_endpoint: <url or internal probe>
+  dependencies: [<module ids>]
+  dependents: [<module ids>]
+```
+
+---
+
+## §4 — Registry storage (v2 — CI/CD-hook sync per Gemini §D.1)
+
+- Canonical registry lives in Postgres `control_plane.modules` table.
+- Human-editable YAMLs under `zangetsu/module_contracts/<module_id>.yaml` are the source of truth for each module's contract.
+- **Sync trigger (v2)**: YAML → Postgres sync happens in a **GitHub Actions workflow on merge to `main`**, NOT a periodic cron. Rationale: cron creates a drift window between commit and sync; CI-hook ensures registry is in lockstep with repo `main` immediately.
+- Workflow fails if: (a) YAML malformed, (b) breaking contract change without ADR, (c) upsert conflicts with live module dependents.
+- **Fallback**: emergency `zctl registry sync --force` with explicit owner token, logged to audit (only when CI pipeline is unavailable).
+- On worker startup, worker self-registers OR verifies its declared contract against registry; mismatch = **fail-closed** (Gemini §D.1 strict enforcement).
+- Drift reconciler (Phase 6 gov_reconciler) periodically compares Postgres registry vs repo HEAD; any mismatch → RED Telegram alert.
+
+---
+
+## §5 — Registration workflow
+
+### §5.1 New module
+1. Author writes YAML contract at `zangetsu/module_contracts/<id>.yaml`.
+2. Gemini adversarial review.
+3. Claude Lead approves.
+4. ADR `docs/decisions/YYYYMMDD-module-<id>.md` committed.
+5. **GitHub Actions workflow on merge to `main` syncs YAML → Postgres `control_plane.modules`** (per §4 v2 CI/CD-hook rule; replaces previous cron-based sync). Module becomes SHADOW tier as part of the same workflow.
+6. Rollout tier advances per operational policy.
+
+### §5.2 Existing module contract change
+1. Diff PR against `<id>.yaml`.
+2. Determine semver impact (patch / minor / major).
+3. If breaking: consumer migration plan attached.
+4. Gemini adversarial + ADR.
+5. CP accepts new version; old dependents warned.
+
+---
+
+## §6 — Queries
+
+- `GET /api/control/modules` — all registered modules
+- `GET /api/control/modules/{id}` — single entry + lineage + health
+- `GET /api/control/modules/by-layer/{L}` — all modules in a layer
+- `GET /api/control/modules/contract-mismatches` — modules whose runtime doesn't match declared contract
+
+---
+
+## §7 — Relationship to mutation_blocklist.yaml
+
+Every module entry references which `mutation_blocklist` rules it is subject to (e.g. `BL-F-003 applies` for anything writing fresh). Reconciler crons (gov_reconciler) consult this mapping.
+
+---
+
+## §8 — Non-goals
+
+- NOT a package manager.
+- NOT handling secret storage.
+- NOT bundling/build system.

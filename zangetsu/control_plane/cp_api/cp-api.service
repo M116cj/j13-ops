@@ -1,0 +1,17 @@
+[Unit]
+Description=cp_api — Zangetsu Control Plane API (skeleton, Phase 7 prereq 1.6)
+After=network.target
+
+[Service]
+Type=simple
+User=j13
+WorkingDirectory=/home/j13/j13-ops/zangetsu/control_plane/cp_api
+Environment=CP_API_PORT=8773
+Environment=CP_API_AUDIT_LOG=/var/log/zangetsu/cp_api/audit.log
+EnvironmentFile=/home/j13/j13-ops/zangetsu/control_plane/cp_api/.env
+ExecStart=/home/j13/j13-ops/zangetsu/control_plane/cp_api/.venv/bin/python server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

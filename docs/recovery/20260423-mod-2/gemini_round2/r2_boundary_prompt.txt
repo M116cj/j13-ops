@@ -1,0 +1,77 @@
+You are Gemini — external adversarial reviewer for Zangetsu.
+
+CONTEXT: MOD-1 defined 7 mandatory umbrella modules. Below is a COMPACT summary with only 6 core fields each (purpose / responsibilities / inputs / outputs / blackbox_allowed / rollback_surface). The full 14-field contracts exist but are not included here to keep the review bounded.
+
+TASK: Attack the 7 boundaries.
+
+MANDATE:
+1. Are any two of the 7 modules SECRETLY overlapping (same responsibility claimed twice)?
+2. Is any module's "purpose" too broad (violates the §2 Field 2 one-sentence rule)?
+3. Are the input/output edges free of hidden coupling (e.g., a module claiming an input that comes from a 2-hop path instead of a direct module)?
+4. Are the 7 rollback_surface claims actually reversible, or are any of them wishful?
+5. Could a legitimate-looking module author claim blackbox_allowed=false for a module that structurally needs an adapter (e.g., any module talking to external services)?
+6. Is any MANDATORY module missing from the 7?
+
+OUTPUT FORMAT (STRICT):
+- MAX 400 words
+- FINDING-N blocks: severity (CRITICAL / HIGH / MEDIUM / LOW), which_module, claim (1 sentence), evidence (field name), recommended_delta
+- End with: `VERDICT = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Label conclusions VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN
+
+=== 7 MANDATORY MODULE SUMMARY ===
+
+## Module 1 — engine_kernel (L2)
+- purpose: Owns the Zangetsu arena state machine; dispatches work to L4/L5/L6; manages leases and reap; enforces rollout gating.
+- responsibilities: transition champion status (ARENA1_COMPLETE → _PROCESSING → ... → DEPLOYABLE/_LIVE); acquire and release per-champion leases (FOR UPDATE SKIP LOCKED + lease_until); reap expired leases on 60s cadence; route events to evaluator/gate/publisher modules via kernel_dispatcher; emit structured transition events to L8.O (obs_logs).
+- inputs: CandidateContract (from search_*), MetricsContract (from eval_*), GateOutcomeContract (from gate_*), CP ParameterRead (from cp_worker_bridge).
+- outputs: ChampionStateContract (to pub_db, obs_metrics, obs_view, gov_audit_stream) exactly-once, total_per_champion ordering, idempotent; AuditContract (to cp_audit) at-least-once.
+- blackbox_allowed: false — "Kernel is the state machine authority; must be fully auditable. Any opaque component would violate charter §3.6."
+- rollback_surface: code=git-revert; state="in-flight transitions durable in DB; rollback means halting + letting lease_reaper return rows to prior state"; downstream="publishers receive no new events during halt; readers continue last-known"; p50=2min p95=5min; rehearsal scheduled pre-Phase-7.
+
+## Module 2 — gate_registry (L6 umbrella)
+- purpose: Single source of truth for every gate threshold consumed across L4/L5/L6; enforces version history, per-mode overrides, rollout-gated changes.
+- responsibilities: serve threshold lookups for every Gate; version every threshold mutation; enforce decision-rights matrix on writes; emit deprecation warnings when thresholds outlive their consumer module version.
+- inputs: CP ParameterRead (from cp_worker_bridge) on-demand polling 60s.
+- outputs: ThresholdLookup (to gate_*, search_gp, eval_*) exactly-once, no ordering, idempotent.
+- blackbox_allowed: false.
+- rollback_surface: code=git-revert; state="threshold_registry rows have audit trail; use `zctl gate-registry revert <key> <to_version>`"; downstream="consumers see new value on next 60s poll; in-flight evaluations complete with old value"; p50=30s p95=90s.
+
+## Module 3 — obs_metrics (L8.O umbrella)
+- purpose: Export Prometheus-compatible metrics stream for every engine module; the canonical observability data plane.
+- responsibilities: expose /metrics endpoint (Prometheus scrape); enforce metric cardinality caps per per-module contracts; provide histogram aggregations; emit structured alerts via pub_alert when metric exceeds alert_rule.
+- inputs: MetricEmission (from every module via kernel_logger / cp_worker_bridge bridge) stream.
+- outputs: PrometheusScrape (to external grafana, obs_freshness, pub_alert) best_effort, no ordering, idempotent.
+- blackbox_allowed: false.
+- rollback_surface: code=git-revert; state="in-memory histograms ephemeral; cardinality audit append-only"; downstream="grafana shows gap during restart"; p50=10s p95=30s.
+
+## Module 4 — gov_contract_engine (L8.G umbrella)
+- purpose: Apply charter §17 + mutation_blocklist.yaml rules at runtime; produce allow/deny verdicts on commits and config writes; act as policy engine atop obs_metrics.
+- responsibilities: consume commit + PR + CP write events; evaluate against charter + blocklist; emit allow/deny + audit + rollback-handle; post RED Telegram on high-severity violation; sync decisions to cp_audit.
+- inputs: CommitEvent (from gov_ci_hooks), CPWriteIntent (from cp_api), ObservabilitySignal (from obs_metrics stream).
+- outputs: PolicyVerdict (to cp_api, gov_ci_hooks, pub_alert) exactly-once total ordering idempotent; AuditContract (to cp_audit) at-least-once.
+- blackbox_allowed: false.
+- rollback_surface: code=git-revert; state="active_rules table has audit trail; rollback = activate prior rule-set version"; downstream="pending verdicts queue drains with old rules; new inputs queue until restart"; p50=30s p95=2min.
+
+## Module 5 — search_contract (L4 umbrella)
+- purpose: Abstract SearchEngine interface; every search implementation (GP/LGBM/factor-zoo/hand-seed) registers under this contract.
+- responsibilities: declare CandidateContract schema producers must honor; route CP params to currently-active search implementation; enforce peer-switching protocol (one active search per strategy-id at a time); emit search-level metrics (candidates/sec, uniqueness, fitness distribution).
+- inputs: CP ParameterRead (from cp_worker_bridge), DataProviderContract (from data_provider), GuidanceStream (from obs_metrics a13 guidance producer).
+- outputs: CandidateContract (to gate_admission, kernel_dispatcher) stream at-least-once no-ordering idempotent (alpha_hash dedup key).
+- blackbox_allowed: false — "search_contract itself is pure orchestration. Specific implementations (e.g. search_lgbm) DO wrap black-boxes via L9 adapter pattern; those modules declare blackbox_allowed: true with adapter_contract_ref."
+- rollback_surface: code=git-revert; state="in-memory state lost on restart; CP params revert via gate_registry rollback mechanism"; downstream="candidate stream pauses during restart"; p50=2min p95=5min.
+
+## Module 6 — eval_contract (L5 umbrella)
+- purpose: Abstract Evaluator interface; every evaluator (a1/a2_holdout/a3_train/a4_gate/a5_tournament) implements it with declared train/holdout/oos slice needs.
+- responsibilities: declare MetricsContract schema; enforce evaluator slice discipline (CD-14 hard-fail on missing holdout is a contract property, not a hotfix); emit metrics per evaluation; route metrics to consumers via kernel_dispatcher.
+- inputs: CandidateContract (from kernel_dispatcher), DataProviderContract (from data_provider, lazy_load on-demand), CP ParameterRead (cost model, TRAIN_SPLIT_RATIO, from cp_worker_bridge).
+- outputs: MetricsContract (to kernel_dispatcher, gate_a2, gate_a3, gate_a4, gate_promote, obs_metrics) exactly-once total_per_champion ordering idempotent (keyed champion_id + evaluator_id + slice).
+- blackbox_allowed: false.
+- rollback_surface: code=git-revert; state="data_cache rebuilt from parquet on restart; champion passport patches additive, no revert unless explicit"; downstream="gates pause during restart; kernel queues"; p50=3min p95=8min (includes cache rebuild).
+
+## Module 7 — adapter_contract (L9 pattern)
+- purpose: Pattern (not top-level layer) applied INSIDE L4/L5 modules when wrapping a black-box component (ML model, external LLM, external strategy signal); exposes 13 mandatory adapter fields so a black-box internal engine can be governed via a white-box control surface.
+- responsibilities: define adapter fields; require integrity_hash verification at load; enforce health_endpoint polling from obs_freshness; force registry entry with blackbox_pattern_applied=true; mandate adversarial review + ADR; catch non-determinism (replay-fixture divergence); catch resource_exhaustion.
+- inputs: AdapterRegistration (from any L4/L5 module with blackbox_allowed=true), HealthPoll (from obs_freshness per-adapter cadence).
+- outputs: AdapterVerdict (pass/fail registration; pass/fail health) (to cp_api, gov_contract_engine, obs_metrics) exactly-once total ordering idempotent.
+- blackbox_allowed: false — "adapter_contract itself is the governance pattern — pure orchestration. Adapter INSTANCES wrap black-boxes."
+- rollback_surface: code=git-revert; state="adapter registration row has audit trail; rollback = deregister adapter"; downstream="consuming L4/L5 module falls back to peer (non-adapter) implementation per its own failure_surface"; p50=15s p95=60s.

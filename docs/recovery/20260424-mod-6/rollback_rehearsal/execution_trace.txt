@@ -1,0 +1,67 @@
+=== ROLLBACK REHEARSAL — calcifer-supervisor stop+restore ===
+started_at: 2026-04-24T01:40:39Z
+owner: claude@mod6
+scenario: simulate calcifer-supervisor failure → restore via systemctl start
+
+--- STEP 1: PRE snapshot ---
+snapshot written: /home/j13/j13-ops/docs/governance/snapshots/2026-04-24T014039Z-rollback-rehearsal-pre-claude_mod6.json
+  sha256_manifest: cc909a90d66f72aed203d603e3da1e99ed8c2fd272906d4688a23db9443b4740
+  arena_count: 0
+  main_head: 6969f474f39a
+  gate_a: CLEARED
+pre_snapshot=/home/j13/j13-ops/docs/governance/snapshots/2026-04-24T014039Z-rollback-rehearsal-pre-claude_mod6.json
+
+--- STEP 2: capture calcifer state pre-stop ---
+active
+3871492
+Thu 2026-04-23 06:19:51 UTC
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776994541,
+
+--- STEP 3: simulate failure (stop calcifer-supervisor) ---
+simulate_failure_ts: 2026-04-24T01:40:40Z
+post-stop is-active: inactive
+
+--- STEP 4: verify block file stops updating (wait 30s) ---
+block_file_mtime_before_wait: 1776994842
+block_file_mtime_after_30s_wait: 1776994842
+VERIFIED: block file static during stop (no Calcifer writes)
+
+--- STEP 5: ROLLBACK ACTION — restore via systemctl start ---
+rollback_action_ts: 2026-04-24T01:42:40Z
+post-rollback is-active: active
+new_main_pid: 1960230
+new_active_since: Fri 2026-04-24 01:42:40 UTC
+
+--- STEP 6: verify block file resumes updating (wait 60s) ---
+block_file_mtime_post_start: 1776994842
+block_file_mtime_after_60s: 1776994964
+VERIFIED: block file updating again; Calcifer outcome-watch loop restored
+
+--- STEP 7: POST snapshot ---
+snapshot written: /home/j13/j13-ops/docs/governance/snapshots/2026-04-24T014343Z-rollback-rehearsal-post-claude_mod6.json
+  sha256_manifest: 9f38461c64ede7aec0d804b46b05b20cd518cafb07ef588e4e6e4673f4fe7fe1
+  arena_count: 0
+  main_head: 6969f474f39a
+  gate_a: CLEARED
+post_snapshot=/home/j13/j13-ops/docs/governance/snapshots/2026-04-24T014343Z-rollback-rehearsal-post-claude_mod6.json
+
+--- STEP 8: run diff ---
+diff exit code: 0
+
+=== diff summary ===
+## Classification: **EXPLAINED**
+- Zero diff: 39 fields
+- Explained diff: 5 fields
+- Forbidden diff: 0 fields
+## Explained diffs
+
+--- STEP 9: record timing ---
+rehearsal_end_ts: 2026-04-24T01:43:44Z
+rollback_duration_observed: ~63 seconds (service restart + block file resumption verification)
+rollback_duration_pure_restore: ~3 seconds (systemctl start return + is-active=active)
+
+=== REHEARSAL END ===

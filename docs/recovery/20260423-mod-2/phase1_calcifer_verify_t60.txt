@@ -1,0 +1,38 @@
+=== PHASE 1 T+60s POST-RESTART VERIFY ===
+2026-04-23T03:56:44Z
+
+--- supervisor still active ---
+active
+3574476
+Thu 2026-04-23 03:55:22 UTC
+
+--- block file freshness ---
+mtime=2026-04-23 03:55:25.840961851 +0000 size=195
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776916525,
+  "iso": "2026-04-23T03:55:25.841673+00:00",
+  "reason": "deployable_count==0 AND age=Noneh>6.0h"
+}
+--- supervisor journal last 30 lines (looking for §17.3 outcome-watch tool invocations) ---
+Apr 23 03:55:19 alaya systemd[1]: Stopping calcifer-supervisor.service - Calcifer Self-Evolving Ops Agent (Alaya infrastructure guardian)...
+Apr 23 03:55:21 alaya systemd[1]: calcifer-supervisor.service: Deactivated successfully.
+Apr 23 03:55:21 alaya systemd[1]: Stopped calcifer-supervisor.service - Calcifer Self-Evolving Ops Agent (Alaya infrastructure guardian).
+Apr 23 03:55:21 alaya systemd[1]: calcifer-supervisor.service: Consumed 3min 40.577s CPU time, 37.8M memory peak, 5.9M memory swap peak.
+Apr 23 03:55:21 alaya systemd[1]: Starting calcifer-supervisor.service - Calcifer Self-Evolving Ops Agent (Alaya infrastructure guardian)...
+Apr 23 03:55:22 alaya systemd[1]: Started calcifer-supervisor.service - Calcifer Self-Evolving Ops Agent (Alaya infrastructure guardian).
+
+--- check_zangetsu_outcome invocation evidence ---
+
+--- state file (post-ae738e37) exists in calcifer/ ---
+mtime=2026-04-23 03:55:25.840961851 +0000 size=195
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776916525,
+  "iso": "2026-04-23T03:55:25.841673+00:00",
+  "reason": "deployable_count==0 AND age=Noneh>6.0h"
+}

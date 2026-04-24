@@ -1,0 +1,54 @@
+=== PHASE 1 CALCIFER ACTIVATION TRACE ===
+2026-04-23T03:55:19Z
+
+--- PRE-RESTART ---
+active
+1807052
+Tue 2026-04-21 08:52:00 UTC
+supervisor.py stat:
+mtime=2026-04-20 19:06:34.899142869 +0000 size=14360
+zangetsu_outcome.py stat:
+mtime=2026-04-20 18:38:15.721452302 +0000 size=4324
+Calcifer block state pre-restart:
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776916421,
+  "iso": "2026-04-23T03:53:41.995556+00:00",
+  "reason": "deployable_count==0 AND age=Noneh>6.0h"
+}
+--- EXECUTE: sudo systemctl restart calcifer-supervisor ---
+restart exit=0 at 2026-04-23T03:55:22Z
+
+--- Wait 3s for stabilization ---
+
+--- POST-RESTART ---
+active
+3574476
+Thu 2026-04-23 03:55:22 UTC
+
+--- §17.6 STALE-CHECK (proc start vs source mtime) ---
+PROC start epoch: 1776916522
+supervisor.py mtime: 1776711994
+zangetsu_outcome.py mtime: 1776710295
+STALE-CHECK: FRESH (proc > both sources)
+
+--- HEALTH PROBES (last 20 log lines) ---
+Apr 23 03:55:19 alaya systemd[1]: Stopping calcifer-supervisor.service - Calcifer Self-Evolving Ops Agent (Alaya infrastructure guardian)...
+Apr 23 03:55:21 alaya systemd[1]: calcifer-supervisor.service: Deactivated successfully.
+Apr 23 03:55:21 alaya systemd[1]: Stopped calcifer-supervisor.service - Calcifer Self-Evolving Ops Agent (Alaya infrastructure guardian).
+Apr 23 03:55:21 alaya systemd[1]: calcifer-supervisor.service: Consumed 3min 40.577s CPU time, 37.8M memory peak, 5.9M memory swap peak.
+Apr 23 03:55:21 alaya systemd[1]: Starting calcifer-supervisor.service - Calcifer Self-Evolving Ops Agent (Alaya infrastructure guardian)...
+Apr 23 03:55:22 alaya systemd[1]: Started calcifer-supervisor.service - Calcifer Self-Evolving Ops Agent (Alaya infrastructure guardian).
+
+--- CALCIFER BLOCK STATE (verify still RED, regenerated post-restart?) ---
+-rw-r--r-- 1 j13 j13 195 Apr 23 03:53 /tmp/calcifer_deploy_block.json
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776916421,
+  "iso": "2026-04-23T03:53:41.995556+00:00",
+  "reason": "deployable_count==0 AND age=Noneh>6.0h"
+}

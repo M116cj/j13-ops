@@ -1,0 +1,38 @@
+You are Gemini, the external adversarial reviewer for the Zangetsu project (per CLAUDE.md §5: "Gemini = adversary + extractor + infra config owner. NOT collaborator. Challenges you.").
+
+The Claude Lead executed TWO Team Orders in sequence:
+- 0-1 (recovery): froze arena, formalized R2 as sole recovery path, committed Calcifer outcome-watch (ae738e37)
+- 0-2 (MOD-1): delivered 11 architectural documents for modularization entry; commit 80879795
+
+MOD-2 Phase 3 (the current task 0-3) requires your round-2 adversarial review of MOD-1 deliverables. During MOD-1 execution, Gemini CLI was broken — Claude fell back to self-adversarial voice. Your round-2 is the first REAL external adversarial pass.
+
+ATTACK THE MOD-1 DELIVERABLES. Your mandate:
+
+1. Identify structural weaknesses in the 9-layer design (ascension merged 0-2's L8+L9 and demoted L10 to pattern — is this defensible or is it hiding drift?).
+
+2. Attack the `modularization_execution_gate.md` Gate-A/B/C conditions — are any condition "cosmetic" (easy to claim without achieving)? Are there missing conditions that would let premature migration slip through?
+
+3. Attack the `module_contract_template.md` 14-field schema — is any field redundant? Is any required operational concern missing? Would a malicious/sloppy module author pass the acceptance checklist while still producing a dangerous module?
+
+4. Attack the 7 mandatory module contracts in `module_boundary_map.md §MOD-1.B` — are any of the 14 fields filled with generic boilerplate instead of concrete commitments? Are any failure_surface lists insufficient? Are any rollback_surface claims wishful?
+
+5. Challenge the Gate-A classification logic in `README.md §7` — is "2026-04-30 earliest unlock" defensible, or is the 7-day quiescence a cosmetic hurdle?
+
+6. Find places where a bad actor or rushed operator could bypass the MOD-1 constraints without triggering any visible alarm.
+
+7. Identify any non-negotiable rule (1-10) that is defended only by HUMAN discipline, not by code/gate enforcement.
+
+8. Find any place where MOD-1 says "post-0-1 update" but actually missed a 0-1 finding (from the docs/recovery/20260423/ corpus).
+
+Output format (ABSOLUTE):
+- Maximum 1000 words total.
+- FINDING-N blocks, each with:
+  - severity: CRITICAL / HIGH / MEDIUM / LOW
+  - claim (one concise sentence)
+  - evidence (specific file §section line OR quote)
+  - recommended_delta (specific text to add/change/remove)
+- If any MOD-1 deliverable must be amended, say so explicitly at top.
+- End with: OVERALL_VERDICT = ACCEPT / ACCEPT_WITH_AMENDMENTS / REJECT
+- Label conclusions VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN per 0-2 rule 10.
+
+Reference material follows between markers. Read carefully then attack.

@@ -1,0 +1,387 @@
+You are Gemini — external adversarial reviewer for Zangetsu, round 3.
+
+CONTEXT: Round-2 returned ACCEPT_WITH_MANDATORY_AMENDMENTS with 2 CRITICAL + 4 HIGH findings. MOD-3 Team Order 0-4 has executed amendments to close all findings. This round-3 is to verify the amendments are genuine (not cosmetic) and whether the prior CRITICAL/HIGH findings are truly closed.
+
+ROUND-2 FINDINGS RECAP (what you previously flagged):
+- R1a-F1 CRITICAL: Gate-B label-trigger bypass (label omission → all Gate-B checks skipped)
+- R1a-F2 HIGH: Gate-A local hook bypass via `--no-verify`
+- R1a-F3 MEDIUM: Quiescence only blocks `feat(`, not fix/refactor — CLOCK-RESET loophole
+- R1a-F4 MEDIUM: Rollback p95 unverified (documentation-only)
+- R1a-F5 MEDIUM: Override ADR lacks cryptographic identity
+
+AMENDED DOCS BELOW:
+1. amended_modularization_execution_gate.md — supersedes MOD-1's §5.2 label trigger; new §5.2 is path-based triggering; §5.4 branch protection required_signatures=true; §6 GPG-signed commits for gate-override ADRs
+2. amended_module_contract_template.md — 15 fields (was 14); Field 15 `execution_environment` (permitted_egress_hosts, subprocess, filesystem_write_paths, max_rss_mb, max_cpu_pct_sustained); §4 responsibility→test_fixture 1:1 mapping; §5 4 new anti-patterns; rate_limit sub-schema in Field 5
+
+TASK: ATTACK.
+1. Do the amendments GENUINELY close R1a-F1 through R1a-F5? Or are any cosmetic?
+2. Can you find a NEW bypass path that the amendments open or leave behind?
+3. Can a contributor circumvent Field 15 by calling a subprocess that itself calls out? (e.g., subprocess_spawn_allowed: false is declared, but the imported Python library reflection-calls a C extension that opens a socket)
+4. Can a contributor pass the responsibility→test_fixture 1:1 check by creating empty fixture files with matching names?
+5. Does the quiescence loophole (R1a-F3) still exist? Is the MOD-3 decision "not apply tightening this round" defensible or is it a delaying tactic?
+6. Is the GPG signing requirement for overrides actually enforced by the branch protection config, or only stated?
+
+OUTPUT FORMAT (STRICT, <500 words):
+- FINDING-N blocks: severity (CRITICAL / HIGH / MEDIUM / LOW / NONE), claim, evidence (§section), recommended_delta
+- End with: `VERDICT = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Per finding, note whether it's CLOSED / UNCHANGED / NEW
+- Label conclusions VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN
+
+
+=== amended_modularization_execution_gate.md ===
+
+# Amended Modularization Execution Gate — MOD-3
+
+**Order**: `/home/j13/claude-inbox/0-4` Phase 3 deliverable
+**Produced**: 2026-04-23T08:00Z
+**Supersedes**: `docs/recovery/20260423-mod-1/modularization_execution_gate.md` (full replacement with MOD-3 amendments)
+
+---
+
+## 1. Amendment summary
+
+| Section | Change | Source finding |
+|---|---|---|
+| §2 A.1 | Requires "9 mandatory module contracts ACCEPTED" (was 7) | R2-F1 + R2-F3 |
+| §2 A.2 | Unchanged (still 7-day; though R1a-F3 MEDIUM flagged for consideration) | R1a-F3 tracked |
+| §2 A.3 | Unchanged (recovery-path freeze) | — |
+| §3 B.1 | Contract validation uses 15-field template (was 14) | R1b-F1 |
+| §3 B.1 | Responsibilities 1:1 to test fixtures required | R1b-F3 |
+| §3 B.2 | Rollback rehearsal MUST record empirical p95 | R1a-F4 |
+| §3 B.3 | Unchanged | — |
+| **§5 Gate-B enforcement** | **Path-based (un-omittable) replaces label-based** | **R1a-F1 CRITICAL** |
+| §5 | Server-side GitHub Actions workflow is authoritative; local hook non-authoritative | R1a-F2 HIGH |
+| §6 Override | Require GPG-signed commit for `gate-override` ADRs | R1a-F5 MEDIUM |
+| §7 | Updated current status (post-MOD-3) | — |
+
+## 2. Purpose (unchanged)
+
+MOD-1 delivered architectural documents. MOD-3 amended them. Neither authorizes:
+- writing new code
+- migrating existing code into a module
+- spinning up a control-plane service
+- replacing any current worker
+
+This gate defines the three pre-conditions (A/B/C) before migration implementation may proceed.
+
+## 3. Gate-A — Before MOD-1 → Phase 7 transition (AMENDED)
+
+All three MUST be satisfied concurrently.
+
+### A.1 — Amended MOD-1 corpus ACCEPTED by Gemini round-3
+
+| Deliverable | Acceptance state target |
+|---|---|
+| `intended_architecture.md` | Gemini round-3 ACCEPT |
+| `actual_architecture.md` | Gemini round-3 ACCEPT |
+| `architecture_drift_map.md` | Gemini round-3 ACCEPT (incl. D-24 RESOLVED + D-26 RESOLVED + D-27/D-28/D-29 RESOLVED) |
+| `amended_module_boundary_map.md` (MOD-3) | Gemini round-3 ACCEPT, 9 mandatory modules confirmed |
+| `amended_modular_target_architecture.md` (MOD-3 delta) | Gemini round-3 ACCEPT |
+| `amended_control_plane_blueprint.md` (MOD-3 delta) | Gemini round-3 ACCEPT |
+| `amended_module_contract_template.md` (MOD-3) | Gemini round-3 ACCEPT, Field 15 mandatory |
+| `amended_modularization_execution_gate.md` (this file) | Gemini round-3 ACCEPT |
+| `module_registry_spec.md` | Gemini round-2 ACCEPT already held; no MOD-3 change |
+
+A.1 transitions to CLEARED when Gemini round-3 returns ACCEPT (no mandatory amendments remaining) for the full amended corpus.
+
+### A.2 — 7-day quiescence (unchanged)
+
+Start: 2026-04-23T00:35:57Z (arena freeze)
+Earliest clear: 2026-04-30T00:35:57Z
+
+Loophole note (R1a-F3 MEDIUM tracked, NOT applied this round): current spec is "no `feat(zangetsu/vN)` commits". If tightened to "no non-documentation commits", the MOD-2 `ae738e37 fix(zangetsu/calcifer): …` commit would reset the clock. We DO NOT apply that tightening in MOD-3 to avoid resetting quiescence. Flagged for MOD-4+ consideration.
+
+### A.3 — Recovery-path scope freeze (unchanged)
+
+R2 hotfix bd91face unchanged; no additional Track-R patches; arena frozen; Calcifer RED preserved.
+
+## 4. Gate-B — Before module migration touches `main` (AMENDED)
+
+### B.1 — Module has complete contract registered (AMENDED)
+
+- YAML contract at `zangetsu/module_contracts/<module_id>.yaml` passes `amended_module_contract_template.md §4` 15-field acceptance checklist
+- **Responsibilities MUST map 1:1 to test_boundary golden fixtures** (R1b-F3)
+- Module entry INSERTED into `control_plane.modules` via CI/CD sync workflow
+- Module has passed Gemini adversarial
+- ADR `docs/decisions/YYYYMMDD-module-<id>.md` committed with Gemini verdict recorded
+
+### B.2 — Shadow + CANARY rehearsal (AMENDED)
+
+- SHADOW tier ≥ 72h
+- CANARY tier ≥ 72h at ≤ 10% scope
+- No FAILURE_* metric exceeded alert threshold in either window
+- **Rollback rehearsal actually executed, empirical p95 recorded in `rollback_surface.rollback_rehearsal_p95` field** (R1a-F4)
+
+### B.3 — Rollback + forward-compat contract signed (unchanged)
+
+## 5. Gate-B enforcement — AMENDED (path-based)
+
+### 5.1 Gate-A enforcement (amended)
+
+- Local: `~/.claude/hooks/pre-phase-7-gate.sh` (convenience; non-authoritative)
+- **Server-side (authoritative)**: GitHub Actions workflow `.github/workflows/phase-7-gate.yml` on PR + push touching `zangetsu/src/**` or `zangetsu/module_contracts/**`
+
+Local hook bypass via `--no-verify` has NO effect on server-side.
+
+### 5.2 Gate-B enforcement (AMENDED — path-based)
+
+- **Server-side authoritative**: GitHub Actions workflow `.github/workflows/module-migration-gate.yml`
+- **Triggers** (any PR matching these paths — un-bypassable via label omission):
+  - `zangetsu/src/modules/**`
+  - `zangetsu/src/l[0-9]*/**`
+  - `zangetsu/module_contracts/*.yaml`
+  - `zangetsu/module_contracts/*.yml`
+- Full spec in `github_actions_gate_b_enforcement_spec.md`
+- Label `module-migration/<module_id>` remains but is ADDITIVE (documentation-only, NOT a trigger)
+
+### 5.3 Gate-C enforcement (unchanged)
+
+- Location: `control_plane.cp_api` API-level check before accepting scatter-site removal PRs
+- Triggers on PRs removing files listed in `scattered_config_map.md` canonical paths
+
+### 5.4 Branch protection (NEW in MOD-3)
+
+`gh api repos/M116cj/j13-ops/branches/main/protection -X PUT \`
+-  `-F required_status_checks[strict]=true \`
+- `-F required_status_checks[contexts][]="Module Migration Gate (Gate-B) / gate_b_summary" \`
+- `-F enforce_admins=true \` (j13 uses explicit override ADR, not admin-bypass)
+- `-F required_linear_history=true \`
+- `-F required_signatures=true`
+
+This is applied when Phase 7 nears, not in MOD-3.
+
+## 6. Override procedure (AMENDED — GPG signing required)
+
+Only j13 can override a gate, via written ADR `docs/decisions/YYYYMMDD-gate-override.md`:
+
+- **Commit containing the ADR MUST be GPG-signed** (R1a-F5)
+- GitHub branch protection `required_signatures=true` (§5.4) verifies signature
+- Signer key must match j13's public key pinned in `~/.claude/trust/j13.asc` (Phase 7 creates this pin file)
+- ADR content: which gate (A/B/C) + sub-condition / why override / compensating safeguards / expiry (max 7 days) / retro commitment
+
+Agent-originated ADRs cannot satisfy this requirement — agents do not hold j13's private key.
+
+## 7. Current status (2026-04-23 MOD-3 completion time)
+
+| Condition | State |
+|---|---|
+| A.1 | PARTIALLY CLEARED — awaits Gemini round-3 on amended corpus |
+| A.2 | IN PROGRESS — earliest clear 2026-04-30T00:35:57Z |
+| A.3 | CLEARED (R2 holding, no Track-R patches, arena frozen) |
+
+## 8. Stop conditions (unchanged)
+
+If any of the following happens during any phase, HALT + escalate to j13:
+- mutation of production without ADR
+- threshold change without ADR + Gemini
+- arena service restart without validation plan §3 protocol
+- mixing with Track 3 discovery
+- mixing with broad recovery patching
+- black-box control surface proposal
+- module migration PR without rollback boundary
+- console ownership proposed without state + config contracts
+
+## 9. Relationship to Constitution §17
+
+Unchanged from MOD-1. §17.2 witness + §17.3 Calcifer RED + §17.4 auto-regression + §17.5 bot-only-bump + §17.6 stale-check + §17.7 decision-record CI all remain binding.
+
+## 10. Label per 0-4 rule 10
+
+- §3 A.1 amended list: **VERIFIED** (1:1 with MOD-3 deliverables)
+- §4 B.1/B.2 amendments: **VERIFIED** (maps to contract template + rollback changes)
+- §5 Gate-B path-based: **VERIFIED** (spec matches `github_actions_gate_b_enforcement_spec.md`)
+- §6 GPG override: **PROBABLE** (requires Phase 7 trust infra)
+- §7 current status: **VERIFIED** (live observation)
+
+
+=== amended_module_contract_template.md ===
+
+# Amended Module Contract Template — MOD-3
+
+**Order**: `/home/j13/claude-inbox/0-4` Phase 2 deliverable
+**Produced**: 2026-04-23T07:32Z
+**Supersedes**: `docs/recovery/20260423-mod-1/module_contract_template.md` §2 (14 fields) via amendment — adds Field 15 `execution_environment`
+**Resolves**: Gemini R1b-F1 HIGH (egress stealth), R1b-F2 MEDIUM (compute budget), R1b-F3 MEDIUM (fluff)
+
+---
+
+## 1. Amendment summary
+
+| Change | Source | Severity |
+|---|---|---|
+| **Add Field 15 `execution_environment`** (permitted_egress, subprocess, filesystem, rss, cpu caps) | R1b-F1 | HIGH |
+| Add `rate_limit` sub-schema to Field 5 (Outputs) | R1b-F2 | MEDIUM |
+| Tighten §4 acceptance checklist: responsibilities MUST map 1:1 to test fixtures | R1b-F3 | MEDIUM |
+| Cross-reference §8.2 threshold split-brain note | (from r2_recovery_review §8.2) | MEDIUM |
+
+Fields 1–14: unchanged from MOD-1 baseline (Field 1 module_name … Field 14 console_controls).
+
+## 2. Field 15 — `execution_environment` (NEW MANDATORY)
+
+### Purpose
+
+Every module MUST declare what OS-level capabilities it uses. This closes the egress-stealth loophole (R1b-F1): a module declaring `blackbox_allowed: false` cannot quietly call `requests.post("https://external.api/")` — if `permitted_egress_hosts` doesn't list that host, the CI check fails.
+
+### Schema
+
+```yaml
+execution_environment:
+  # Network egress — empty list = no network calls permitted
+  permitted_egress_hosts:
+    - "hostname:port"         # or "hostname" for any port
+    - "*.domain.tld:443"      # wildcard-subdomain syntax
+  # e.g., for data_provider: ["api.binance.com:443", "fapi.binance.com:443"]
+  # for gate_contract: [] — pure local compute
+
+  # Subprocess permissions
+  subprocess_spawn_allowed: true | false
+  subprocess_permitted_binaries:   # only enforced if spawn_allowed == true
+    - "/usr/bin/python3"
+    - "/usr/bin/docker"
+
+  # Filesystem writes (ABSOLUTE path prefixes)
+  filesystem_write_paths:
+    - "/var/log/zangetsu/"
+    - "/tmp/"                      # ephemeral
+  # read access is unrestricted by default (modules may read any file they have OS permissions for)
+
+  # Compute budget (per-module cap)
+  max_rss_mb: <int>                # kill if exceeded for 60s
+  max_cpu_pct_sustained: <int>     # alert if exceeded for 60s; kill if exceeded for 5min
+
+  # Privileged capabilities (rare; require explicit ADR)
+  requires_root: false
+  requires_docker_group: false
+  requires_sudo: false
+```
+
+### Required values per module (MANDATORY — fail B.1 if missing)
+
+Every module YAML MUST populate every sub-field. Empty list (`[]`) is valid for egress; explicit numeric caps required for RSS/CPU.
+
+### Enforcement
+
+| Check location | How enforced |
+|---|---|
+| Gate-B pre-merge | `validate_module_contract.py` verifies Field 15 schema + required values |
+| Runtime | obs_metrics tracks actual RSS/CPU; gov_reconciler compares against declared caps; ALERT on breach |
+| Egress runtime | Optional: iptables rules per-process (out of scope for MOD-3; documented as Phase 7 hardening) |
+| Subprocess runtime | Optional: seccomp / syscall filter (out of scope) |
+| Filesystem runtime | Optional: AppArmor profile per-module (out of scope) |
+
+Mandatory-at-review-time enforcement (the Field 15 declaration itself) is sufficient for MOD-1 acceptance. Runtime enforcement lands in Phase 7.
+
+### Why this closes R1b-F1
+
+Before Field 15:
+- `gate_contract` could `import requests; requests.post("https://external-llm-api/")` and silently act as a black-box without declaring it.
+- Declaration `blackbox_allowed: false` was not mechanically verifiable.
+
+After Field 15:
+- `gate_contract.yaml` has `permitted_egress_hosts: []`.
+- If the code calls `requests.post()`, either:
+  - Runtime: egress audit catches the connection attempt (gov_reconciler logs + alerts)
+  - CI: a static-analysis pass scans source for `requests.post`/`urllib`/etc. and fails if any call's target isn't in the permitted list (Phase 7 CI addition)
+
+Mechanism is verifiable, not honor-system.
+
+## 3. Field 5 (Outputs) — amended sub-schema for `rate_limit` (R1b-F2)
+
+```yaml
+outputs:
+  - contract_name: <ContractName>
+    consumer_modules: [<module_id>, ...]
+    cardinality: one_per_input | n_per_input | stream
+    guarantees:
+      delivery: at_most_once | at_least_once | exactly_once
+      ordering: total | partition | none
+      idempotency: true | false
+    # NEW MOD-3 addition
+    rate_limit:
+      max_events_per_second: <int>      # 0 = no limit
+      max_events_per_minute: <int>
+      burst_size: <int>
+      backpressure_policy: drop_oldest | drop_newest | block_producer | shed_priority
+```
+
+Modules that produce bursty output MUST declare rate_limit or be rejected.
+
+## 4. Field 3 (responsibilities) — tightened §4 acceptance check (R1b-F3)
+
+Old rule (MOD-1):
+> `responsibilities` is 2–7 entries; each = verb + noun.
+
+New rule (MOD-3):
+- Same syntactic check PLUS
+- **Each responsibility MUST map to at least one golden fixture in `test_boundary`**
+- Gate-B CI check: `validate_module_contract.py` does 1:1 matching between responsibilities list and filenames under `test_boundary`. Missing coverage = rejection.
+
+Anti-pattern example now rejected:
+```yaml
+responsibilities:
+  - Handle logic        # too vague; no corresponding fixture; REJECTED
+  - Route events        # passes only if test_boundary contains `test_route_events.py` or similar
+```
+
+## 5. Anti-patterns §5 — amended
+
+Original 9 anti-patterns preserved; added:
+
+| NEW pattern | Why rejected |
+|---|---|
+| `permitted_egress_hosts` not declared OR contains `"*"` (wildcard-any) | Wildcard egress = no egress control; violates R1b-F1 spirit |
+| `max_rss_mb: 0` or missing | Module must have compute budget cap |
+| Declaring `subprocess_spawn_allowed: true` without `subprocess_permitted_binaries` list | Unconstrained subprocess = implicit black-box |
+| `responsibilities` containing any "and" / "or" / "," inside an entry | Multi-purpose in one entry = not 1 verb + 1 noun |
+
+## 6. Field 10 (rollback) / Field 12 (replacement) redundancy — DISPROVEN
+
+Per Gemini R1b-F4 DISPROVEN: Rollback (Failure-phase) and Replacement (Evolution-phase) serve distinct operational semantics. No change.
+
+## 7. Acceptance checklist (§4 of original template) — amended
+
+All 15 fields required (was 14):
+- [ ] Fields 1-14 per MOD-1 baseline
+- [ ] **Field 15 execution_environment** populated with:
+  - [ ] permitted_egress_hosts list (can be empty)
+  - [ ] subprocess_spawn_allowed bool (+ binaries list if true)
+  - [ ] filesystem_write_paths list (at least `/tmp/` or justified absence)
+  - [ ] max_rss_mb explicit integer
+  - [ ] max_cpu_pct_sustained explicit integer
+  - [ ] privileged-capability bools all populated
+- [ ] responsibilities list maps 1:1 to test_boundary fixtures (R1b-F3)
+- [ ] outputs rate_limit sub-schema present if cardinality is `stream` or `n_per_input`
+
+## 8. All 7 existing mandatory module contracts need Field 15
+
+Per amendment, `module_boundary_map.md §MOD-1.B` contracts for:
+- engine_kernel
+- gate_registry
+- obs_metrics
+- gov_contract_engine
+- search_contract
+- eval_contract
+- adapter_contract
+
+…each need Field 15 added. Plus the 2 new modules:
+- **gate_contract** (Field 15 declared in `gate_contract_module_spec.md §5`)
+- **cp_worker_bridge** (Field 15 to be declared in `cp_worker_bridge_promotion_spec.md`)
+
+The bulk Field 15 population for the 7 existing modules is spec-level only in MOD-3 (see `mod1_corpus_consistency_patch.md §Field 15 population`); concrete YAML happens in Phase 7 when `zangetsu/module_contracts/<id>.yaml` files are authored.
+
+## 9. Resolution status
+
+| Finding | Status |
+|---|---|
+| R1b-F1 HIGH (egress stealth) | **RESOLVED** — Field 15 mandatory |
+| R1b-F2 MEDIUM (compute/rate_limit) | **RESOLVED** — rate_limit in Field 5; RSS/CPU in Field 15 |
+| R1b-F3 MEDIUM (responsibilities fluff) | **RESOLVED** — 1:1 fixture mapping check |
+| R1b-F4 LOW DISPROVEN (rollback vs replacement) | no change (already correct) |
+
+## 10. Label per 0-4 rule 10
+
+- §2 Field 15 schema: **PROBABLE** (design; VERIFIED when first module yaml validates)
+- §3 rate_limit: **PROBABLE**
+- §4 1:1 fixture mapping: **PROBABLE** (CI-enforceable)
+- §7 15-field checklist: **PROBABLE**
+- §9 resolution status: **PROBABLE** pending Gemini round-3

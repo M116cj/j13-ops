@@ -1,0 +1,232 @@
+=== CALCIFER WORKING-TREE AUDIT ===
+2026-04-23T01:21:13Z
+
+--- C1. working tree status on j13-ops main ---
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   calcifer/maintenance.log
+	modified:   calcifer/maintenance_last.json
+	modified:   calcifer/report_state.json
+	modified:   calcifer/supervisor.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	calcifer/deploy_block_state.json
+	calcifer/zangetsu_outcome.py
+
+no changes added to commit (use "git add" and/or "git commit -a")
+
+--- C2. diff of each modified calcifer file ---
+===== DIFF calcifer/maintenance.log =====
+ calcifer/maintenance.log | 30 ++++++++++++++++++++++++++++++
+ 1 file changed, 30 insertions(+)
+diff --git a/calcifer/maintenance.log b/calcifer/maintenance.log
+index e6e6a00a..04e2a355 100644
+--- a/calcifer/maintenance.log
++++ b/calcifer/maintenance.log
+@@ -78,3 +78,33 @@
+ {"ts": "2026-04-20T16:00:02Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
+ {"ts": "2026-04-20T16:00:02Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
+ {"ts": "2026-04-20T16:00:02Z", "level": "INFO", "msg": "Maintenance complete: OK=8 WARN=0 ERR=0 SKIP=0 duration=1.8s"}
++{"ts": "2026-04-21T00:59:04Z", "level": "INFO", "msg": "Calcifer nightly maintenance starting (TW 00:00-01:00)"}
++{"ts": "2026-04-21T00:59:05Z", "level": "INFO", "msg": "[docker_prune] OK (1.2s)"}
++{"ts": "2026-04-21T00:59:05Z", "level": "INFO", "msg": "[postgres_vacuum] OK (0.1s)"}
++{"ts": "2026-04-21T00:59:05Z", "level": "INFO", "msg": "[redis_health] OK (0.1s)"}
++{"ts": "2026-04-21T00:59:05Z", "level": "INFO", "msg": "[akasha_compact] WARN (0.0s)"}
++{"ts": "2026-04-21T00:59:06Z", "level": "INFO", "msg": "[log_rotation] OK (0.5s)"}
++{"ts": "2026-04-21T00:59:06Z", "level": "INFO", "msg": "[backup_verify] OK (0.0s)"}
++{"ts": "2026-04-21T00:59:06Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
++{"ts": "2026-04-21T00:59:06Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
++{"ts": "2026-04-21T00:59:06Z", "level": "INFO", "msg": "Maintenance complete: OK=7 WARN=1 ERR=0 SKIP=0 duration=2.1s"}
++{"ts": "2026-04-21T16:00:01Z", "level": "INFO", "msg": "Calcifer nightly maintenance starting (TW 00:00-01:00)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "[docker_prune] OK (1.0s)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "[postgres_vacuum] OK (0.1s)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "[redis_health] OK (0.2s)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "[akasha_compact] OK (0.0s)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "[log_rotation] OK (0.2s)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "[backup_verify] OK (0.0s)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
++{"ts": "2026-04-21T16:00:02Z", "level": "INFO", "msg": "Maintenance complete: OK=8 WARN=0 ERR=0 SKIP=0 duration=1.6s"}
++{"ts": "2026-04-22T16:00:01Z", "level": "INFO", "msg": "Calcifer nightly maintenance starting (TW 00:00-01:00)"}
++{"ts": "2026-04-22T16:00:02Z", "level": "INFO", "msg": "[docker_prune] OK (1.0s)"}
++{"ts": "2026-04-22T16:00:02Z", "level": "INFO", "msg": "[postgres_vacuum] OK (0.2s)"}
++{"ts": "2026-04-22T16:00:02Z", "level": "INFO", "msg": "[redis_health] OK (0.2s)"}
++{"ts": "2026-04-22T16:00:02Z", "level": "INFO", "msg": "[akasha_compact] OK (0.0s)"}
++{"ts": "2026-04-22T16:00:03Z", "level": "INFO", "msg": "[log_rotation] OK (0.6s)"}
++{"ts": "2026-04-22T16:00:03Z", "level": "INFO", "msg": "[backup_verify] OK (0.0s)"}
++{"ts": "2026-04-22T16:00:03Z", "level": "INFO", "msg": "[disk_memory_gpu] OK (0.0s)"}
++{"ts": "2026-04-22T16:00:03Z", "level": "INFO", "msg": "[zangetsu_status] OK (0.1s)"}
++{"ts": "2026-04-22T16:00:03Z", "level": "INFO", "msg": "Maintenance complete: OK=8 WARN=0 ERR=0 SKIP=0 duration=2.2s"}
+
+===== DIFF calcifer/maintenance_last.json =====
+ calcifer/maintenance_last.json | 22 +++++++++++-----------
+ 1 file changed, 11 insertions(+), 11 deletions(-)
+diff --git a/calcifer/maintenance_last.json b/calcifer/maintenance_last.json
+index 8bd3cbbe..7332c41b 100644
+--- a/calcifer/maintenance_last.json
++++ b/calcifer/maintenance_last.json
+@@ -1,47 +1,47 @@
+ {
+-  "start": "2026-04-20T16:00:00.669892+00:00",
++  "start": "2026-04-22T16:00:01.307944+00:00",
+   "tasks": {
+     "docker_prune": {
+       "status": "OK",
+-      "duration_s": 0.8,
++      "duration_s": 1.0,
+       "output": "system df after:\ntemplate parsing error: template: :1:12: executing \"\" at <.Total>: can't evaluate field Total in type *formatter.diskUsageImagesContext"
+     },
+     "postgres_vacuum": {
+       "status": "OK",
+-      "duration_s": 0.1,
++      "duration_s": 0.2,
+       "output": "zangetsu:ERROR:  relation \"champion_pipeline\" does not exist\nakasha:ERROR:  VACUUM cannot run inside a transaction block"
+     },
+     "redis_health": {
+       "status": "OK",
+       "duration_s": 0.2,
+-      "output": "magi: used_memory_human:1.26M\nmaxmemory_policy:noeviction\n# Keyspace\ndb0:keys=3,expires=1,avg_ttl=1655039,subexpiry=0\nakasha: used_memory_human:1.19M"
++      "output": "magi: used_memory_human:1.38M\nmaxmemory_policy:noeviction\n# Keyspace\ndb0:keys=2,expires=0,avg_ttl=0,subexpiry=0\nakasha: used_memory_human:1.81M"
+     },
+     "akasha_compact": {
+       "status": "OK",
+       "duration_s": 0.0,
+-      "output": "{\"deleted\": 32, \"status\": \"ok\"}"
++      "output": "{\"deleted\": 4, \"status\": \"ok\"}"
+     },
+     "log_rotation": {
+       "status": "OK",
+       "duration_s": 0.6,
+-      "output": "rotation: \nsizes: 39M\t/home/j13/j13-ops/zangetsu/logs"
++      "output": "rotation: \nsizes: 40M\t/home/j13/j13-ops/zangetsu/logs"
+     },
+     "backup_verify": {
+
+===== DIFF calcifer/report_state.json =====
+ calcifer/report_state.json | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+diff --git a/calcifer/report_state.json b/calcifer/report_state.json
+index 55089f69..d22647c6 100644
+--- a/calcifer/report_state.json
++++ b/calcifer/report_state.json
+@@ -1 +1 @@
+-{"last_daily": 1776674340.463598, "last_weekly": 0}
+\ No newline at end of file
++{"last_daily": 1776847243.3685305, "last_weekly": 0}
+\ No newline at end of file
+
+===== DIFF calcifer/supervisor.py =====
+ calcifer/supervisor.py | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+diff --git a/calcifer/supervisor.py b/calcifer/supervisor.py
+index a8a51336..be8f9020 100644
+--- a/calcifer/supervisor.py
++++ b/calcifer/supervisor.py
+@@ -13,6 +13,7 @@ from agent_core import (
+     EvolutionEngine, LiteLLMClient, TechScout, TaskTracker,
+     ScheduledReporter, OperationGuard, AgentBus, ToolTracker,
+ )
++from zangetsu_outcome import check_zangetsu_outcome
+ 
+ OLLAMA_URL = "http://localhost:11434"
+ MODEL = "gemma4:e4b"
+@@ -111,9 +112,9 @@ TOOLS = {
+     "check_zangetsu": lambda: run_cmd("~/j13-ops/zangetsu/zangetsu_ctl.sh status 2>&1 | head -15"),
+     "check_ollama": lambda: run_cmd("curl -s http://localhost:11434/api/tags 2>&1 | head -5"),
+     "check_litellm": lambda: run_cmd("curl -s --connect-timeout 3 http://localhost:4000/health 2>&1 | head -5 || echo 'DOWN'"),
+-    "check_db_health": lambda: run_cmd("docker exec deploy-postgres-1 psql -U zangetsu -d zangetsu -t -c \"SELECT 'rows=' || count(*) || ' deployable=' || count(*) FILTER (WHERE status='DEPLOYABLE') FROM champion_pipeline_fresh\" 2>&1"),
+     "check_backups": lambda: run_cmd("echo PG: && ls -lh /home/j13/backups/*.sql.gz 2>/dev/null | tail -3 && echo Redis: && ls -lh /home/j13/backups/*.rdb 2>/dev/null | tail -3 || echo no backups found"),
+     "check_rsteiner": lambda: run_cmd("tail -5 ~/r-steiner/data/run.log 2>/dev/null && echo --- && ps aux | grep r-steiner | grep -v grep | wc -l && echo processes"),
++    "check_zangetsu_outcome": lambda: check_zangetsu_outcome(tg_send=tg_send),
+     "check_logs": lambda: run_cmd("tail -30 ~/j13-ops/zangetsu/logs/engine.jsonl 2>/dev/null | grep -i 'error\\|fail\\|warn' | tail -10 || echo 'no errors'"),
+ }
+ 
+
+
+--- C3. untracked files ---
+===== HEAD calcifer/deploy_block_state.json =====
+size=195 mtime=2026-04-23 01:17:32.651410081 +0000
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776907052,
+  "iso": "2026-04-23T01:17:32.651976+00:00",
+  "reason": "deployable_count==0 AND age=Noneh>6.0h"
+}
+===== HEAD calcifer/zangetsu_outcome.py =====
+size=4324 mtime=2026-04-20 18:38:15.721452302 +0000
+"""§17.3 Calcifer outcome watch — deterministic deployable_count gate.
+
+Queries `zangetsu_status` VIEW (deployed by §17.1).
+Writes /tmp/calcifer_deploy_block.json when RED.
+Sends Telegram on RED↔GREEN transitions (callback supplied by supervisor).
+
+Intentionally side-channel-deterministic: no LLM judgment in this path.
+LLM still sees the result string in TOOLS snapshot for context.
+"""
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import time
+from datetime import datetime, timezone
+
+DEPLOY_BLOCK_FLAG = "/tmp/calcifer_deploy_block.json"
+DEPLOY_BLOCK_STATE = "/home/j13/j13-ops/calcifer/deploy_block_state.json"
+
+# §17.3 thresholds
+AGE_RED_HOURS = 6.0
+PSQL_TIMEOUT_S = 10
+
+
+def _query_view():
+    """Returns (deployable_count:int, age_h:float|None) or raises."""
+    r = subprocess.run(
+        [
+            "docker", "exec", "deploy-postgres-1",
+            "psql", "-U", "zangetsu", "-d", "zangetsu",
+            "-t", "-A", "-F", "|",
+            "-c", "SELECT deployable_count, last_live_at_age_h FROM zangetsu_status",
+        ],
+        capture_output=True, text=True, timeout=PSQL_TIMEOUT_S,
+    )
+    if r.returncode != 0:
+        raise RuntimeError(f"psql exit {r.returncode}: {r.stderr.strip()[:200]}")
+    line = r.stdout.strip().split("\n")[0]
+    parts = line.split("|")
+    if len(parts) < 2:
+        raise ValueError(f"malformed VIEW row: {line!r}")
+    deployable = int(parts[0])
+    age_str = parts[1].strip()
+    age_h = float(age_str) if age_str else None
+    return deployable, age_h
+
+
+def _is_red(deployable: int, age_h):
+    """RED iff deployable_count==0 AND (no live alpha ever OR age>threshold)."""
+    if deployable > 0:
+        return False
+    if age_h is None:  # no DEPLOYABLE rows ever → RED
+        return True
+    return age_h > AGE_RED_HOURS
+
+
+def _load_prev_status():
+    if not os.path.exists(DEPLOY_BLOCK_STATE):
+        return None
+
+
+--- C4. calcifer supervisor service state ---
+active
+{ path=/usr/bin/python3 ; argv[]=/usr/bin/python3 /home/j13/j13-ops/calcifer/supervisor.py ; ignore_errors=no ; start_time=[Tue 2026-04-21 08:52:00 UTC] ; stop_time=[n/a] ; pid=1807052 ; code=(null) ; status=0/0 }
+Tue 2026-04-21 08:52:00 UTC
+
+--- C5. where is /tmp/calcifer_deploy_block.json written from? grep code ---
+/home/j13/j13-ops/calcifer/zangetsu_outcome.py:4:Writes /tmp/calcifer_deploy_block.json when RED.
+/home/j13/j13-ops/calcifer/zangetsu_outcome.py:18:DEPLOY_BLOCK_FLAG = "/tmp/calcifer_deploy_block.json"
+/home/j13/j13-ops/calcifer/zangetsu_outcome.py:19:DEPLOY_BLOCK_STATE = "/home/j13/j13-ops/calcifer/deploy_block_state.json"
