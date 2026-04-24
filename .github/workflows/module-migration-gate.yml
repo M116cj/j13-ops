@@ -4,11 +4,15 @@ name: Module Migration Gate (Gate-B)
 # un-omittable per MOD-3 gate_b_trigger_correction.md §3.1).
 
 on:
-  # TEAM ORDER 0-9F (2026-04-24) — widened trigger paths to match phase-7-gate.yml.
-  # P7-PR1 (PR #6) demonstrated that narrow zangetsu/src/** filters miss Phase 7
-  # code that lives under zangetsu/services/**, plus tests, governance, and
-  # recovery docs. Gate-B now triggers on any Phase 7-relevant surface; only
-  # compiled Python artifacts are ignored.
+  # TEAM ORDER 0-9I (2026-04-24) — root-cause fix for Gate-B pull_request non-trigger.
+  # Gate-B has had paths + paths-ignore co-existing on the same event since
+  # MOD-7B legalization (PR #4). Every Gate-B run since has shown "This run
+  # likely failed because of a workflow file issue" at 0s duration on push
+  # events, and pull_request dispatch never fired across PRs #4–#9.
+  # Gate-A, which uses paths-only on the same events, always triggered
+  # correctly. This change drops paths-ignore and keeps a single paths
+  # allowlist; compiled Python artifacts (__pycache__, *.pyc) are filtered
+  # by .gitignore elsewhere in the repo and do not appear in Phase 7 PRs.
   pull_request:
     paths:
       - 'zangetsu/**'
@@ -16,9 +20,6 @@ on:
       - 'docs/governance/**'
       - 'scripts/governance/**'
       - '.github/workflows/**'
-    paths-ignore:
-      - 'zangetsu/**/__pycache__/**'
-      - 'zangetsu/**/*.pyc'
   push:
     branches: [main]
     paths:
@@ -27,9 +28,6 @@ on:
       - 'docs/governance/**'
       - 'scripts/governance/**'
       - '.github/workflows/**'
-    paths-ignore:
-      - 'zangetsu/**/__pycache__/**'
-      - 'zangetsu/**/*.pyc'
 
 permissions:
   contents: read
