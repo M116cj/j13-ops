@@ -1,0 +1,110 @@
+name: Phase 7 Gate (Gate-A)
+# MOD-6 Phase 2 — server-side enforcement of Phase 7 entry gate
+# Triggers on any PR or push to main touching Phase 7 structural paths.
+# Fails if Phase 7 prerequisites are not documented as MET.
+
+on:
+  pull_request:
+    paths:
+      - 'zangetsu/src/**'
+      - 'zangetsu/module_contracts/**'
+      - '.github/workflows/phase-7-gate.yml'
+      - '.github/workflows/module-migration-gate.yml'
+      - 'zangetsu/control_plane/**'
+  push:
+    branches: [main]
+    paths:
+      - 'zangetsu/src/**'
+      - 'zangetsu/module_contracts/**'
+      - '.github/workflows/phase-7-gate.yml'
+      - '.github/workflows/module-migration-gate.yml'
+      - 'zangetsu/control_plane/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  actions: read
+
+concurrency:
+  group: phase-7-gate-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify_phase7_prerequisites:
+    name: Verify Phase 7 entry prerequisites (Gate-A)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 1.1 Gate-A CLEARED memo present
+        run: |
+          LATEST_MEMO=$(ls -1 docs/recovery/*/gate_a_post_mod*_memo.md 2>/dev/null | sort -r | head -1)
+          test -n "$LATEST_MEMO" || { echo "::error::No Gate-A classification memo found"; exit 1; }
+          grep -q 'Gate-A state: `CLEARED`' "$LATEST_MEMO" || {
+            echo "::error::Latest Gate-A memo does not classify as CLEARED: $LATEST_MEMO"; exit 1;
+          }
+          echo "::notice::Gate-A CLEARED memo = $LATEST_MEMO"
+
+      - name: 1.2 MOD-N queue closure doc present
+        run: |
+          LATEST_MATRIX=$(ls -1 docs/recovery/*/gate_a_post_mod*_blocker_matrix.md 2>/dev/null | sort -r | head -1)
+          test -n "$LATEST_MATRIX" || { echo "::error::No blocker matrix found"; exit 1; }
+          grep -q 'No open Gate-A blockers\|Total Gate-A blockers.*0' "$LATEST_MATRIX" || {
+            echo "::error::Latest blocker matrix shows open Gate-A blockers: $LATEST_MATRIX"; exit 1;
+          }
+          echo "::notice::MOD queue closed = $LATEST_MATRIX"
+
+      - name: 1.3 Latest Gemini clean ACCEPT verdict present
+        run: |
+          LATEST_VERDICT=$(ls -1 docs/recovery/*/mod*_adversarial_verdict.md docs/recovery/*/gemini_round*_verdict.md 2>/dev/null | sort -r | head -1)
+          test -n "$LATEST_VERDICT" || { echo "::error::No Gemini verdict file found"; exit 1; }
+          grep -iqE 'VERDICT_[0-9]+ = ACCEPT[^_]|= ACCEPT$' "$LATEST_VERDICT" || {
+            echo "::error::Latest Gemini verdict is not a clean ACCEPT: $LATEST_VERDICT"; exit 1;
+          }
+          echo "::notice::Gemini verdict = $LATEST_VERDICT"
+
+      - name: 1.4 enforce_admins=true live
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ENFORCE=$(gh api /repos/${{ github.repository }}/branches/main/protection --jq '.enforce_admins.enabled' 2>&1 || echo "probe-failed")
+          if [ "$ENFORCE" != "true" ]; then
+            echo "::error::enforce_admins is not true (got: $ENFORCE); Phase 7 prereq 1.4 NOT MET"
+            exit 1
+          fi
+          echo "::notice::enforce_admins=true verified live"
+
+      - name: 1.5 Gate-A + Gate-B workflow YAMLs committed
+        run: |
+          test -f .github/workflows/phase-7-gate.yml || { echo "::error::phase-7-gate.yml missing"; exit 1; }
+          test -f .github/workflows/module-migration-gate.yml || { echo "::error::module-migration-gate.yml missing"; exit 1; }
+          echo "::notice::Both workflow YAMLs present"
+
+      - name: 1.6 cp_api skeleton present in repo
+        run: |
+          test -f zangetsu/control_plane/cp_api/server.py || { echo "::error::cp_api skeleton missing"; exit 1; }
+          test -f zangetsu/control_plane/cp_api/requirements.txt || { echo "::error::cp_api requirements missing"; exit 1; }
+          echo "::notice::cp_api skeleton committed"
+
+      - name: 1.7 Controlled-diff scripts committed
+        run: |
+          test -f scripts/governance/capture_snapshot.sh || { echo "::error::capture_snapshot.sh missing"; exit 1; }
+          test -f scripts/governance/diff_snapshots.py || { echo "::error::diff_snapshots.py missing"; exit 1; }
+          echo "::notice::Controlled-diff scripts committed"
+
+      - name: 1.8 Rollback rehearsal recorded
+        run: |
+          LATEST_REHEARSAL=$(ls -1 docs/recovery/*/rollback_rehearsal/execution_trace.txt docs/rehearsal/*.md 2>/dev/null | sort -r | head -1)
+          test -n "$LATEST_REHEARSAL" || { echo "::error::No rollback rehearsal evidence found"; exit 1; }
+          grep -iqE 'VERIFIED.*restored|restore confirmation' "$LATEST_REHEARSAL" || {
+            echo "::warning::Latest rehearsal does not show explicit restore verification: $LATEST_REHEARSAL"
+          }
+          echo "::notice::Rollback rehearsal = $LATEST_REHEARSAL"
+
+      - name: Gate-A summary
+        run: |
+          echo "::notice::All Phase 7 prerequisites (1.1-1.8) checks passed"
+          echo "This workflow does NOT authorize Phase 7 migration."
+          echo "Phase 7 launch requires a separate authorized order."

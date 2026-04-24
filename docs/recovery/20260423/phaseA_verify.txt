@@ -1,0 +1,47 @@
+=== PHASE A VERIFY FREEZE ===
+2026-04-23T00:36:15Z
+
+--- V1. all arena/orchestrator processes gone ---
+3182734 bash -c set -e; VERIFY=/home/j13/j13-ops/docs/recovery/20260423/phaseA_verify.txt; { echo '=== PHASE A VERIFY FREEZE ===' date -u +%Y-%m-%dT%H:%M:%SZ echo echo '--- V1. all arena/orchestrator processes gone ---' pgrep -af 'arena_pipeline|arena23_orchestrator|arena45_orchestrator' 2>&1 || echo 'CONFIRMED: zero arena processes' echo echo '--- V2. load avg drop check ---' uptime echo echo '--- V3. engine.jsonl last line + mtime (should be pre-kill, no new rounds) ---' stat -c 'mtime=%y  size=%s' /home/j13/j13-ops/zangetsu/logs/engine.jsonl tail -1 /home/j13/j13-ops/zangetsu/logs/engine.jsonl echo echo '--- V4. VIEW unchanged (§17.1 single truth) ---' docker exec deploy-postgres-1 psql -U zangetsu -d zangetsu -c 'SELECT * FROM zangetsu_status;' echo echo '--- V5. pipeline counts unchanged (no silent writes) ---' docker exec deploy-postgres-1 psql -U zangetsu -d zangetsu -c "SELECT 'fresh' AS t, COUNT(*) AS n, MAX(created_at) AS last_ts FROM champion_pipeline_fresh UNION ALL SELECT 'staging', COUNT(*), MAX(created_at) FROM champion_pipeline_staging UNION ALL SELECT 'rejected', COUNT(*), MAX(created_at) FROM champion_pipeline_rejected UNION ALL SELECT 'legacy', COUNT(*), MAX(created_at) FROM champion_legacy_archive;" echo echo '--- V6. Calcifer RED still active (§17.3) ---' cat /tmp/calcifer_deploy_block.json echo echo '--- V7. sleep 30s, re-check engine.jsonl stops growing ---' SIZE_BEFORE=$(stat -c %s /home/j13/j13-ops/zangetsu/logs/engine.jsonl) MTIME_BEFORE=$(stat -c %Y /home/j13/j13-ops/zangetsu/logs/engine.jsonl) echo "Before: size=$SIZE_BEFORE mtime=$MTIME_BEFORE" sleep 30 SIZE_AFTER=$(stat -c %s /home/j13/j13-ops/zangetsu/logs/engine.jsonl) MTIME_AFTER=$(stat -c %Y /home/j13/j13-ops/zangetsu/logs/engine.jsonl) echo "After : size=$SIZE_AFTER  mtime=$MTIME_AFTER" if [ "$SIZE_BEFORE" = "$SIZE_AFTER" ] && [ "$MTIME_BEFORE" = "$MTIME_AFTER" ]; then   echo 'VERIFIED: engine.jsonl static for 30s — no rounds being emitted' else   echo 'WARN: engine.jsonl still moving — investigate' fi echo echo '--- V8. final process check ---' pgrep -af 'arena' 2>&1 | grep -v pgrep || echo 'zero arena processes remain' } 2>&1 | tee $VERIFY
+3182735 bash -c set -e; VERIFY=/home/j13/j13-ops/docs/recovery/20260423/phaseA_verify.txt; { echo '=== PHASE A VERIFY FREEZE ===' date -u +%Y-%m-%dT%H:%M:%SZ echo echo '--- V1. all arena/orchestrator processes gone ---' pgrep -af 'arena_pipeline|arena23_orchestrator|arena45_orchestrator' 2>&1 || echo 'CONFIRMED: zero arena processes' echo echo '--- V2. load avg drop check ---' uptime echo echo '--- V3. engine.jsonl last line + mtime (should be pre-kill, no new rounds) ---' stat -c 'mtime=%y  size=%s' /home/j13/j13-ops/zangetsu/logs/engine.jsonl tail -1 /home/j13/j13-ops/zangetsu/logs/engine.jsonl echo echo '--- V4. VIEW unchanged (§17.1 single truth) ---' docker exec deploy-postgres-1 psql -U zangetsu -d zangetsu -c 'SELECT * FROM zangetsu_status;' echo echo '--- V5. pipeline counts unchanged (no silent writes) ---' docker exec deploy-postgres-1 psql -U zangetsu -d zangetsu -c "SELECT 'fresh' AS t, COUNT(*) AS n, MAX(created_at) AS last_ts FROM champion_pipeline_fresh UNION ALL SELECT 'staging', COUNT(*), MAX(created_at) FROM champion_pipeline_staging UNION ALL SELECT 'rejected', COUNT(*), MAX(created_at) FROM champion_pipeline_rejected UNION ALL SELECT 'legacy', COUNT(*), MAX(created_at) FROM champion_legacy_archive;" echo echo '--- V6. Calcifer RED still active (§17.3) ---' cat /tmp/calcifer_deploy_block.json echo echo '--- V7. sleep 30s, re-check engine.jsonl stops growing ---' SIZE_BEFORE=$(stat -c %s /home/j13/j13-ops/zangetsu/logs/engine.jsonl) MTIME_BEFORE=$(stat -c %Y /home/j13/j13-ops/zangetsu/logs/engine.jsonl) echo "Before: size=$SIZE_BEFORE mtime=$MTIME_BEFORE" sleep 30 SIZE_AFTER=$(stat -c %s /home/j13/j13-ops/zangetsu/logs/engine.jsonl) MTIME_AFTER=$(stat -c %Y /home/j13/j13-ops/zangetsu/logs/engine.jsonl) echo "After : size=$SIZE_AFTER  mtime=$MTIME_AFTER" if [ "$SIZE_BEFORE" = "$SIZE_AFTER" ] && [ "$MTIME_BEFORE" = "$MTIME_AFTER" ]; then   echo 'VERIFIED: engine.jsonl static for 30s — no rounds being emitted' else   echo 'WARN: engine.jsonl still moving — investigate' fi echo echo '--- V8. final process check ---' pgrep -af 'arena' 2>&1 | grep -v pgrep || echo 'zero arena processes remain' } 2>&1 | tee $VERIFY
+
+--- V2. load avg drop check ---
+ 00:36:15 up 1 day, 23:37,  1 user,  load average: 2.20, 4.17, 4.51
+
+--- V3. engine.jsonl last line + mtime (should be pre-kill, no new rounds) ---
+mtime=2026-04-23 00:35:54.857377417 +0000  size=38638779
+{"ts": "2026-04-23T00:35:54", "level": "INFO", "msg": "Stopped. a4_processed=0 a4_passed=0 a5_matches=0"}
+
+--- V4. VIEW unchanged (§17.1 single truth) ---
+ deployable_count | deployable_historical | deployable_fresh | deployable_live_proven | active_count | candidate_count | champions_last_1h | last_live_at_age_h |              ts               
+------------------+-----------------------+------------------+------------------------+--------------+-----------------+-------------------+--------------------+-------------------------------
+                0 |                     0 |                0 |                      0 |            0 |               0 |                 0 |                    | 2026-04-23 00:36:15.806605+00
+(1 row)
+
+
+--- V5. pipeline counts unchanged (no silent writes) ---
+    t     |  n   |            last_ts            
+----------+------+-------------------------------
+ fresh    |   89 | 2026-04-21 04:34:21.954696+00
+ staging  |  184 | 2026-04-21 04:34:21.954696+00
+ rejected |    0 | 
+ legacy   | 1564 | 2026-04-19 03:28:58.410936+00
+(4 rows)
+
+
+--- V6. Calcifer RED still active (§17.3) ---
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776904340,
+  "iso": "2026-04-23T00:32:20.844876+00:00",
+  "reason": "deployable_count==0 AND age=Noneh>6.0h"
+}
+--- V7. sleep 30s, re-check engine.jsonl stops growing ---
+Before: size=38638779 mtime=1776904554
+After : size=38638779  mtime=1776904554
+VERIFIED: engine.jsonl static for 30s — no rounds being emitted
+
+--- V8. final process check ---
+zero arena processes remain

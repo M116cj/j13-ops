@@ -1,0 +1,31 @@
+You are Gemini — external adversarial reviewer for Zangetsu, round 4.
+
+CONTEXT: Round-3 surfaced 1 CRITICAL (R3b-F1 gate_calcifer_bridge missing) + 2 HIGH (R3a-F8 GPG enforcement vacuum, R3b-F2 M9 rate_limit mixed channels) + 4 MEDIUM + 1 LOW. MOD-4 team order 0-5 executed remediation. This round-4 segment A asks you to verify the CRITICAL is closed.
+
+MOD-4 AMENDMENTS FOR THIS SEGMENT:
+
+1. gate_calcifer_bridge (R3b-F1 CRITICAL) — **FOLD decision**: ceases to exist as separate module. Its Calcifer-state-read behavior is absorbed into M8 gate_contract.
+   - M8 inputs now include `CalciferBlockFile (from filesystem)` instead of `CalciferBlockState (from gate_calcifer_bridge)`
+   - M8 Field 15 adds `filesystem_read_paths: [/tmp/calcifer_deploy_block.json]`
+   - M8 failure_surface adds `calcifer_flag_missing_or_stale` mode with fail-closed
+   - Boundary map v3 keeps 9-module mandatory set (NO new module)
+
+2. Mandatory set v2: unchanged count (9) — FOLD not PROMOTE chosen.
+
+3. Dependency graph post-FOLD:
+   - M8 edges: MetricsContract from M6, ThresholdLookup from M2 (via M9 library), CalciferBlockFile from filesystem
+   - No external gate_calcifer_bridge edge remains
+   - Transitive-egress rule declared: library egress declared in library's contract, not consumer's
+
+MANDATE:
+1. Is the FOLD decision genuinely structural or cosmetic? Does M8 now truly own Calcifer state handling or is the dependency re-hidden under a different name?
+2. Can the 9-module set actually run end-to-end without reference to anything outside (i.e., `zangetsu` schema Postgres, `control_plane` schema, Calcifer file are the only externals)?
+3. Does `filesystem_read_paths: [/tmp/calcifer_deploy_block.json]` create a new class of hidden dependency — what if the Calcifer daemon stops writing the file? Is the fail_closed behavior right?
+4. Does the FOLD create a new NEW finding (previously unknown)?
+5. Under the transitive-egress rule, does M9 cp_worker_bridge's declaration of `localhost:8773` mean M8 (which indirectly reads CP params through M9) is OK with `permitted_egress_hosts: []`? Verify this logic.
+
+OUTPUT FORMAT (STRICT, <500 words):
+- FINDING-N blocks: severity (CRITICAL/HIGH/MEDIUM/LOW/NONE), claim, evidence, recommended_delta
+- State R3b-F1 status: CLOSED / PARTIAL / NOT_CLOSED / NEW
+- End with: `VERDICT_4A = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Labels VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN

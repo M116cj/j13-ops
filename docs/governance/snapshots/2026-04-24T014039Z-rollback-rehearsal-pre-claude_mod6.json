@@ -1,0 +1,81 @@
+{
+  "captured_at": "2026-04-24T01:40:40Z",
+  "captured_by": "claude@mod6",
+  "purpose": "rollback-rehearsal-pre",
+  "schema_version": 1,
+  "sha256_manifest": "cc909a90d66f72aed203d603e3da1e99ed8c2fd272906d4688a23db9443b4740",
+  "surfaces": {
+    "config": {
+      "arena23_orchestrator_sha": "81f48ccffca03f08ad9f1c5264a8af86acc6f83e72adad0c562f3d87ba1e750d",
+      "arena45_orchestrator_sha": "fe97c7a1aeb9b97bf4dadee79330667ae19394cbae154f37abdb1af525588960",
+      "arena_pipeline_sha": "34a3791f1686cc5f7c50c5f2f7e6db7eb1afca7340166dec63a32c5b05273d83",
+      "calcifer_deploy_block_file_sha": "4bb727861bbcbdfb63da4efab99cd1185a84519bf8d843136cfcdbabdf95e33f",
+      "calcifer_state_file_sha": "4bb727861bbcbdfb63da4efab99cd1185a84519bf8d843136cfcdbabdf95e33f",
+      "calcifer_supervisor_sha": "9fa1cc6c63444724c055774b01a93423d390693cf711ea90f20466878f82c889",
+      "zangetsu_outcome_sha": "a2cce61f08530460cc153a517248181214e775000c3fb7e29060aa1415ce046b",
+      "zangetsu_settings_sha": "97467c5046fde53e835b91ad19c3afdbe7e99d649f5655fc718ea70a0cdd723f"
+    },
+    "gate_state": {
+      "classification_source_file": "docs/recovery/20260424-mod-5/gate_a_post_mod5_memo.md",
+      "gate_a_classification": "CLEARED"
+    },
+    "governance": {
+      "akasha_health": "ok",
+      "branch_protection_main": {
+        "admin_enforce": false,
+        "deletions": false,
+        "force_push": false,
+        "linear": true,
+        "req_sig": true
+      }
+    },
+    "repo": {
+      "git_status_porcelain_lines": 5,
+      "main_head_author_iso": "2026-04-24T01:25:56+00:00",
+      "main_head_sha": "6969f474f39af9039a7120deb954c47c25b4cf2e",
+      "main_head_subject": "docs(zangetsu/mod-5-final-condition-closure): Team Order 0-7 \u2014 Gate-A CLEARED under condition-only model"
+    },
+    "runtime": {
+      "arena_processes": {
+        "count": 0,
+        "pids": []
+      },
+      "calcifer_deploy_block_status": "RED",
+      "calcifer_deploy_block_ts_iso": "2026-04-24T01:35:41.643872+00:00",
+      "engine_jsonl_mtime_iso": "2026-04-23 00:35:54.857377417 +0000",
+      "engine_jsonl_size_bytes": 38638779,
+      "systemd_units": {
+        "calcifer-miniapp": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871443"
+        },
+        "calcifer-supervisor": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:51 UTC",
+          "main_pid": "3871492"
+        },
+        "console-api": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871449"
+        },
+        "cp-api": {
+          "active": "active",
+          "active_since": "Fri 2026-04-24 01:38:06 UTC",
+          "main_pid": "1950393"
+        },
+        "d-mail-miniapp": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871440"
+        },
+        "dashboard-api": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871446"
+        }
+      }
+    }
+  }
+}

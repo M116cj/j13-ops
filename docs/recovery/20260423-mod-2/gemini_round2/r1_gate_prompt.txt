@@ -1,0 +1,21 @@
+You are Gemini — external adversarial reviewer for Zangetsu.
+
+CONTEXT: MOD-1 is complete (commit 80879795). MOD-2 Phase 3 round-2 review. Earlier "Gemini round" was self-adversarial because Gemini CLI was broken. This is the FIRST real external pass.
+
+TASK: Attack `modularization_execution_gate.md` (below). Find where Phase 7 could slip through without satisfying the stated conditions.
+
+MANDATE:
+1. Is any Gate-A / Gate-B / Gate-C condition COSMETIC (easy to claim without achieving)?
+2. Is any condition MISSING that would let premature migration slip through?
+3. Are override procedures safe? Could an agent (not j13) effectively override?
+4. Can a malicious or rushed PR pass all checks while still introducing drift?
+5. Are the check-enforcement locations (§5) technically sound?
+
+OUTPUT FORMAT (STRICT):
+- MAX 400 words
+- FINDING-N blocks: severity (CRITICAL / HIGH / MEDIUM / LOW), claim (1 sentence), evidence (§section or line), recommended_delta (concrete change)
+- End with: `VERDICT = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Label conclusions VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN
+
+=== modularization_execution_gate.md ===
+

@@ -1,0 +1,49 @@
+You are Gemini — external adversarial reviewer, round 4 segment B.
+
+CONTEXT: Verify that HIGH findings R3a-F8 and R3b-F2 are genuinely resolved by MOD-4.
+
+MOD-4 AMENDMENTS FOR THIS SEGMENT:
+
+## R3a-F8 HIGH (required_signatures spec-only) — REMEDIATION
+
+Branch protection was LIVE-ACTIVATED via:
+```
+gh api -X PUT /repos/M116cj/j13-ops/branches/main/protection \
+  --field required_signatures=true \
+  --field required_linear_history=true \
+  --field enforce_admins=false \
+  ... (other fields null)
+```
+
+API response confirmed: `required_signatures.enabled=true`, `required_linear_history.enabled=true`, `enforce_admins.enabled=false`.
+
+**CRITICAL DISCLOSURE — do not let me get away with this unchallenged**:
+`enforce_admins=false` means j13 repo-owner PAT (which Claude uses to push on j13's behalf) STILL BYPASSES the signature requirement. This was a deliberate trade-off to enable:
+- MOD-4 commit itself (which you are currently reviewing)
+- Future emergency j13-driven operations
+- Bootstrap operations where no GPG key exists yet
+
+Non-admin actors (other agents, PRs from non-j13 accounts) ARE enforced. But admin-bypass gap during MOD-4 → Phase 7 window is real.
+
+## R3b-F2 HIGH (M9 rate_limit mixed channels) — REMEDIATION
+
+Rate_limit split into THREE distinct channels:
+- cache_lookup: 10000/s (in-process memory reads, essentially unbounded)
+- rest_fetch: 10/s per worker (cp_api REST; hard cap)
+- subscribe_event: 100/s (pg_notify / Redis pub/sub consumption)
+
+Each channel has its own metrics counter, distinct backpressure policy, separate failure_surface entries.
+
+MANDATE:
+1. Is `enforce_admins=false` admin-bypass tolerable for the MOD-4 → Phase 7 window, OR does it reopen R3a-F8 at a deeper level? If it reopens, what severity?
+2. Does the three-channel rate_limit split actually prevent thundering-herd (single_flight_enabled + jitter) or is it paper-tiger?
+3. Can a consumer module violate the rate_limit by calling cp_bridge.get() in a tight loop — is 10000/s cache_lookup ceiling a real bound or decorative?
+4. Are there NEW findings in the enforcement model?
+5. Governance enforcement status matrix shows 35% LIVE / 30% PARTIAL / 10% PENDING SPEC / 20% SPEC-ONLY. Is this distribution honest, or does it mask deficiencies?
+
+OUTPUT FORMAT (STRICT, <600 words):
+- FINDING-N blocks: severity, claim, evidence, recommended_delta
+- For each round-3 HIGH: CLOSED / PARTIAL / NOT_CLOSED / REOPENED_AT_DEEPER_LEVEL
+- End with: `VERDICT_4B = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Explicit note: is `enforce_admins=false` a NEW HIGH finding?
+- Labels VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN

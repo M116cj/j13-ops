@@ -1,0 +1,43 @@
+You are Gemini — external adversarial reviewer, round 4 segment C (coherence + final).
+
+CONTEXT: After reviewing CRITICAL (segment A) and HIGH (segment B) remediations, you assess:
+1. The medium-finding resolutions — any cosmetic closures?
+2. Corpus consistency — any contradictions introduced?
+3. Final verdict on whether Gate-A can transition to CLEARED_PENDING_QUIESCENCE.
+
+MOD-4 MEDIUM + LOW RESOLUTIONS:
+
+- R3a-F6 MEDIUM (Field 15 runtime): PARTIAL — Track A spec-time committed; Track B static-analysis deferred to MOD-5; Track C runtime (seccomp/iptables) deferred to Phase 7. Honest deferral.
+- R3a-F7 MEDIUM (ghost fixtures): RESOLVED — AST check (≥1 test_* function + ≥5 substantive lines) in amended_module_contract_template_v3.md §4.1.
+- R3a-F9 MEDIUM (path trigger gaps): RESOLVED — path broadened to `zangetsu/src/**` with paths-ignore for docs/tests; new-top-level-dir requires ADR.
+- R3b-F3 MEDIUM (M6 30min rollback): RESOLVED — three-mode rollback (full 90s-3min / lean 45-90s / cold 15-30min) with degraded_quality flag preventing lean-mode promotion.
+- R3b-F4 LOW INCONCLUSIVE (M8 egress): DISPROVEN via transitive-egress rule — library egress declared in library's contract.
+- R1a-F3 MEDIUM (quiescence loophole): DEFERRED with concrete re-evaluation trigger at 2026-04-30.
+
+CORPUS COHERENCE (self-claimed):
+- 9-module mandatory set authoritative in v3 boundary map
+- Each module's Field 15 declaration consistent with transitive-egress rule
+- Rate-limit split backward-compatible with MOD-3 single-channel schema
+- Required_signatures LIVE status documented in execution_gate v3 §5.4 + §6
+
+KEY DISCLOSURES (from MOD-4 Phase 2A + 2B):
+- `enforce_admins=false` → admin bypass preserved (see segment B)
+- Field 15 runtime enforcement NOT yet active (only spec-time validation)
+- R1a-F3 quiescence loophole DEFERRED to 2026-04-30
+
+MANDATE:
+1. Are the 6 MEDIUM + LOW resolutions genuine, or cosmetic? Specifically:
+   - Is "PARTIAL" for R3a-F6 honest or a dodge?
+   - Is "DEFERRED" for R1a-F3 acceptable governance or clock-gaming?
+   - Is "DISPROVEN" for R3b-F4 via transitive-egress rule actually sound, or does it externalize the problem?
+2. Does the amended corpus (MOD-1 baseline + MOD-3 amendments + MOD-4 v3 supersedes) read as one coherent legal spec set, or are there NEW contradictions?
+3. Given segment A (CRITICAL) and segment B (HIGH) findings, what is your verdict for Gate-A reclassification?
+4. If you ACCEPT with no new CRITICAL/HIGH blockers, Claude classifies Gate-A as CLEARED_PENDING_QUIESCENCE. If you find new blockers, Gate-A stays BLOCKED_BY_NEW_FINDINGS. Your call is binding.
+
+OUTPUT FORMAT (<500 words):
+- FINDING-N blocks for any NEW concerns
+- Per round-3 resolution: AGREE_RESOLVED / DISPUTE / DISPROVEN
+- Explicit coherence verdict: COHERENT / PARTIAL / CONTRADICTORY
+- Final verdict: `VERDICT_4C = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Safety statement: "Given the evidence, Gate-A {can/cannot} be classified as CLEARED_PENDING_QUIESCENCE."
+- Labels VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN

@@ -1,0 +1,62 @@
+=== ENFORCE_ADMINS ACTIVATION + POST-PROBE AUDIT ===
+audit_started_at: 2026-04-24T02:39:53Z
+note: This file is Alaya filesystem audit. It is NOT committed in MOD-6.
+note: Required later signed commit by j13 or authorized signer to enter git.
+note: See MOD-6 branch_protection_post_activation_report.md for the forward constraint.
+
+=== PRE-ACTIVATION PROBE ===
+{"admin_enforce":false,"deletions":false,"force_push":false,"linear":true,"req_sig":true}
+
+=== ACTIVATION COMMAND ===
+gh api -X PUT /repos/M116cj/j13-ops/branches/main/protection --field required_signatures=true --field required_linear_history=true --field enforce_admins=true --field required_status_checks=null --field required_pull_request_reviews=null --field restrictions=null --field allow_force_pushes=false --field allow_deletions=false
+
+=== EXECUTING ===
+{
+    "url": "https://api.github.com/repos/M116cj/j13-ops/branches/main/protection",
+    "required_signatures": {
+        "url": "https://api.github.com/repos/M116cj/j13-ops/branches/main/protection/required_signatures",
+        "enabled": true
+    },
+    "enforce_admins": {
+        "url": "https://api.github.com/repos/M116cj/j13-ops/branches/main/protection/enforce_admins",
+        "enabled": true
+    },
+    "required_linear_history": {
+        "enabled": true
+    },
+    "allow_force_pushes": {
+        "enabled": false
+    },
+    "allow_deletions": {
+        "enabled": false
+    },
+    "block_creations": {
+        "enabled": false
+    },
+    "required_conversation_resolution": {
+        "enabled": false
+    },
+    "lock_branch": {
+        "enabled": false
+    },
+    "allow_fork_syncing": {
+        "enabled": false
+    }
+}
+
+activation_exit_code: 0
+activation_at: 2026-04-24T02:39:55Z
+
+=== POST-ACTIVATION PROBE ===
+{"admin_enforce":true,"deletions":false,"force_push":false,"linear":true,"req_sig":true}
+
+=== EXPECTATION ===
+expected post-activation state:
+  req_sig=true, linear=true, admin_enforce=true, force_push=false, deletions=false
+
+
+=== HARD-STOP VERIFICATION ===
+VERIFIED: enforce_admins=true is now LIVE
+Prerequisite 1.4 = MET
+
+audit_ended_at: 2026-04-24T02:39:56Z

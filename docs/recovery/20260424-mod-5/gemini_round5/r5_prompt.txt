@@ -1,0 +1,64 @@
+You are Gemini, external adversarial reviewer, round 5 — NARROW review.
+
+CONTEXT: 0-7 issued. Gate-A is currently STILL_PARTIALLY_BLOCKED under the 0-6 condition-based framework. MOD-5 addressed the three remaining blockers:
+
+1. Condition 2 blocker (R4b-F1 HIGH admin-bypass)
+2. Condition 5 blocker (controlled-diff INCONCLUSIVE)
+3. Remaining MEDIUM findings triage
+
+0-7 Phase 4 requires a NARROW adversarial review on THESE remediations only. Do NOT re-review the full corpus.
+
+## MOD-5 REMEDIATIONS TO JUDGE
+
+### A. R4b-F1 HIGH — admin-bypass
+
+**Decision**: Keep `enforce_admins=false`. Add compensating control:
+- G21: Every unsigned commit to main requires ADR-within-24h at `docs/decisions/YYYYMMDD-admin-bypass-<reason>.md`
+- G22: Every such commit requires AKASHA witness POST to `segment=admin_bypass_witness`
+- G24: j13 identity allowlist (`github_pat_11AX6AKSY0sy6DaV5llsEe_*` only)
+- G23: Phase-7 `gov_reconciler` cron audits every 15 min for ADR + witness presence; RED Telegram on violation
+- During MOD-5 → Phase 7 window: manual enforcement by Claude Lead (inclusion in commit message + ADR)
+- Phase 7 entry REQUIRES transition to `enforce_admins=true` + j13 GPG key + PR-based workflow
+
+**Claim**: Condition 2 (Governance Live Proof) transitions from PARTIAL to VERIFIED post-MOD-5 because the admin-bypass is now logged, audited, witnessed, escalated — not a hidden honor-system gap.
+
+**Disclosure to you**: the current MOD-5 commit itself will use admin-bypass. This is declared. The compensating control applies to that commit too (ADR + AKASHA witness required within 24h).
+
+### B. Condition 5 — controlled-diff INCONCLUSIVE
+
+**Framework adopted**:
+- 5-surface pre/post snapshot model (runtime / governance / repo / config / gate_state) with JSON schema v1
+- Per-field acceptance rules: zero diff allowed; explained diff allowed (needs commit SHA / ADR / scheduled event); forbidden unexplained diff auto-REJECTS + RED Telegram
+- 6 forbidden patterns enumerated (e.g., arena process count 0→nonzero without ADR = FORBIDDEN)
+- Freshness window 12h; stale snapshot = INCONCLUSIVE
+- Worked example applied: current state vs MOD-4 baseline = 0 FORBIDDEN, 5 EXPLAINED, all SHAs verified (source files unchanged; Calcifer block expected to change per schedule)
+- Automation spec Phase 7 (gov_reconciler cron); manual protocol sufficient for MOD-5 window
+
+**Claim**: Condition 5 transitions from INCONCLUSIVE to VERIFIED post-MOD-5 because the framework is defined AND the current state explicitly passes the framework's acceptance test.
+
+### C. Remaining findings triage
+
+- R4a-F1 MEDIUM (L3 data_provider): DEFERRED with explicit Phase 7 boundary (promote-or-mock decision)
+- R4b-F2 MEDIUM (M9 cache decorative): RESOLVED — hard cap 20000/s + circuit breaker
+- R4b-F3 MEDIUM (M9 thundering-herd): RESOLVED — single-flight + jitter promoted to mandatory functional_requirement with Phase 7 tests
+- R4a-F2 LOW: DEFERRED with boundary (Phase 7 build-time `aggregate_egress.py`)
+- R4c-F1 LOW: DEFERRED with boundary (Phase 7 Gate-B workflow includes BYPASS_WARNING step)
+- R3a-F6 MEDIUM (Field 15 runtime): PARTIAL unchanged (Track A live; B+C Phase 7)
+- R1a-F3 MEDIUM (quiescence loophole): MOOT — 0-6 removed the rule
+
+**Claim**: No MEDIUM finding is in vague state; all triaged honestly.
+
+## YOUR MANDATE (narrow)
+
+1. **Admin-bypass compensation**: Is the Path B compensation legitimate governance or cosmetic theater? Focus: can the compensation actually catch + escalate misuse, or does it depend on good faith?
+2. **Controlled-diff framework**: Is this a real proof mechanism or rhetorical packaging? Focus: if an attacker mutates a config file, does the framework catch it?
+3. **Remaining findings**: Are the triage labels honest? Specifically, is "DEFERRED with explicit Phase 7 boundary" different from "DEFERRED indefinitely"?
+4. **Required question (per 0-7 Phase 4)**: **"Do any blocking HIGH or CRITICAL issues still prevent Gate-A from being classified as CLEARED under the condition-only model?"**
+
+## Output format (STRICT, max 600 words)
+
+- FINDING-N blocks per remediation (A / B / C): severity, claim, evidence, recommended_delta
+- Required final statement: "Under the condition-only model, blocking HIGH or CRITICAL issues [do|do not] prevent Gate-A = CLEARED."
+- Final verdict: `VERDICT_5 = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Per-remediation status: CLOSED / PARTIAL / NOT_CLOSED / COSMETIC
+- Labels VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN

@@ -1,0 +1,21 @@
+You are Gemini — external adversarial reviewer for Zangetsu.
+
+CONTEXT: MOD-1 deliverable under round-2 review. This template is THE canonical 14-field schema every future Zangetsu module must fill before entering the registry.
+
+TASK: Attack `module_contract_template.md`. Find where a sloppy or malicious module author could pass the acceptance checklist while still shipping a dangerous module.
+
+MANDATE:
+1. Is any of the 14 fields REDUNDANT? Could two fields be merged without losing safety?
+2. Is any operational concern MISSING from the 14 fields (e.g., rate limiting, backpressure, schema evolution semantics, compute-budget enforcement)?
+3. Are the §4 acceptance checklist rules code-enforceable, or are they human-judgment?
+4. Are the §5 anti-patterns watertight? Can you think of a pattern that's dangerous but NOT on the list?
+5. Could a legitimate-looking blackbox_allowed=false module secretly call an LLM or external service?
+
+OUTPUT FORMAT (STRICT):
+- MAX 400 words
+- FINDING-N blocks: severity, claim (1 sentence), evidence (§section), recommended_delta
+- End with: `VERDICT = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Label conclusions VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN
+
+=== module_contract_template.md ===
+

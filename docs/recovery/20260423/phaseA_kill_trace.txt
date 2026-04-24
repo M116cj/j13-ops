@@ -1,0 +1,30 @@
+=== ARENA KILL TRACE ===
+Executed: 2026-04-23T00:35:50Z
+Order: graceful SIGTERM to orchestrators first (stop dispatch), then pipelines (stop workers). Wait 5s. Re-check. SIGKILL only if alive.
+
+--- BEFORE (PIDs alive) ---
+    PID STAT     ELAPSED %CPU COMMAND
+2385765 Rl      06:43:18  100 /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena_pipeline.py
+2385788 Rl      06:43:18  100 /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena_pipeline.py
+2385996 Sl      06:43:17  0.1 /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena23_orchestrator.py
+2386067 Sl      06:43:17  0.0 /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena45_orchestrator.py
+
+--- STEP 1: SIGTERM orchestrators (arena23, arena45) ---
+2026-04-23T00:35:50Z
+
+--- STEP 2: SIGTERM pipelines (arena_pipeline x2) ---
+2026-04-23T00:35:50Z
+
+--- STEP 3: sleep 5s, re-check ---
+    PID STAT     ELAPSED %CPU COMMAND
+2386067 Rl      06:43:22  0.0 /home/j13/j13-ops/zangetsu/.venv/bin/python3 services/arena45_orchestrator.py
+
+--- STEP 4: if any alive, SIGKILL ---
+still_alive='2386067 '
+Escalating to SIGKILL:
+    PID STAT
+confirmed SIGKILL success
+
+--- FINAL STATE ---
+2026-04-23T00:35:57Z
+CONFIRMED: all 4 PIDs gone

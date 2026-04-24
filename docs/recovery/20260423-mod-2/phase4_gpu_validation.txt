@@ -1,0 +1,51 @@
+=== PHASE 4 POST-REPAIR VALIDATION ===
+2026-04-23T05:53:29Z
+
+--- V1. nvidia-smi sustained ---
+name, driver_version, memory.total [MiB], memory.used [MiB], temperature.gpu, utilization.gpu [%]
+NVIDIA GeForce RTX 3080, 570.211.01, 12288 MiB, 1 MiB, 38, 0 %
+
+--- V2. systemd units healthy post-install (drivers installer restarted d-mail-miniapp) ---
+d-mail-miniapp: active
+calcifer-miniapp: active
+calcifer-supervisor: active
+console-api: active
+dashboard-api: active
+
+--- V3. Calcifer RED still held post-GPU-install ---
+{
+  "status": "RED",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "ts": 1776923452,
+  "iso": "2026-04-23T05:50:52.134850+00:00",
+  "reason": "deployable_count==0 AND age=Noneh>6.0h"
+}
+--- V4. arena still frozen ---
+zero arena processes
+
+--- V5. zangetsu_status VIEW unchanged ---
+ deployable_count | active_count | candidate_count 
+------------------+--------------+-----------------
+                0 |            0 |               0
+(1 row)
+
+
+--- V6. CUDA library user-space still works ---
+GPU 0: NVIDIA GeForce RTX 3080 (UUID: GPU-918c36d8-2a93-c59c-c368-27ae7166a8d5)
+
+
+--- V7. LightGBM GPU availability probe (no actual training) ---
+lightgbm 4.6.0
+
+--- V8. Ollama + Gemma status ---
+active
+['gemma4:e4b']
+
+--- V9. kernel module autoload setup for reboot safety ---
+/etc/modules-load.d/nvidia.conf:nvidia
+/etc/modules-load.d/nvidia.conf:nvidia-uvm
+/etc/modules-load.d/nvidia.conf:nvidia-modeset
+/etc/modules-load.d/nvidia.conf:nvidia-drm
+
+--- V10. dkms status ---

@@ -1,0 +1,64 @@
+You are Gemini — external adversarial reviewer, round 3, final segment.
+
+CONTEXT: After reviewing the amended execution gate + contract template (round-3 segment A) and the amended boundary + M8 + M9 (round-3 segment B), you now answer the COHERENCE question: does the full amended MOD-1+MOD-3 corpus read as ONE coherent spec, or does it still have seams/contradictions?
+
+AMENDMENT SUMMARY (what MOD-3 applied):
+
+CRITICAL fixes:
+- Added Module 8 gate_contract to mandatory set (execution engine for gates)
+- Changed Gate-B trigger from label-based to path-based + server-side GitHub Actions workflow `.github/workflows/module-migration-gate.yml`
+
+HIGH fixes:
+- Added Field 15 execution_environment to contract template (permitted_egress, subprocess, filesystem, rss/cpu caps)
+- Moved rollout-gating ownership from engine_kernel → gov_contract_engine / gov_rollout_authority
+- Promoted cp_worker_bridge to mandatory Module 9
+
+MEDIUM fixes:
+- Added rate_limit sub-schema to contract outputs
+- Tightened responsibilities→test_fixture 1:1 mapping
+- Added persistent data_cache_snapshot for M6 rollback
+- GPG signature requirement for gate-override ADRs
+
+LOW fixes:
+- Added L9 adapter disclaimer to M6
+
+Documents updated:
+- amended_module_boundary_map.md
+- amended_module_contract_template.md
+- amended_modularization_execution_gate.md
+- control_plane_blueprint_amendment.md
+- modular_target_architecture_amendment.md
+- gate_contract_module_spec.md (new M8 full contract)
+- cp_worker_bridge_promotion_spec.md (new M9 full contract)
+- gov_contract_engine_boundary_update.md (M4 responsibility move)
+- mod1_corpus_consistency_patch.md (cross-doc consistency audit)
+- amended_readme_delta.md (README Q answers updated)
+
+Self-coherence claim (to be verified/refuted):
+- Every contract reference exists in §6 cross-module contracts list
+- Every decision-rights row names a concrete ownership authority
+- Every gate check has a named data source
+- Boundary map 9 modules = target arch 9 modules = registry 9 modules = CP blueprint 9 modules
+- All 9 contracts each have 15 fields (contract template compliance)
+- No 2 modules claim the same responsibility
+
+YOUR TASK:
+1. Are the 2 CRITICAL + 4 HIGH findings from round-2 now RESOLVED (not just addressed)?
+2. Are there any NEW contradictions INTRODUCED by the amendments?
+3. Are any sections of the amended docs internally contradicting each other?
+4. Is the quiescence loophole (R1a-F3 MEDIUM) deliberately deferred or accidentally ignored?
+5. Does the coherence claim hold end-to-end?
+6. If you issue ACCEPT here, you are stating Phase 7 is legally authorized post-quiescence. What remains to make this safe?
+
+OUTPUT FORMAT (<500 words):
+- FINDING-N blocks
+- Explicit round-2 resolution audit:
+  - R1a-F1 CRITICAL (Gate-B label bypass): CLOSED / PARTIAL / NOT_CLOSED
+  - R1a-F2 HIGH (local hook bypass): CLOSED / PARTIAL / NOT_CLOSED
+  - R1b-F1 HIGH (egress blindness): CLOSED / PARTIAL / NOT_CLOSED
+  - R2-F1 CRITICAL (missing gate_contract): CLOSED / PARTIAL / NOT_CLOSED
+  - R2-F2 HIGH (kernel/gov split-brain): CLOSED / PARTIAL / NOT_CLOSED
+  - R2-F3 HIGH (cp_worker_bridge hidden): CLOSED / PARTIAL / NOT_CLOSED
+- End with: `FINAL_VERDICT = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Specific statement: "Phase 7 {is / is not} legally authorized post-quiescence expiry on 2026-04-30"
+- Labels VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN

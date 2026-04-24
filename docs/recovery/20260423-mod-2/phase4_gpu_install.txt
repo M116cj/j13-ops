@@ -1,0 +1,153 @@
+=== PHASE 4 GPU DRIVER INSTALL TRACE ===
+2026-04-23T05:52:14Z
+
+--- STEP 1: discover recommended driver ---
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+udevadm hwdb is deprecated. Use systemd-hwdb instead.
+ERROR:root:aplay command not found
+== /sys/devices/pci0000:00/0000:00:01.0/0000:01:00.0 ==
+modalias : pci:v000010DEd0000220Asv00001462sd00003897bc03sc00i00
+vendor   : NVIDIA Corporation
+model    : GA102 [GeForce RTX 3080 12GB]
+driver   : nvidia-driver-470-server - distro non-free
+driver   : nvidia-driver-580-server - distro non-free
+driver   : nvidia-driver-535-server - distro non-free
+driver   : nvidia-driver-580 - distro non-free
+driver   : nvidia-driver-535-server-open - distro non-free
+driver   : nvidia-driver-580-server-open - distro non-free
+driver   : nvidia-driver-570-server - distro non-free
+driver   : nvidia-driver-470 - distro non-free
+driver   : nvidia-driver-570 - distro non-free
+driver   : nvidia-driver-590 - distro non-free
+driver   : nvidia-driver-590-open - distro non-free
+driver   : nvidia-driver-535-open - distro non-free
+driver   : nvidia-driver-535 - distro non-free
+driver   : nvidia-driver-570-open - distro non-free
+driver   : nvidia-driver-590-server-open - distro non-free
+driver   : nvidia-driver-580-open - distro non-free recommended
+driver   : nvidia-driver-590-server - distro non-free
+
+--- STEP 2: apt update (refresh package metadata) ---
+Hit:4 https://deb.nodesource.com/node_20.x nodistro InRelease
+Hit:5 https://nvidia.github.io/libnvidia-container/stable/deb/amd64  InRelease
+Hit:6 http://security.ubuntu.com/ubuntu noble-security InRelease
+Hit:7 https://download.docker.com/linux/ubuntu noble InRelease
+Get:8 https://pkgs.tailscale.com/stable/ubuntu noble InRelease
+Fetched 6,581 B in 3s (2,316 B/s)
+Reading package lists...
+Building dependency tree...
+Reading state information...
+59 packages can be upgraded. Run 'apt list --upgradable' to see them.
+
+--- STEP 3: ubuntu-drivers install (installs recommended driver package + DKMS) ---
+Processing triggers for linux-image-6.8.0-110-generic (6.8.0-110.110) ...
+/etc/kernel/postinst.d/dkms:
+ * dkms: running auto installation service for kernel 6.8.0-110-generic
+ * dkms: autoinstall for kernel 6.8.0-110-generic
+   ...done.
+/etc/kernel/postinst.d/initramfs-tools:
+update-initramfs: Generating /boot/initrd.img-6.8.0-110-generic
+/etc/kernel/postinst.d/zz-update-grub:
+Sourcing file `/etc/default/grub'
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-6.8.0-110-generic
+Found initrd image: /boot/initrd.img-6.8.0-110-generic
+Found linux image: /boot/vmlinuz-6.8.0-107-generic
+Found initrd image: /boot/initrd.img-6.8.0-107-generic
+Found linux image: /boot/vmlinuz-6.8.0-106-generic
+Found initrd image: /boot/initrd.img-6.8.0-106-generic
+Warning: os-prober will be executed to detect other bootable partitions.
+Its output will be used to detect bootable binaries on them and create new boot entries.
+Found Windows Boot Manager on /dev/nvme0n1p1@/efi/Microsoft/Boot/bootmgfw.efi
+Adding boot menu entry for UEFI Firmware Settings ...
+done
+debconf: unable to initialize frontend: Dialog
+debconf: (Dialog frontend will not work on a dumb terminal, an emacs shell buffer, or without a controlling terminal.)
+debconf: falling back to frontend: Readline
+debconf: unable to initialize frontend: Readline
+debconf: (This frontend requires a controlling tty.)
+debconf: falling back to frontend: Teletype
+
+Running kernel seems to be up-to-date.
+
+The processor microcode seems to be up-to-date.
+
+Restarting services...
+ systemctl restart d-mail-miniapp.service
+
+No containers need to be restarted.
+
+No user sessions are running outdated binaries.
+
+No VM guests are running outdated hypervisor (qemu) binaries on this host.
+install exit=0 at 2026-04-23T05:52:57Z
+
+--- STEP 4: check dkms status for nvidia ---
+
+--- STEP 5: modprobe nvidia (try to load without reboot) ---
+modprobe exit=0
+
+--- STEP 6: lsmod verification ---
+nvidia_uvm           2138112  0
+nvidia_drm            135168  0
+nvidia_modeset       1728512  1 nvidia_drm
+nvidia              11657216  2 nvidia_uvm,nvidia_modeset
+ecc                    45056  2 ecdh_generic,nvidia
+video                  77824  3 asus_wmi,asus_nb_wmi,nvidia_modeset
+
+--- STEP 7: /proc/driver/nvidia ---
+capabilities
+gpus
+params
+patches
+registry
+
+--- STEP 8: nvidia-smi test ---
+Thu Apr 23 05:52:58 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 570.211.01             Driver Version: 570.211.01     CUDA Version: 12.8     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA GeForce RTX 3080        Off |   00000000:01:00.0 Off |                  N/A |
+|  0%   38C    P8              9W /  390W |       1MiB /  12288MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+
+--- STEP 9: nvidia-persistenced ---
+● nvidia-persistenced.service - NVIDIA Persistence Daemon
+     Loaded: loaded (/usr/lib/systemd/system/nvidia-persistenced.service; static)
+     Active: active (running) since Thu 2026-04-23 05:52:43 UTC; 14s ago
+    Process: 3808945 ExecStart=/usr/bin/nvidia-persistenced --user nvidia-persistenced --no-persistence-mode --verbose (code=exited, status=0/SUCCESS)
+   Main PID: 3808956 (nvidia-persiste)
+      Tasks: 1 (limit: 38104)
+     Memory: 600.0K (peak: 1.3M)
+        CPU: 2ms
+     CGroup: /system.slice/nvidia-persistenced.service
+             └─3808956 /usr/bin/nvidia-persistenced --user nvidia-persistenced --no-persistence-mode --verbose

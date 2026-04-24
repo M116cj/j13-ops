@@ -1,0 +1,59 @@
+You are Gemini — external adversarial reviewer, round 3.
+
+CONTEXT: Round-2 REJECTED the 7-module boundary map. Two findings:
+- R2-F1 CRITICAL: Missing gate_contract execution engine (kernel expects GateOutcomeContract input, but no module in the mandatory set produced it).
+- R2-F2 HIGH: Kernel vs gov_contract_engine split-brain on rollout gating.
+- R2-F3 HIGH: cp_worker_bridge used by 6 of 7 modules but not in mandatory set.
+- R2-F4 MEDIUM: M6 (eval_contract) p95=8min rollback is wishful.
+- R2-F5 LOW: M6 missing L9 adapter disclaimer.
+
+MOD-3 amendments (compact summary of the 9 mandatory modules post-amendment, + two NEW modules in detail):
+
+== 9 MANDATORY SET ==
+M1 engine_kernel (L2) — arena state machine; dispatch; lease mgmt; **NOW consumes PolicyVerdict from gov_contract_engine before transition**; does NOT enforce rollout gating itself
+M2 gate_registry (L6 data-plane) — threshold store + version history; outputs ThresholdLookup
+M3 obs_metrics (L8.O) — Prometheus export
+M4 gov_contract_engine (L8.G) — charter §17 + blocklist evaluation; audit; RED Telegram; **NOW includes rollout authority (via gov_rollout_authority sub-module)**; outputs PolicyVerdict
+M5 search_contract (L4) — SearchEngine interface abstraction
+M6 eval_contract (L5) — Evaluator interface + CD-14 slice discipline; **rollback p95 downgraded: with persistent data_cache_snapshot = p50 90s/p95 3min, worst-case 30min without snapshot**
+M7 adapter_contract (L9 pattern) — black-box wrapper
+**M8 gate_contract (L6 execution-plane — NEW)** — execution engine for every L6 gate
+**M9 cp_worker_bridge (L1 worker-side — NEW)** — universal CP data-plane library
+
+== MODULE 8 (gate_contract) CORE FIELDS ==
+- purpose: Execution engine for every L6 gate; consumes MetricsContract from eval_contract + ThresholdLookup from gate_registry; produces GateOutcomeContract for engine_kernel
+- responsibilities (6): evaluate admission / A2 OOS / A3 train / A4 multi-metric / promote gates; emit GateOutcomeContract with decisive reason code
+- inputs: MetricsContract (from eval_contract), ThresholdLookup (from gate_registry), CalciferBlockState (from gate_calcifer_bridge)
+- outputs: GateOutcomeContract (to engine_kernel, obs_metrics, gov_audit_stream); exactly-once, total_per_champion_per_gate ordering, idempotent
+- blackbox_allowed: false — must be fully auditable (Charter §3.3)
+- rollback_surface: code=git-revert; state=pipeline_audit_log append-only; p50=30s p95=90s
+- Field 15 execution_environment: egress=[], subprocess=false, fs_writes=[], rss=512MB, cpu=40%
+
+== MODULE 9 (cp_worker_bridge) CORE FIELDS ==
+- purpose: Worker-side library for reading + subscribing to Control Plane parameters; the canonical data-plane bridge every L2/L4/L5/L6 worker uses
+- responsibilities (5): fetch via cp_api REST; subscribe to pg_notify/Redis pub/sub; cache TTL+stale-flag; emit stale-read warnings; enforce fail-closed
+- inputs: CPParameterQuery (in-process call), CPChangeEvent (stream)
+- outputs: ParameterValue (to every module); exactly-once per query
+- blackbox_allowed: false
+- rollback_surface: library drop-in hot-swap; p50 immediate, p95 60s (worker recycle)
+- Field 15 execution_environment: egress=[localhost:8773, 127.0.0.1:5432, 127.0.0.1:6380], rss=128MB, cpu=10%
+
+== AMENDED M6 CORE ==
+- purpose: unchanged
+- responsibilities: unchanged
+- blackbox_allowed rationale now includes L9 disclaimer (previously missing)
+- rollback_surface: **persistent snapshot at data/eval_cache_snapshot/*.parquet refreshed every 1h; p50=90s p95=3min with snapshot; p95_worst_case=30min without**
+
+TASK: ATTACK.
+1. Is Module 8 gate_contract truly sufficient to close R2-F1, or does the design still have a hole (e.g., who computes the "decisive reason code" — is that logic split between gate_contract and gate_registry)?
+2. Is rollout gating truly single-owner now, or does "gov_rollout_authority sub-module" reintroduce split-brain at the sub-module level?
+3. Is Module 9 cp_worker_bridge's "rate_limit: 500/s per worker" value defensible, or cargo-culted?
+4. Is the 30-minute worst-case rollback for M6 still wishful? What if the hourly snapshot is missing when rollback triggers?
+5. Any NEW coupling introduced? (M8 requires M2 + M6 + gate_calcifer_bridge all healthy — what's the failure cascade?)
+6. Does the "9 mandatory modules" set now fully cover the graph, or is there a NEW hidden dependency?
+
+OUTPUT FORMAT (STRICT, <600 words):
+- FINDING-N blocks: severity, claim, evidence, recommended_delta
+- End with: `VERDICT = ACCEPT | ACCEPT_WITH_AMENDMENTS | REJECT`
+- Per round-2 finding: state `CLOSED / PARTIAL / NOT_CLOSED / NEW` status
+- Labels VERIFIED / PROBABLE / INCONCLUSIVE / DISPROVEN
