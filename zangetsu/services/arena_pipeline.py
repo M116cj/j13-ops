@@ -93,6 +93,119 @@ def _emit_a1_lifecycle_safe(*, stage_event: str, status: str, alpha_hash=None,
     except Exception:
         pass  # never propagate
 
+
+# P7-PR4-LITE — aggregate Arena pass-rate telemetry.
+# Exception-safe: emission / aggregation failures are swallowed so that a
+# telemetry-path bug cannot alter Arena pass/fail behavior.
+try:
+    from zangetsu.services.arena_pass_rate_telemetry import (
+        ArenaStageMetrics as _ArenaStageMetrics,
+        build_arena_batch_metrics as _build_batch_metrics,
+        safe_emit_arena_metrics as _safe_emit_arena_metrics,
+        UNKNOWN_PROFILE_ID as _UNKNOWN_PROFILE_ID,
+        UNAVAILABLE_FINGERPRINT as _UNAVAILABLE_FINGERPRINT,
+    )
+    _ARENA_PASS_RATE_TELEMETRY_AVAILABLE = True
+except Exception:
+    _ARENA_PASS_RATE_TELEMETRY_AVAILABLE = False
+
+
+def _make_a1_batch_metrics_safe(*, run_id: str = "", batch_id: str = ""):
+    """Return a new A1 ArenaStageMetrics accumulator (or None if module
+    unavailable). Never raises."""
+    if not _ARENA_PASS_RATE_TELEMETRY_AVAILABLE:
+        return None
+    try:
+        return _ArenaStageMetrics(
+            arena_stage="A1",
+            run_id=run_id,
+            batch_id=batch_id,
+            generation_profile_id=_UNKNOWN_PROFILE_ID,  # UNKNOWN until 0-9O wires profile ids
+            generation_profile_fingerprint=_UNAVAILABLE_FINGERPRINT,
+        )
+    except Exception:
+        return None
+
+
+def _emit_a1_batch_metrics_safe(accumulator, *, deployable_count=None, log=None) -> None:
+    """Close the A1 batch accumulator and emit an arena_batch_metrics event.
+    Exception-safe. Never raises."""
+    if accumulator is None or not _ARENA_PASS_RATE_TELEMETRY_AVAILABLE:
+        return
+    try:
+        accumulator.mark_closed()
+        event = _build_batch_metrics(accumulator, deployable_count=deployable_count)
+        writer = log.info if log is not None else None
+        _safe_emit_arena_metrics(event, writer=writer)
+    except Exception:
+        pass  # never propagate
+
+
+def _emit_a1_batch_metrics_from_stats_safe(
+    *, run_id: str, batch_id: str, entered_count: int, passed_count: int,
+    stats: dict, log=None,
+) -> None:
+    """Build + emit an A1 arena_batch_metrics event directly from the
+    existing stats dict used by arena_pipeline. Zero-intrusion wrapper for
+    runtime code: pass in the aggregates already computed, get a telemetry
+    emission as a side effect. Never raises.
+
+    entered_count = len(alphas) for the round
+    passed_count  = round_champions
+    stats[reject_*] keys supply the reject_reason_distribution (canonical-mapped).
+    """
+    if not _ARENA_PASS_RATE_TELEMETRY_AVAILABLE:
+        return
+    try:
+        acc = _ArenaStageMetrics(
+            arena_stage="A1",
+            run_id=run_id,
+            batch_id=batch_id,
+            generation_profile_id=_UNKNOWN_PROFILE_ID,
+            generation_profile_fingerprint=_UNAVAILABLE_FINGERPRINT,
+        )
+        # Record entered/passed directly (aggregate view, no per-candidate hook).
+        acc.entered_count = int(entered_count)
+        acc.passed_count = int(passed_count)
+
+        # Map stats["reject_*"] keys → canonical reasons (via taxonomy when
+        # importable). If taxonomy import fails, fall back to raw keys.
+        reject_total = 0
+        for stats_key in (
+            "reject_few_trades", "reject_neg_pnl",
+            "reject_val_constant", "reject_val_error", "reject_val_few_trades",
+            "reject_val_neg_pnl", "reject_val_low_sharpe", "reject_val_low_wr",
+        ):
+            n = int(stats.get(stats_key, 0) or 0)
+            if n <= 0:
+                continue
+            canonical = stats_key  # default to raw key
+            try:
+                from zangetsu.services.arena_rejection_taxonomy import classify
+                reason, _cat, _stage = classify(raw_reason=stats_key, arena_stage="A1")
+                canonical = reason.value
+            except Exception:
+                pass
+            acc.reject_counter.add(canonical, n)
+            reject_total += n
+        acc.rejected_count = reject_total
+        # entered - passed - rejected becomes skipped_count (catch-all) so
+        # conservation holds; defensive for runtime counter gaps.
+        residual = acc.entered_count - acc.passed_count - acc.rejected_count
+        if residual > 0:
+            acc.skipped_count = residual
+        elif residual < 0:
+            # counters inconsistent — record as note; do not propagate a bad event
+            acc.reject_counter.add("COUNTER_INCONSISTENCY", abs(residual))
+            acc.rejected_count += abs(residual)
+
+        acc.mark_closed()
+        event = _build_batch_metrics(acc, deployable_count=None)
+        writer = log.info if log is not None else None
+        _safe_emit_arena_metrics(event, writer=writer)
+    except Exception:
+        pass  # never propagate
+
 # v0.7.1 governance: process-local telemetry counters flushed periodically
 _telemetry_counters = {
     "compile_success_count": 0,
@@ -1025,6 +1138,21 @@ async def main():
                 f"val_sharpe={stats['reject_val_low_sharpe']} "
                 f"val_wr={stats['reject_val_low_wr']}"
             )
+
+        # P7-PR4-LITE: aggregate A1 batch pass-rate telemetry.
+        # Zero-intrusion: derives entered_count / passed_count from existing
+        # `len(alphas)` and `round_champions`; rejection distribution from
+        # `stats[reject_*]`. Emission is exception-safe — emitter failure
+        # cannot alter Arena decisions above. The _pb provenance bundle
+        # provides run_id where available.
+        _emit_a1_batch_metrics_from_stats_safe(
+            run_id=getattr(_pb, "run_id", "") or "",
+            batch_id=f"R{round_number}-{sym}-{regime}",
+            entered_count=len(alphas),
+            passed_count=round_champions,
+            stats=stats,
+            log=log,
+        )
 
         if total_champions > 0 and total_champions % 200 == 0:
             log.info(
