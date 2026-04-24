@@ -4,21 +4,25 @@ name: Phase 7 Gate (Gate-A)
 # Fails if Phase 7 prerequisites are not documented as MET.
 
 on:
+  # TEAM ORDER 0-9F (2026-04-24) — widened trigger paths after PR #6 (P7-PR1)
+  # exposed that Phase 7 code lives under zangetsu/services/**, zangetsu/tests/**,
+  # docs/recovery/**, and docs/governance/**, none of which matched the prior
+  # narrow allowlist. New policy: trigger on any Phase 7-relevant surface.
   pull_request:
     paths:
-      - 'zangetsu/src/**'
-      - 'zangetsu/module_contracts/**'
-      - '.github/workflows/phase-7-gate.yml'
-      - '.github/workflows/module-migration-gate.yml'
-      - 'zangetsu/control_plane/**'
+      - 'zangetsu/**'
+      - 'docs/recovery/**'
+      - 'docs/governance/**'
+      - 'scripts/governance/**'
+      - '.github/workflows/**'
   push:
     branches: [main]
     paths:
-      - 'zangetsu/src/**'
-      - 'zangetsu/module_contracts/**'
-      - '.github/workflows/phase-7-gate.yml'
-      - '.github/workflows/module-migration-gate.yml'
-      - 'zangetsu/control_plane/**'
+      - 'zangetsu/**'
+      - 'docs/recovery/**'
+      - 'docs/governance/**'
+      - 'scripts/governance/**'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
