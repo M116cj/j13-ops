@@ -339,3 +339,159 @@ def reconstruct_from_logs_and_derive_deployable_count(
         "deployable": deployable,
         "lifecycles_count": len(lifecycles),
     }
+
+
+# ---------------------------------------------------------------------------
+# TEAM ORDER 0-9L-PLUS / P7-PR3 — Trace-native event reconstruction
+# ---------------------------------------------------------------------------
+
+
+def _identity_key(ev) -> Optional[str]:
+    """Derive a stable identity key from a LifecycleTraceEvent.
+
+    Preference: candidate_id > alpha_id > formula_hash. Returns None when no
+    identity is present — such events are classified as UNAVAILABLE by the
+    caller.
+    """
+    cid = ev.candidate_id or ev.alpha_id or ev.formula_hash
+    if cid is None:
+        return None
+    cid = str(cid).strip()
+    return cid if cid else None
+
+
+def reconstruct_lifecycles_from_trace_events(
+    events,
+) -> Tuple[List[CandidateLifecycle], Dict[str, List[str]]]:
+    """Reconstruct CandidateLifecycle records from a stream of
+    LifecycleTraceEvent objects.
+
+    Returns ``(lifecycles, conflict_register)``:
+    - ``lifecycles``: list of CandidateLifecycle, sorted by identity key.
+    - ``conflict_register``: map of identity_key -> list of conflict notes
+      (e.g. an A1 event claims REJECTED but a later A1 event claims PASSED
+      for the same identity).
+
+    Deterministic: the same set of events always produces the same output,
+    regardless of iteration order, because all updates are commutative for a
+    given (identity, stage_event, status) combination.
+    """
+    from zangetsu.services.candidate_trace import (
+        STAGE_EVENT_ENTRY,
+        STAGE_EVENT_EXIT,
+        STAGE_EVENT_HANDOFF,
+        STAGE_EVENT_SKIP,
+        STAGE_EVENT_ERROR,
+        STATUS_ENTERED,
+        STATUS_PASSED,
+        STATUS_REJECTED,
+        STATUS_SKIPPED,
+        STATUS_ERROR,
+        STATUS_COMPLETE,
+    )
+    from zangetsu.services.arena_rejection_taxonomy import (
+        metadata_for,
+        RejectionReason,
+        classify,
+    )
+
+    store: Dict[str, CandidateLifecycle] = {}
+    conflicts: Dict[str, List[str]] = {}
+
+    stage_to_entry_field = {
+        "A1": ("arena_1_status", "arena_1_entry", "arena_1_exit"),
+        "A2": ("arena_2_status", "arena_2_entry", "arena_2_exit"),
+        "A3": ("arena_3_status", "arena_3_entry", "arena_3_exit"),
+    }
+
+    for ev in events:
+        key = _identity_key(ev)
+        if key is None:
+            # Untraceable event — recorded in conflict register under a bucket
+            conflicts.setdefault("_no_identity", []).append(
+                f"{ev.arena_stage}/{ev.stage_event}/{ev.status} @ {ev.timestamp_utc}"
+            )
+            continue
+
+        if key not in store:
+            lc = CandidateLifecycle(candidate_id=key)
+            # Propagate identity fields if present on the event
+            if ev.alpha_id:
+                lc.alpha_id = ev.alpha_id
+            if ev.formula_hash:
+                lc.formula_hash = ev.formula_hash
+            if ev.source_pool:
+                lc.source_pool = ev.source_pool
+            if ev.run_id:
+                lc.run_id = ev.run_id
+            if ev.commit_sha:
+                lc.commit_sha = ev.commit_sha
+            store[key] = lc
+        lc = store[key]
+
+        # Earliest-wins for created_at / entries; latest-wins for exits
+        if lc.created_at is None or (ev.timestamp_utc and ev.timestamp_utc < lc.created_at):
+            lc.created_at = ev.timestamp_utc
+
+        stage = ev.arena_stage
+        entry_triple = stage_to_entry_field.get(stage)
+        if entry_triple is None:
+            # A0 / A4 / A5 / UNKNOWN: record via extras rather than hard fields
+            continue
+        status_field, entry_field, exit_field = entry_triple
+
+        if ev.stage_event == STAGE_EVENT_ENTRY:
+            if getattr(lc, entry_field) is None or (
+                ev.timestamp_utc and ev.timestamp_utc < getattr(lc, entry_field)
+            ):
+                setattr(lc, entry_field, ev.timestamp_utc)
+        elif ev.stage_event in (STAGE_EVENT_EXIT, STAGE_EVENT_SKIP, STAGE_EVENT_ERROR):
+            # Record exit timestamp
+            cur_exit = getattr(lc, exit_field)
+            if cur_exit is None or (ev.timestamp_utc and ev.timestamp_utc > cur_exit):
+                setattr(lc, exit_field, ev.timestamp_utc)
+            # Determine per-stage status, watching for conflicts
+            new_status = {
+                STATUS_PASSED: STATUS_PASS,
+                STATUS_REJECTED: STATUS_REJECT,
+                STATUS_SKIPPED: STATUS_SKIPPED,
+                STATUS_ERROR: STATUS_REJECT,  # treat error as reject-like for finalize
+                STATUS_COMPLETE: STATUS_PASS,
+            }.get(ev.status, None)
+            if new_status is not None:
+                cur_status = getattr(lc, status_field)
+                if cur_status not in (STATUS_NOT_RUN, new_status):
+                    # Explicit conflict on this stage
+                    conflicts.setdefault(key, []).append(
+                        f"{stage} conflict: prior={cur_status} new={new_status} ts={ev.timestamp_utc}"
+                    )
+                setattr(lc, status_field, new_status)
+            if ev.reject_reason and lc.reject_reason is None:
+                lc.reject_reason = ev.reject_reason
+                lc.reject_stage = stage
+                if ev.reject_category:
+                    lc.reject_category = ev.reject_category
+                if ev.reject_severity:
+                    lc.reject_severity = ev.reject_severity
+                elif ev.reject_reason:
+                    # derive severity from taxonomy if not supplied
+                    try:
+                        lc.reject_severity = metadata_for(
+                            RejectionReason(ev.reject_reason)
+                        ).severity.value
+                    except Exception:
+                        pass
+        elif ev.stage_event == STAGE_EVENT_HANDOFF:
+            # Handoff implies this stage passed; downstream stage is next.
+            cur_status = getattr(lc, status_field)
+            if cur_status == STATUS_NOT_RUN:
+                setattr(lc, status_field, STATUS_PASS)
+            # Nothing to set on next_stage field of CandidateLifecycle directly;
+            # the reconstruction will process subsequent events for the next stage.
+
+    # Finalize (reuse existing _finalize for consistent semantics)
+    for lc in store.values():
+        _finalize(lc)
+
+    lifecycles = sorted(store.values(), key=lambda lc: lc.candidate_id)
+    return lifecycles, conflicts

@@ -427,3 +427,275 @@ def is_valid_provenance_quality(value: str) -> bool:
 
 def valid_provenance_qualities() -> Tuple[str, ...]:
     return _VALID_PROVENANCE
+
+
+# ---------------------------------------------------------------------------
+# TEAM ORDER 0-9L-PLUS / P7-PR3 — Unified Lifecycle Trace Contract
+# ---------------------------------------------------------------------------
+#
+# A single, future-proof event schema that A1 / A2 / A3 / A4 / A5 emission
+# paths can all use. P7-PR3 only activates A1 emission; subsequent orders
+# can extend the same contract to A2+.
+#
+# Behavior-invariance guarantee:
+#   - The builder validates required fields and never mutates caller state.
+#   - The emitter is exception-safe — emission failures never propagate.
+#   - Producing an event has no side effect on Arena pass/fail behavior.
+
+
+# Event-type marker string (recognizable in log streams)
+EVENT_TYPE_CANDIDATE_LIFECYCLE = "candidate_lifecycle"
+
+# Stage-event kinds (0-9L §8.1)
+STAGE_EVENT_ENTRY = "ENTRY"
+STAGE_EVENT_EXIT = "EXIT"
+STAGE_EVENT_HANDOFF = "HANDOFF"
+STAGE_EVENT_SKIP = "SKIP"
+STAGE_EVENT_ERROR = "ERROR"
+
+_VALID_STAGE_EVENTS = (
+    STAGE_EVENT_ENTRY,
+    STAGE_EVENT_EXIT,
+    STAGE_EVENT_HANDOFF,
+    STAGE_EVENT_SKIP,
+    STAGE_EVENT_ERROR,
+)
+
+# Lifecycle status (0-9L §8.1) — a separate vocabulary from per-stage
+# STATUS_PASS/REJECT above. These describe the *event outcome*, while the
+# per-stage STATUS_* describe the candidate's overall state on that stage.
+STATUS_ENTERED = "ENTERED"
+STATUS_PASSED = "PASSED"
+STATUS_REJECTED = "REJECTED"
+STATUS_SKIPPED = "SKIPPED"
+STATUS_ERROR = "ERROR"
+STATUS_COMPLETE = "COMPLETE"
+
+_VALID_LIFECYCLE_STATUSES = (
+    STATUS_ENTERED,
+    STATUS_PASSED,
+    STATUS_REJECTED,
+    STATUS_SKIPPED,
+    STATUS_ERROR,
+    STATUS_COMPLETE,
+)
+
+# Stage vocabulary — reused from arena_rejection_taxonomy but repeated here
+# to avoid a circular import at load time. A5 is forward-compat (not emitted
+# by current runtime).
+_VALID_TRACE_STAGES = ("A0", "A1", "A2", "A3", "A4", "A5", "UNKNOWN")
+
+
+@dataclass
+class LifecycleTraceEvent:
+    """Unified lifecycle trace event (0-9L §8.1).
+
+    Emitted by Arena pipeline code at candidate lifecycle boundaries. Consumed
+    by ``candidate_lifecycle_reconstruction.reconstruct_lifecycles_from_trace_events``
+    to produce FULL-capable provenance.
+
+    Required fields: ``event_type`` (always "candidate_lifecycle"), ``arena_stage``,
+    ``stage_event``, ``status``, ``timestamp_utc``. Other fields are optional —
+    a ``candidate_id`` may not exist at A1 pre-admission, in which case
+    ``alpha_id`` / ``formula_hash`` serve as the identity.
+    """
+
+    event_type: str = EVENT_TYPE_CANDIDATE_LIFECYCLE
+    arena_stage: str = "UNKNOWN"
+    stage_event: str = STAGE_EVENT_ENTRY
+    status: str = STATUS_ENTERED
+    timestamp_utc: str = ""
+
+    candidate_id: Optional[str] = None
+    alpha_id: Optional[str] = None
+    formula_hash: Optional[str] = None
+    source_pool: Optional[str] = None
+
+    run_id: Optional[str] = None
+    commit_sha: Optional[str] = None
+
+    reject_reason: Optional[str] = None
+    reject_category: Optional[str] = None
+    reject_severity: Optional[str] = None
+
+    next_stage: Optional[str] = None
+    deployable_candidate: Optional[bool] = None
+
+    notes: Optional[str] = None
+    # Bag for extra fields (builder does not validate these)
+    extras: Optional[Dict[str, Any]] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        import dataclasses as _dc
+        d = _dc.asdict(self)
+        # Flatten extras into the top-level dict for easier log-line parsing
+        extras = d.pop("extras", None)
+        if extras:
+            for k, v in extras.items():
+                if k not in d:
+                    d[k] = v
+        return d
+
+    def to_json(self) -> str:
+        import json as _json
+        return _json.dumps(self.to_dict(), sort_keys=True, ensure_ascii=False)
+
+
+def build_lifecycle_trace_event(
+    *,
+    arena_stage: str,
+    stage_event: str,
+    status: str,
+    timestamp_utc: Optional[str] = None,
+    candidate_id: Optional[str] = None,
+    alpha_id: Optional[str] = None,
+    formula_hash: Optional[str] = None,
+    source_pool: Optional[str] = None,
+    run_id: Optional[str] = None,
+    commit_sha: Optional[str] = None,
+    reject_reason: Optional[str] = None,
+    reject_category: Optional[str] = None,
+    reject_severity: Optional[str] = None,
+    next_stage: Optional[str] = None,
+    deployable_candidate: Optional[bool] = None,
+    notes: Optional[str] = None,
+    extras: Optional[Mapping[str, Any]] = None,
+) -> LifecycleTraceEvent:
+    """Build a validated LifecycleTraceEvent.
+
+    Raises ValueError if required fields are malformed. Never blocks, never
+    mutates caller state. An empty candidate_id AND empty alpha_id AND empty
+    formula_hash together signal an untraceable event — the reconstruction
+    will mark such events as UNAVAILABLE.
+    """
+    if arena_stage not in _VALID_TRACE_STAGES:
+        raise ValueError(f"invalid arena_stage: {arena_stage!r}")
+    if stage_event not in _VALID_STAGE_EVENTS:
+        raise ValueError(f"invalid stage_event: {stage_event!r}")
+    if status not in _VALID_LIFECYCLE_STATUSES:
+        raise ValueError(f"invalid status: {status!r}")
+
+    if not timestamp_utc:
+        from datetime import datetime, timezone
+        timestamp_utc = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    return LifecycleTraceEvent(
+        event_type=EVENT_TYPE_CANDIDATE_LIFECYCLE,
+        arena_stage=arena_stage,
+        stage_event=stage_event,
+        status=status,
+        timestamp_utc=timestamp_utc,
+        candidate_id=candidate_id,
+        alpha_id=alpha_id,
+        formula_hash=formula_hash,
+        source_pool=source_pool,
+        run_id=run_id,
+        commit_sha=commit_sha,
+        reject_reason=reject_reason,
+        reject_category=reject_category,
+        reject_severity=reject_severity,
+        next_stage=next_stage,
+        deployable_candidate=deployable_candidate,
+        notes=notes,
+        extras=dict(extras) if extras else None,
+    )
+
+
+def parse_lifecycle_trace_event(
+    obj: Any,
+) -> Optional[LifecycleTraceEvent]:
+    """Parse a dict (or JSON string) into a LifecycleTraceEvent.
+
+    Tolerant:
+    - Accepts extra fields (stored in ``extras``).
+    - Ignores malformed inputs (returns None) rather than raising.
+    - A lifecycle event must have ``event_type == EVENT_TYPE_CANDIDATE_LIFECYCLE``
+      AND a valid ``arena_stage`` + ``stage_event`` + ``status`` combination.
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, str):
+        import json as _json
+        try:
+            obj = _json.loads(obj)
+        except Exception:
+            return None
+    if not isinstance(obj, dict):
+        return None
+    if obj.get("event_type") != EVENT_TYPE_CANDIDATE_LIFECYCLE:
+        return None
+    arena_stage = obj.get("arena_stage")
+    stage_event = obj.get("stage_event")
+    status = obj.get("status")
+    if arena_stage not in _VALID_TRACE_STAGES:
+        return None
+    if stage_event not in _VALID_STAGE_EVENTS:
+        return None
+    if status not in _VALID_LIFECYCLE_STATUSES:
+        return None
+    # Collect extras = fields not in the dataclass
+    known = {
+        "event_type", "arena_stage", "stage_event", "status", "timestamp_utc",
+        "candidate_id", "alpha_id", "formula_hash", "source_pool",
+        "run_id", "commit_sha",
+        "reject_reason", "reject_category", "reject_severity",
+        "next_stage", "deployable_candidate", "notes",
+    }
+    extras = {k: v for k, v in obj.items() if k not in known}
+    return LifecycleTraceEvent(
+        event_type=obj.get("event_type"),
+        arena_stage=arena_stage,
+        stage_event=stage_event,
+        status=status,
+        timestamp_utc=obj.get("timestamp_utc", ""),
+        candidate_id=obj.get("candidate_id"),
+        alpha_id=obj.get("alpha_id"),
+        formula_hash=obj.get("formula_hash"),
+        source_pool=obj.get("source_pool"),
+        run_id=obj.get("run_id"),
+        commit_sha=obj.get("commit_sha"),
+        reject_reason=obj.get("reject_reason"),
+        reject_category=obj.get("reject_category"),
+        reject_severity=obj.get("reject_severity"),
+        next_stage=obj.get("next_stage"),
+        deployable_candidate=obj.get("deployable_candidate"),
+        notes=obj.get("notes"),
+        extras=extras or None,
+    )
+
+
+def emit_lifecycle_trace_event(
+    event: LifecycleTraceEvent,
+    writer: Optional[Any] = None,
+) -> bool:
+    """Safely emit a LifecycleTraceEvent.
+
+    Returns True if emission succeeded, False on any failure. Behavior-invariant:
+    never raises. If ``writer`` is None, writes the JSON line to stdout; callers
+    that want logger integration pass their logger's ``info()`` bound method.
+    """
+    try:
+        line = event.to_json()
+    except Exception:
+        return False
+    try:
+        if writer is None:
+            import sys
+            sys.stdout.write(line + "\n")
+        else:
+            writer(line)
+    except Exception:
+        return False
+    return True
+
+
+def valid_stage_events() -> Tuple[str, ...]:
+    return _VALID_STAGE_EVENTS
+
+
+def valid_lifecycle_statuses() -> Tuple[str, ...]:
+    return _VALID_LIFECYCLE_STATUSES
+
+
+def valid_trace_stages() -> Tuple[str, ...]:
+    return _VALID_TRACE_STAGES

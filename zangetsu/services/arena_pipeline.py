@@ -44,6 +44,55 @@ from zangetsu.services.bloom_service import (
 from zangetsu.engine.components.alpha_engine import AlphaEngine
 from zangetsu.engine.provenance import build_bundle, DirtyTreeError, ProvenanceBundle
 
+# P7-PR3 (TEAM ORDER 0-9L-PLUS) — additive lifecycle trace-native emission.
+# Emission is exception-safe; failures here MUST NOT affect A1 decision logic.
+# The helper wraps build_lifecycle_trace_event + log.info in a try/except so
+# a bug in the trace path can never alter candidate survival outcomes.
+try:
+    from zangetsu.services.candidate_trace import (
+        build_lifecycle_trace_event as _build_lc_event,
+        STAGE_EVENT_ENTRY as _SE_ENTRY,
+        STAGE_EVENT_EXIT as _SE_EXIT,
+        STAGE_EVENT_HANDOFF as _SE_HANDOFF,
+        STATUS_ENTERED as _LS_ENTERED,
+        STATUS_PASSED as _LS_PASSED,
+        STATUS_REJECTED as _LS_REJECTED,
+    )
+    _LIFECYCLE_TRACE_AVAILABLE = True
+except Exception:
+    _LIFECYCLE_TRACE_AVAILABLE = False
+
+
+def _emit_a1_lifecycle_safe(*, stage_event: str, status: str, alpha_hash=None,
+                            source_pool=None, reject_reason=None, next_stage=None,
+                            notes=None, log=None) -> None:
+    """Exception-safe A1 lifecycle trace emission.
+
+    Any failure here is swallowed silently so that a trace-path bug cannot
+    alter Arena pass/fail behavior. The emission is a plain INFO-level JSONL
+    log line whose payload is a serialized LifecycleTraceEvent dict.
+    """
+    if not _LIFECYCLE_TRACE_AVAILABLE:
+        return
+    try:
+        ev = _build_lc_event(
+            arena_stage="A1",
+            stage_event=stage_event,
+            status=status,
+            candidate_id=alpha_hash,   # alpha_hash is the A1-era identity
+            alpha_id=alpha_hash,
+            formula_hash=alpha_hash,
+            source_pool=source_pool,
+            reject_reason=reject_reason,
+            next_stage=next_stage,
+            notes=notes,
+        )
+        if log is not None:
+            log.info(ev.to_json())
+        # If no log object is available at the call site, drop silently.
+    except Exception:
+        pass  # never propagate
+
 # v0.7.1 governance: process-local telemetry counters flushed periodically
 _telemetry_counters = {
     "compile_success_count": 0,
@@ -717,6 +766,11 @@ async def main():
             alpha_hash = alpha_result.hash or hashlib.md5(
                 alpha_result.formula.encode()
             ).hexdigest()[:12]
+            # P7-PR3: A1_ENTRY — candidate begins A1 evaluation
+            _emit_a1_lifecycle_safe(
+                stage_event=_SE_ENTRY, status=_LS_ENTERED,
+                alpha_hash=alpha_hash, source_pool=sym, log=log,
+            )
             _bloom_key = f"{regime}|{alpha_hash}"
             if _bloom_key in bloom:
                 stats["bloom_hits"] += 1
@@ -747,6 +801,12 @@ async def main():
 
             if bt.total_trades < 30:
                 stats["reject_few_trades"] += 1
+                # P7-PR3: A1_EXIT_REJECT for sparse-signal rejection
+                _emit_a1_lifecycle_safe(
+                    stage_event=_SE_EXIT, status=_LS_REJECTED,
+                    alpha_hash=alpha_hash, source_pool=sym,
+                    reject_reason="SIGNAL_TOO_SPARSE", log=log,
+                )
                 continue
 
             # ── v0.5.9: VAL backtest on holdout slice (prevents overfit flooding A4) ──
@@ -926,6 +986,18 @@ async def main():
             # Mark bloom AFTER successful insert
             bloom.add(_bloom_key)
             await rbloom_add(_bloom_key)
+
+            # P7-PR3: A1_EXIT_PASS then A1_HANDOFF_TO_A2 — candidate survived
+            # A1 and is being handed off to A2 via staging_id admission.
+            _emit_a1_lifecycle_safe(
+                stage_event=_SE_EXIT, status=_LS_PASSED,
+                alpha_hash=alpha_hash, source_pool=sym, log=log,
+            )
+            _emit_a1_lifecycle_safe(
+                stage_event=_SE_HANDOFF, status=_LS_PASSED,
+                alpha_hash=alpha_hash, source_pool=sym,
+                next_stage="A2", log=log,
+            )
 
             total_champions += 1
             round_champions += 1
