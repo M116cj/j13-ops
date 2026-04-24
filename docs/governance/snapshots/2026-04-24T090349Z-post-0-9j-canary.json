@@ -1,0 +1,81 @@
+{
+  "captured_at": "2026-04-24T09:03:50Z",
+  "captured_by": "0-9j-canary",
+  "purpose": "post",
+  "schema_version": 1,
+  "sha256_manifest": "d6ea6ae9251f4eff43d94eec4a4f67cc4b32a64b555e983179b9ee93b0d7c741",
+  "surfaces": {
+    "config": {
+      "arena23_orchestrator_sha": "81f48ccffca03f08ad9f1c5264a8af86acc6f83e72adad0c562f3d87ba1e750d",
+      "arena45_orchestrator_sha": "fe97c7a1aeb9b97bf4dadee79330667ae19394cbae154f37abdb1af525588960",
+      "arena_pipeline_sha": "34a3791f1686cc5f7c50c5f2f7e6db7eb1afca7340166dec63a32c5b05273d83",
+      "calcifer_deploy_block_file_sha": "8abdabcc6740441f567a879c9b2c361aea0e2a7736fb107c84cb30f58e3b09ee",
+      "calcifer_state_file_sha": "8abdabcc6740441f567a879c9b2c361aea0e2a7736fb107c84cb30f58e3b09ee",
+      "calcifer_supervisor_sha": "5d33e44ef5f13a83aa7702e215fd9d31502d83bbff69b6547caf3d282cdaa949",
+      "zangetsu_outcome_sha": "absent",
+      "zangetsu_settings_sha": "97467c5046fde53e835b91ad19c3afdbe7e99d649f5655fc718ea70a0cdd723f"
+    },
+    "gate_state": {
+      "classification_source_file": "docs/recovery/20260424-mod-5/gate_a_post_mod5_memo.md",
+      "gate_a_classification": "CLEARED"
+    },
+    "governance": {
+      "akasha_health": "ok",
+      "branch_protection_main": {
+        "admin_enforce": true,
+        "deletions": false,
+        "force_push": false,
+        "linear": true,
+        "req_sig": true
+      }
+    },
+    "repo": {
+      "git_status_porcelain_lines": 2,
+      "main_head_author_iso": "2026-04-24T16:56:50+08:00",
+      "main_head_sha": "665298fb40fcdcb9438eff0d3906d7aedf68db80",
+      "main_head_subject": "fix(zangetsu/governance): restore Gate-B pull request triggering (#10)"
+    },
+    "runtime": {
+      "arena_processes": {
+        "count": 0,
+        "pids": []
+      },
+      "calcifer_deploy_block_status": "RED",
+      "calcifer_deploy_block_ts_iso": "2026-04-24T06:29:06.036574+00:00",
+      "engine_jsonl_mtime_iso": "2026-04-23 00:35:54.857377417 +0000",
+      "engine_jsonl_size_bytes": 38638779,
+      "systemd_units": {
+        "calcifer-miniapp": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871443"
+        },
+        "calcifer-supervisor": {
+          "active": "active",
+          "active_since": "Fri 2026-04-24 06:34:01 UTC",
+          "main_pid": "2537942"
+        },
+        "console-api": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871449"
+        },
+        "cp-api": {
+          "active": "active",
+          "active_since": "Fri 2026-04-24 06:34:00 UTC",
+          "main_pid": "2537810"
+        },
+        "d-mail-miniapp": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871440"
+        },
+        "dashboard-api": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871446"
+        }
+      }
+    }
+  }
+}
