@@ -263,6 +263,15 @@ RAW_TO_REASON: Dict[str, RejectionReason] = {
     # arena13_feedback.py — weight-sanity gate
     "a13_weight_sanity_rejected": RejectionReason.GOVERNANCE_BLOCKED,
     "weight sanity REJECTED": RejectionReason.GOVERNANCE_BLOCKED,
+    # TEAM ORDER 0-9H (2026-04-24) — A2 V10 variants surfaced by 0-9G SHADOW.
+    # arena23_orchestrator.py emits "[V10]: pos_count=N" and "[V10]: trades=N < 25"
+    # as A2 rejection log lines. These are semantically SIGNAL_TOO_SPARSE
+    # (candidate produced too few positions / trades to satisfy the A2 gate).
+    # classify()'s substring-match fallback lets these prefix aliases cover
+    # all observed suffix-varying forms: "pos_count=0", "pos_count=0 < 2",
+    # "trades=0 < 25", "trades=1 < 25", "trades=4 < 25".
+    "[V10]: pos_count": RejectionReason.SIGNAL_TOO_SPARSE,
+    "[V10]: trades": RejectionReason.SIGNAL_TOO_SPARSE,
 }
 
 
