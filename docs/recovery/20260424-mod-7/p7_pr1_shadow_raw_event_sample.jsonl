@@ -1,0 +1,10 @@
+{"ts": "2026-04-16T07:59:21", "level": "INFO", "arena_stage": "A3", "candidate_id": "70386", "symbol": "SOLUSDT", "raw_reason_stem": "train/val PnL divergence"}
+{"ts": "2026-04-16T07:59:36", "level": "INFO", "arena_stage": "A3", "candidate_id": "70387", "symbol": "ETHUSDT", "raw_reason_stem": "train/val PnL divergence"}
+{"ts": "2026-04-16T07:59:56", "level": "INFO", "arena_stage": "A3", "candidate_id": "70388", "symbol": "SOLUSDT", "raw_reason_stem": "validation split fail"}
+{"ts": "2026-04-16T08:01:41", "level": "INFO", "arena_stage": "A3", "candidate_id": "70389", "symbol": "SOLUSDT", "raw_reason_stem": "validation split fail"}
+{"ts": "2026-04-16T08:13:15", "level": "INFO", "arena_stage": "A3", "candidate_id": "70391", "symbol": "ETHUSDT", "raw_reason_stem": "validation split fail"}
+{"ts": "2026-04-18T04:21:29", "level": "INFO", "arena_stage": "A2", "candidate_id": "71126", "symbol": "GALAUSDT", "raw_reason_stem": "<2 valid indicators after zero-MAD filter"}
+{"ts": "2026-04-18T04:21:29", "level": "INFO", "arena_stage": "A2", "candidate_id": "71242", "symbol": "GALAUSDT", "raw_reason_stem": "<2 valid indicators after zero-MAD filter"}
+{"ts": "2026-04-18T04:21:29", "level": "INFO", "arena_stage": "A2", "candidate_id": "71139", "symbol": "GALAUSDT", "raw_reason_stem": "<2 valid indicators after zero-MAD filter"}
+{"ts": "2026-04-18T04:21:29", "level": "INFO", "arena_stage": "A2", "candidate_id": "70963", "symbol": "GALAUSDT", "raw_reason_stem": "<2 valid indicators after zero-MAD filter"}
+{"ts": "2026-04-18T04:21:29", "level": "INFO", "arena_stage": "A2", "candidate_id": "70621", "symbol": "GALAUSDT", "raw_reason_stem": "<2 valid indicators after zero-MAD filter"}
