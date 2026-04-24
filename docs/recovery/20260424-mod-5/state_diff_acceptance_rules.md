@@ -182,3 +182,88 @@ This worked example in `controlled_diff_example_current_state.md`.
 - §2 allowed changes: **VERIFIED** (per-surface catalog)
 - §4 forbidden patterns: **VERIFIED** (each has specific detector)
 - §6 Condition 5 mapping: **VERIFIED** (per CQG §2)
+
+---
+
+## 11. TEAM ORDER 0-9M — Phase 7 Controlled-Diff Acceptance Rules Upgrade (2026-04-24)
+
+Upgrade from the legacy file-SHA tripwire model to a Phase 7-aware acceptance
+model that distinguishes authorized trace-only instrumentation from
+unauthorized runtime mutation.
+
+### 11.1 New classification vocabulary
+
+| Classification | When to use |
+|---|---|
+| `ZERO_DIFF` | Field value unchanged (unchanged from §1). |
+| `EXPLAINED` | Value changed; matches the §2 allowed-change catalog. |
+| `EXPLAINED_TRACE_ONLY` | **NEW in 0-9M.** A `CODE_FROZEN` runtime file SHA changed, and the active Team Order explicitly authorized the file for trace-only instrumentation via `--authorize-trace-only <field>`. The order writer asserts the change is pure trace / telemetry / logging / lifecycle emission with no decision-logic mutation; tests + Gate-A/B + PR review independently verify the assertion. |
+| `FORBIDDEN` | Umbrella classification for any non-zero, non-explained change that violates acceptance rules. |
+| `FORBIDDEN_UNAUTHORIZED_RUNTIME_SHA` | **NEW in 0-9M subclass.** A `CODE_FROZEN` runtime file SHA changed without `--authorize-trace-only` authorization and without `--explain`. |
+| `FORBIDDEN_THRESHOLD` | **NEW in 0-9M subclass.** `config.zangetsu_settings_sha` changed (this file hosts threshold constants — A2_MIN_TRADES, entry/exit, promotion, risk — and is in `NEVER_TRACE_ONLY_AUTHORIZABLE`; trace-only authorization is refused for this field even if passed). |
+| `OPAQUE` | Manifest differs but no field-level change. |
+
+### 11.2 Decision precedence (0-9M)
+
+```
+IF pre_val == post_val:
+    → ZERO_DIFF
+
+ELSE IF path matches HARD_FORBIDDEN_NONZERO (arena process count, engine log growth):
+    → FORBIDDEN (hard-forbidden, not trace-only-authorizable)
+
+ELSE IF path is in NEVER_TRACE_ONLY_AUTHORIZABLE (e.g. zangetsu_settings_sha):
+    IF path in --explain:
+        → EXPLAINED
+    ELSE:
+        → FORBIDDEN_THRESHOLD
+
+ELSE IF path starts with CODE_FROZEN prefix:
+    IF path in --authorize-trace-only:
+        → EXPLAINED_TRACE_ONLY
+    ELSE IF path in --explain:
+        → EXPLAINED
+    ELSE:
+        → FORBIDDEN_UNAUTHORIZED_RUNTIME_SHA
+
+ELSE IF path starts with ALWAYS_ALLOWED or EXPLAINABLE prefix:
+    → EXPLAINED
+
+ELSE (unknown path):
+    → FORBIDDEN
+```
+
+### 11.3 EXPLAINED_TRACE_ONLY required preconditions (enforced by order review, tests, and Gates — NOT by the tool alone)
+
+A diff may be classified as `EXPLAINED_TRACE_ONLY` **only when every condition below holds**:
+
+1. The active Team Order explicitly authorizes the touched runtime file.
+2. The changed code is limited to: trace event emission, telemetry, logging, serialization, lifecycle provenance, non-blocking observability, exception-safe instrumentation.
+3. The change does NOT alter alpha generation, formula construction/mutation/crossover/search/ranking.
+4. The change does NOT alter Arena pass/fail branch conditions.
+5. The change does NOT alter any threshold constant.
+6. The change does NOT alter champion promotion logic.
+7. The change does NOT alter execution, capital, risk, broker, exchange, or live trading paths.
+8. Behavior-invariance tests pass.
+9. Evidence report documents the touched file, old/new SHA, reason, explicit authorization source, and forbidden-change audit result.
+10. Gate-A passes.
+11. Gate-B passes.
+12. Signed PR-only flow is preserved.
+13. Branch protection remains intact.
+
+### 11.4 Defense-in-depth
+
+- `zangetsu_settings_sha` is in `NEVER_TRACE_ONLY_AUTHORIZABLE`. Even if `--authorize-trace-only config.zangetsu_settings_sha` is accidentally passed, the tool refuses to honor it and returns `FORBIDDEN_THRESHOLD`.
+- `HARD_FORBIDDEN_NONZERO` fields (arena process count, engine.jsonl growth) cannot be trace-only-authorized under any circumstances.
+- `--authorize-trace-only` is PER-FIELD. Authorization for one runtime file does NOT bleed to siblings. To authorize `arena_pipeline.py` + `arena23_orchestrator.py` you must pass both explicitly.
+
+### 11.5 Migration note — the 0-9L-PLUS historical case
+
+Under the pre-0-9M model, `config.arena_pipeline_sha` change in 0-9L-PLUS (P7-PR3 A1 emission) classified as `FORBIDDEN`. j13 issued a one-time exception via 0-9L-A. Under the post-0-9M model, the same change is classifiable as `EXPLAINED_TRACE_ONLY` when the runner passes `--authorize-trace-only config.arena_pipeline_sha`. This removes the need for per-PR exception records on future authorized Phase 7 trace instrumentation (P7-PR4 A2 emission, P7-PR5 A3 emission, etc.).
+
+### 11.6 Not changed by 0-9M
+
+- The forbidden protections in §4 (alpha generation, thresholds, Arena pass/fail, champion promotion, execution, capital, risk, production) remain intact.
+- The HARD_FORBIDDEN_NONZERO runtime-state tripwires remain intact.
+- The overall tool exit-code contract is extended (0 now covers ZERO / EXPLAINED / EXPLAINED_TRACE_ONLY; 2 still covers FORBIDDEN; 3 covers OPAQUE).
+- The governance-verifier / branch protection / signed PR requirements are unchanged.
