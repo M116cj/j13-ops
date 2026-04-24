@@ -1,0 +1,81 @@
+{
+  "captured_at": "2026-04-24T04:45:39Z",
+  "captured_by": "j13@alaya",
+  "purpose": "post",
+  "schema_version": 1,
+  "sha256_manifest": "00d5b39255352fb49c451e4ca3f2529697bb08c089abc83798c91f404fc54109",
+  "surfaces": {
+    "config": {
+      "arena23_orchestrator_sha": "81f48ccffca03f08ad9f1c5264a8af86acc6f83e72adad0c562f3d87ba1e750d",
+      "arena45_orchestrator_sha": "fe97c7a1aeb9b97bf4dadee79330667ae19394cbae154f37abdb1af525588960",
+      "arena_pipeline_sha": "34a3791f1686cc5f7c50c5f2f7e6db7eb1afca7340166dec63a32c5b05273d83",
+      "calcifer_deploy_block_file_sha": "82c7fe270b36eba70ed66956041cc4c3f10cf1dddbdc2605a5a4dc0e1c76c7f3",
+      "calcifer_state_file_sha": "82c7fe270b36eba70ed66956041cc4c3f10cf1dddbdc2605a5a4dc0e1c76c7f3",
+      "calcifer_supervisor_sha": "5d33e44ef5f13a83aa7702e215fd9d31502d83bbff69b6547caf3d282cdaa949",
+      "zangetsu_outcome_sha": "absent",
+      "zangetsu_settings_sha": "97467c5046fde53e835b91ad19c3afdbe7e99d649f5655fc718ea70a0cdd723f"
+    },
+    "gate_state": {
+      "classification_source_file": "docs/recovery/20260424-mod-5/gate_a_post_mod5_memo.md",
+      "gate_a_classification": "CLEARED"
+    },
+    "governance": {
+      "akasha_health": "ok",
+      "branch_protection_main": {
+        "admin_enforce": true,
+        "deletions": false,
+        "force_push": false,
+        "linear": true,
+        "req_sig": true
+      }
+    },
+    "repo": {
+      "git_status_porcelain_lines": 8,
+      "main_head_author_iso": "2026-04-24T12:16:29+08:00",
+      "main_head_sha": "966cd59326b970055d1c398f2a9d45215bbfbc49",
+      "main_head_subject": "fix(zangetsu/governance): Gate-A step 1.4 accept indirect verification when admin token unavailable (#5)"
+    },
+    "runtime": {
+      "arena_processes": {
+        "count": 0,
+        "pids": []
+      },
+      "calcifer_deploy_block_status": "RED",
+      "calcifer_deploy_block_ts_iso": "2026-04-24T04:43:32.453750+00:00",
+      "engine_jsonl_mtime_iso": "2026-04-23 00:35:54.857377417 +0000",
+      "engine_jsonl_size_bytes": 38638779,
+      "systemd_units": {
+        "calcifer-miniapp": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871443"
+        },
+        "calcifer-supervisor": {
+          "active": "active",
+          "active_since": "Fri 2026-04-24 01:42:40 UTC",
+          "main_pid": "1960230"
+        },
+        "console-api": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871449"
+        },
+        "cp-api": {
+          "active": "active",
+          "active_since": "Fri 2026-04-24 01:38:06 UTC",
+          "main_pid": "1950393"
+        },
+        "d-mail-miniapp": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871440"
+        },
+        "dashboard-api": {
+          "active": "active",
+          "active_since": "Thu 2026-04-23 06:19:48 UTC",
+          "main_pid": "3871446"
+        }
+      }
+    }
+  }
+}
