@@ -4,29 +4,32 @@ name: Module Migration Gate (Gate-B)
 # un-omittable per MOD-3 gate_b_trigger_correction.md §3.1).
 
 on:
+  # TEAM ORDER 0-9F (2026-04-24) — widened trigger paths to match phase-7-gate.yml.
+  # P7-PR1 (PR #6) demonstrated that narrow zangetsu/src/** filters miss Phase 7
+  # code that lives under zangetsu/services/**, plus tests, governance, and
+  # recovery docs. Gate-B now triggers on any Phase 7-relevant surface; only
+  # compiled Python artifacts are ignored.
   pull_request:
     paths:
-      - 'zangetsu/src/modules/**'
-      - 'zangetsu/src/l[0-9]*/**'
-      - 'zangetsu/module_contracts/**'
+      - 'zangetsu/**'
+      - 'docs/recovery/**'
+      - 'docs/governance/**'
+      - 'scripts/governance/**'
+      - '.github/workflows/**'
     paths-ignore:
-      - 'zangetsu/src/**/*.md'
-      - 'zangetsu/src/**/test_*.py'
-      - 'zangetsu/src/**/tests/**'
-      - 'zangetsu/src/**/__pycache__/**'
-      - 'zangetsu/src/**/*.pyc'
+      - 'zangetsu/**/__pycache__/**'
+      - 'zangetsu/**/*.pyc'
   push:
     branches: [main]
     paths:
-      - 'zangetsu/src/modules/**'
-      - 'zangetsu/src/l[0-9]*/**'
-      - 'zangetsu/module_contracts/**'
+      - 'zangetsu/**'
+      - 'docs/recovery/**'
+      - 'docs/governance/**'
+      - 'scripts/governance/**'
+      - '.github/workflows/**'
     paths-ignore:
-      - 'zangetsu/src/**/*.md'
-      - 'zangetsu/src/**/test_*.py'
-      - 'zangetsu/src/**/tests/**'
-      - 'zangetsu/src/**/__pycache__/**'
-      - 'zangetsu/src/**/*.pyc'
+      - 'zangetsu/**/__pycache__/**'
+      - 'zangetsu/**/*.pyc'
 
 permissions:
   contents: read
