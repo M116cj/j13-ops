@@ -1,0 +1,7 @@
+{"candidate_id": "70381", "source_pool": "SOLUSDT", "final_stage": "A3", "final_status": "DEPLOYABLE", "reject_reason": null, "provenance_quality": "PARTIAL"}
+{"candidate_id": "70382", "source_pool": "SOLUSDT", "final_stage": "A3", "final_status": "DEPLOYABLE", "reject_reason": null, "provenance_quality": "PARTIAL"}
+{"candidate_id": "70390", "source_pool": "ETHUSDT", "final_stage": "A3", "final_status": "DEPLOYABLE", "reject_reason": null, "provenance_quality": "PARTIAL"}
+{"candidate_id": "100", "source_pool": "GALAUSDT", "final_stage": "A2", "final_status": "REJECT", "reject_reason": "SIGNAL_TOO_SPARSE", "provenance_quality": "PARTIAL"}
+{"candidate_id": "70383", "source_pool": "LINKUSDT:", "final_stage": "A3", "final_status": "SKIPPED", "reject_reason": null, "provenance_quality": "PARTIAL"}
+{"candidate_id": "70386", "source_pool": "SOLUSDT", "final_stage": "A3", "final_status": "REJECT", "reject_reason": "OOS_FAIL", "provenance_quality": "PARTIAL"}
+{"candidate_id": "71455", "source_pool": "ETHUSDT", "final_stage": "A2", "final_status": "STALLED_AT_A2", "reject_reason": "SIGNAL_TOO_SPARSE", "provenance_quality": "PARTIAL"}
