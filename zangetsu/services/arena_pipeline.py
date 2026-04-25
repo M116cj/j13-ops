@@ -1044,6 +1044,26 @@ async def main():
             score = float(val_wilson) * _pnl_component
 
             # ── Build V10 passport with alpha_expression ──
+            # 0-9P: persist generation_profile_id / fingerprint into the
+            # passport so A2/A3 telemetry can attribute Arena outcomes to
+            # the original A1 generation profile. Metadata-only — does not
+            # affect Arena pass/fail, threshold logic, candidate scoring,
+            # or champion promotion. Fields are sourced from the
+            # already-resolved ``_gen_profile_identity`` (computed once at
+            # worker startup, see :762). Failures fall back to UNKNOWN /
+            # UNAVAILABLE so the passport write never blocks on identity.
+            try:
+                _passport_profile_id = (
+                    _gen_profile_identity.get("profile_id")
+                    or _UNKNOWN_PROFILE_ID
+                )
+                _passport_profile_fingerprint = (
+                    _gen_profile_identity.get("profile_fingerprint")
+                    or _UNAVAILABLE_FINGERPRINT
+                )
+            except Exception:
+                _passport_profile_id = _UNKNOWN_PROFILE_ID
+                _passport_profile_fingerprint = _UNAVAILABLE_FINGERPRINT
             sym_info = data_cache[sym]
             passport = {
                 "arena1": {
@@ -1066,6 +1086,9 @@ async def main():
                     "exit_threshold": EXIT_THR,
                     "min_hold": MIN_HOLD,
                     "cooldown": COOLDOWN,
+                    # 0-9P attribution closure (additive, metadata-only).
+                    "generation_profile_id": _passport_profile_id,
+                    "generation_profile_fingerprint": _passport_profile_fingerprint,
                 },
                 "market_state": (
                     symbol_market_states.get(sym).to_dict()

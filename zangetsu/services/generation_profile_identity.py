@@ -155,3 +155,85 @@ def safe_resolve_profile_identity(
             "profile_fingerprint": UNAVAILABLE_FINGERPRINT,
             "profile_name": profile_name or UNKNOWN_PROFILE_ID,
         }
+
+
+def resolve_attribution_chain(
+    passport: Optional[Mapping[str, Any]] = None,
+    *,
+    orchestrator_profile_id: Optional[str] = None,
+    orchestrator_profile_fingerprint: Optional[str] = None,
+) -> dict:
+    """Resolve the canonical 0-9P attribution precedence chain.
+
+    Precedence (highest first, per TEAM ORDER 0-9P §4 attribution
+    contract):
+
+        1. ``passport["arena1"]["generation_profile_id"]`` /
+           ``...["generation_profile_fingerprint"]`` — A1 producer-side
+           identity persisted into the candidate passport.
+        2. ``passport["generation_profile_id"]`` /
+           ``...["generation_profile_fingerprint"]`` — passport-level
+           override (rare; supports future schema variants).
+        3. ``orchestrator_profile_id`` /
+           ``orchestrator_profile_fingerprint`` — A2/A3 orchestrator's
+           consumer-profile fallback (set when the orchestrator boots).
+        4. ``UNKNOWN_PROFILE_ID`` / ``UNAVAILABLE_FINGERPRINT`` — final
+           fallback when all upstream sources are missing.
+
+    The returned dict always carries three fields::
+
+        {
+            "profile_id":          <str>,
+            "profile_fingerprint": <str>,
+            "source": one of "passport_arena1" / "passport_root" /
+                      "orchestrator" / "fallback",
+        }
+
+    The function never raises. Missing identity must not block telemetry
+    or alter Arena decisions; callers may treat ``"fallback"`` source as
+    "no attribution available".
+    """
+    try:
+        if isinstance(passport, Mapping):
+            arena1 = passport.get("arena1") or {}
+            if isinstance(arena1, Mapping):
+                pid = arena1.get("generation_profile_id")
+                pfp = arena1.get("generation_profile_fingerprint")
+                if pid:
+                    return {
+                        "profile_id": str(pid),
+                        "profile_fingerprint": str(
+                            pfp or UNAVAILABLE_FINGERPRINT
+                        ),
+                        "source": "passport_arena1",
+                    }
+            pid_root = passport.get("generation_profile_id")
+            pfp_root = passport.get("generation_profile_fingerprint")
+            if pid_root:
+                return {
+                    "profile_id": str(pid_root),
+                    "profile_fingerprint": str(
+                        pfp_root or UNAVAILABLE_FINGERPRINT
+                    ),
+                    "source": "passport_root",
+                }
+        if orchestrator_profile_id:
+            return {
+                "profile_id": str(orchestrator_profile_id),
+                "profile_fingerprint": str(
+                    orchestrator_profile_fingerprint
+                    or UNAVAILABLE_FINGERPRINT
+                ),
+                "source": "orchestrator",
+            }
+        return {
+            "profile_id": UNKNOWN_PROFILE_ID,
+            "profile_fingerprint": UNAVAILABLE_FINGERPRINT,
+            "source": "fallback",
+        }
+    except Exception:
+        return {
+            "profile_id": UNKNOWN_PROFILE_ID,
+            "profile_fingerprint": UNAVAILABLE_FINGERPRINT,
+            "source": "fallback",
+        }
