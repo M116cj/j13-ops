@@ -39,7 +39,14 @@ EVENT_TYPE_GENERATION_PROFILE_METRICS = "generation_profile_metrics"
 MODE_READ_ONLY = "READ_ONLY"
 MODE_DRY_RUN = "DRY_RUN"
 CONFIDENCE_LOW_UNTIL_A2_A3 = "LOW_CONFIDENCE_UNTIL_A2_A3_METRICS_AVAILABLE"
-CONFIDENCE_FULL = "FULL"
+CONFIDENCE_A1_A2_A3_AVAILABLE = "CONFIDENCE_A1_A2_A3_METRICS_AVAILABLE"
+CONFIDENCE_LOW_SAMPLE_SIZE = "LOW_SAMPLE_SIZE_UNTIL_20_ROUNDS"
+# Backwards-compatible alias for prior consumers (0-9O-A introduced
+# ``CONFIDENCE_FULL`` as the upgraded marker; P7-PR4B prefers the
+# canonical ``CONFIDENCE_A1_A2_A3_AVAILABLE`` name from order §8 but keeps
+# ``CONFIDENCE_FULL`` resolvable so existing tests / dashboards do not
+# regress).
+CONFIDENCE_FULL = CONFIDENCE_A1_A2_A3_AVAILABLE
 
 # Guardrails.
 MIN_SAMPLE_SIZE_ROUNDS = 20
@@ -331,11 +338,16 @@ def aggregate_batches_for_profile(
             min_sample_size_met=metrics.min_sample_size_met,
         )
         a2_a3_available = metrics.total_entered_a2 > 0 and metrics.total_entered_a3 > 0
-        metrics.confidence = (
-            CONFIDENCE_FULL
-            if (a2_a3_available and metrics.min_sample_size_met)
-            else CONFIDENCE_LOW_UNTIL_A2_A3
-        )
+        # P7-PR4B confidence resolution (per order §8):
+        #   A2/A3 unavailable               → LOW_CONFIDENCE_UNTIL_A2_A3_METRICS_AVAILABLE
+        #   A2/A3 available + samples < 20  → LOW_SAMPLE_SIZE_UNTIL_20_ROUNDS
+        #   A2/A3 available + samples >= 20 → CONFIDENCE_A1_A2_A3_METRICS_AVAILABLE
+        if not a2_a3_available:
+            metrics.confidence = CONFIDENCE_LOW_UNTIL_A2_A3
+        elif not metrics.min_sample_size_met:
+            metrics.confidence = CONFIDENCE_LOW_SAMPLE_SIZE
+        else:
+            metrics.confidence = CONFIDENCE_A1_A2_A3_AVAILABLE
         metrics.updated_at = _utc_now_iso()
         return metrics
     except Exception:

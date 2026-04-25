@@ -524,3 +524,209 @@ def required_summary_fields() -> Tuple[str, ...]:
         "top_3_reject_reasons", "bottleneck_score",
         "timestamp", "source",
     )
+
+
+# ---------------------------------------------------------------------------
+# P7-PR4B — A2 / A3 stage-aware shortcuts.
+# These wrappers do not change the underlying schema; they only enforce the
+# canonical ``arena_stage`` value and provide a discoverable surface that tests
+# and orchestrator code can call without re-deriving stage strings.
+# ---------------------------------------------------------------------------
+
+
+def normalize_arena_stage(raw: Any) -> str:
+    """Coerce an arbitrary input into a canonical Arena stage label.
+
+    Returns one of ``"A0".."A5"`` or ``"UNKNOWN"``. Never raises.
+    """
+    if raw is None:
+        return "UNKNOWN"
+    try:
+        s = str(raw).strip().upper()
+    except Exception:
+        return "UNKNOWN"
+    if not s:
+        return "UNKNOWN"
+    if s in _VALID_STAGES:
+        return s
+    for stage in _VALID_STAGES:
+        if stage != "UNKNOWN" and stage in s:
+            return stage
+    return "UNKNOWN"
+
+
+def _build_stage_batch_metrics(
+    stage: str,
+    stage_metrics: ArenaStageMetrics,
+    *,
+    deployable_count: Optional[int] = None,
+) -> ArenaBatchMetrics:
+    canonical = normalize_arena_stage(stage)
+    metrics = build_arena_batch_metrics(
+        stage_metrics, deployable_count=deployable_count
+    )
+    metrics.arena_stage = canonical
+    return metrics
+
+
+def build_a2_batch_metrics(
+    stage_metrics: ArenaStageMetrics,
+    *,
+    deployable_count: Optional[int] = None,
+) -> ArenaBatchMetrics:
+    """Build an ``ArenaBatchMetrics`` event for Arena-2.
+
+    Thin wrapper around :func:`build_arena_batch_metrics` that enforces
+    ``arena_stage = "A2"``. Behavior, schema, and counter conservation
+    rules are unchanged from the stage-agnostic builder.
+    """
+    return _build_stage_batch_metrics(
+        "A2", stage_metrics, deployable_count=deployable_count
+    )
+
+
+def build_a3_batch_metrics(
+    stage_metrics: ArenaStageMetrics,
+    *,
+    deployable_count: Optional[int] = None,
+) -> ArenaBatchMetrics:
+    """Build an ``ArenaBatchMetrics`` event for Arena-3.
+
+    Thin wrapper around :func:`build_arena_batch_metrics` that enforces
+    ``arena_stage = "A3"``.
+    """
+    return _build_stage_batch_metrics(
+        "A3", stage_metrics, deployable_count=deployable_count
+    )
+
+
+def _safe_emit_stage_batch_metrics(
+    stage: str,
+    accumulator: Optional[ArenaStageMetrics],
+    *,
+    deployable_count: Optional[int] = None,
+    log: Optional[Any] = None,
+) -> bool:
+    """Close + build + emit. Exception-safe: returns ``True`` on success,
+    ``False`` on any failure. Never raises."""
+    if accumulator is None:
+        return False
+    try:
+        accumulator.mark_closed()
+        event = _build_stage_batch_metrics(
+            stage, accumulator, deployable_count=deployable_count
+        )
+        writer = log.info if log is not None and hasattr(log, "info") else None
+        return safe_emit_arena_metrics(event, writer=writer)
+    except Exception:
+        return False
+
+
+def safe_emit_a2_batch_metrics(
+    accumulator: Optional[ArenaStageMetrics],
+    *,
+    deployable_count: Optional[int] = None,
+    log: Optional[Any] = None,
+) -> bool:
+    """Close the A2 accumulator and emit its ``arena_batch_metrics`` event.
+
+    Exception-safe — failures return ``False`` and are silenced. Returns
+    ``True`` on successful emission. Never raises so that telemetry
+    failures cannot affect Arena-2 runtime decisions.
+    """
+    return _safe_emit_stage_batch_metrics(
+        "A2", accumulator, deployable_count=deployable_count, log=log
+    )
+
+
+def safe_emit_a3_batch_metrics(
+    accumulator: Optional[ArenaStageMetrics],
+    *,
+    deployable_count: Optional[int] = None,
+    log: Optional[Any] = None,
+) -> bool:
+    """Close the A3 accumulator and emit its ``arena_batch_metrics`` event.
+
+    Exception-safe — failures return ``False`` and are silenced. Returns
+    ``True`` on successful emission. Never raises so that telemetry
+    failures cannot affect Arena-3 runtime decisions.
+    """
+    return _safe_emit_stage_batch_metrics(
+        "A3", accumulator, deployable_count=deployable_count, log=log
+    )
+
+
+def aggregate_stage_metrics(
+    events: Iterable[Mapping[str, Any]],
+) -> Dict[str, Dict[str, Any]]:
+    """Roll up a collection of ``arena_batch_metrics`` mappings into a
+    per-stage summary dict.
+
+    Returned shape::
+
+        {
+          "A1": {"entered_count": ..., "passed_count": ..., "rejected_count": ...,
+                  "skipped_count": ..., "error_count": ..., "in_flight_count": ...,
+                  "pass_rate": ..., "reject_rate": ...,
+                  "reject_reason_distribution": {...}, "deployable_count": int|None},
+          "A2": {...},
+          "A3": {...},
+        }
+
+    Never raises. Stages absent from ``events`` are omitted from the
+    returned dict; callers should treat absence as "no observations yet".
+    """
+    out: Dict[str, Dict[str, Any]] = {}
+    deployable_seen: Dict[str, List[int]] = {}
+    for ev in events:
+        # Per-event guard: malformed entries (non-mapping, bad ints, etc.)
+        # must not abort the rollup of the remaining valid events.
+        try:
+            if not isinstance(ev, Mapping):
+                continue
+            stage = normalize_arena_stage(ev.get("arena_stage"))
+            slot = out.setdefault(
+                stage,
+                {
+                    "entered_count": 0,
+                    "passed_count": 0,
+                    "rejected_count": 0,
+                    "skipped_count": 0,
+                    "error_count": 0,
+                    "in_flight_count": 0,
+                    "reject_reason_distribution": {},
+                    "deployable_count": None,
+                },
+            )
+            slot["entered_count"] += int(ev.get("entered_count", 0) or 0)
+            slot["passed_count"] += int(ev.get("passed_count", 0) or 0)
+            slot["rejected_count"] += int(ev.get("rejected_count", 0) or 0)
+            slot["skipped_count"] += int(ev.get("skipped_count", 0) or 0)
+            slot["error_count"] += int(ev.get("error_count", 0) or 0)
+            slot["in_flight_count"] += int(ev.get("in_flight_count", 0) or 0)
+            dist = ev.get("reject_reason_distribution") or {}
+            for reason, cnt in dict(dist).items():
+                slot["reject_reason_distribution"][reason] = (
+                    slot["reject_reason_distribution"].get(reason, 0)
+                    + int(cnt or 0)
+                )
+            dep = ev.get("deployable_count")
+            if isinstance(dep, int):
+                deployable_seen.setdefault(stage, []).append(dep)
+        except Exception:
+            # Skip this event; keep aggregating remaining ones.
+            continue
+    # Derived rates + deployable_count rollup (max — never inferred from
+    # passes; just exposes the highest authoritative observation).
+    try:
+        for stage, slot in out.items():
+            entered = slot["entered_count"]
+            slot["pass_rate"] = compute_pass_rate(slot["passed_count"], entered)
+            slot["reject_rate"] = compute_reject_rate(
+                slot["rejected_count"], entered
+            )
+            seen = deployable_seen.get(stage)
+            slot["deployable_count"] = max(seen) if seen else None
+    except Exception:
+        return out
+    return out
