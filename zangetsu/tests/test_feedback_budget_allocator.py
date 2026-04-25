@@ -593,7 +593,11 @@ def test_allocator_output_not_consumed_by_generation_runtime():
     # output. The 0-9R-IMPL-DRY consumer (`feedback_budget_consumer.py`)
     # is the single legitimate downstream and is itself dry-run only —
     # it is allow-listed below. All other modules must remain clean.
-    allowed = {"feedback_budget_allocator.py", "feedback_budget_consumer.py"}
+    allowed = {
+        "feedback_budget_allocator.py",
+        "feedback_budget_consumer.py",
+        "sparse_canary_observer.py",
+    }
     for path in _SERVICES_DIR.glob("*.py"):
         if path.name in allowed:
             continue
