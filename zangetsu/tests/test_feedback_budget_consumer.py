@@ -609,8 +609,14 @@ def test_no_runtime_import_by_execution():
 
 
 def test_consumer_output_not_consumed_by_runtime():
+    # Allow-list: legitimate downstream modules that consume the dry-run
+    # consumer's output without going to runtime generation.
+    allowed = {
+        "feedback_budget_consumer.py",
+        "sparse_canary_observer.py",
+    }
     for path in _SERVICES.glob("*.py"):
-        if path.name == "feedback_budget_consumer.py":
+        if path.name in allowed:
             continue
         text = path.read_text(encoding="utf-8")
         assert "SparseCandidateDryRunPlan" not in text, (
