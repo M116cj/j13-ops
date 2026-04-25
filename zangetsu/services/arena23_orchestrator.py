@@ -147,6 +147,269 @@ try:
 except ImportError:
     RUST_ENGINE = False
 
+# ── P7-PR4B: A2/A3 aggregate Arena pass-rate telemetry ───────────
+# Trace-only / non-blocking. Emission failures and identity failures
+# are silenced so that telemetry-path bugs cannot alter A2 / A3
+# runtime decisions (per TEAM ORDER P7-PR4B §10 / §17.6 / §18).
+try:
+    from zangetsu.services.arena_pass_rate_telemetry import (
+        ArenaStageMetrics as _P7PR4B_ArenaStageMetrics,
+        UNAVAILABLE_FINGERPRINT as _P7PR4B_UNAVAILABLE_FINGERPRINT,
+        UNKNOWN_PROFILE_ID as _P7PR4B_UNKNOWN_PROFILE_ID,
+        safe_emit_a2_batch_metrics as _p7pr4b_safe_emit_a2,
+        safe_emit_a3_batch_metrics as _p7pr4b_safe_emit_a3,
+    )
+    _P7PR4B_TELEMETRY_AVAILABLE = True
+except Exception:
+    _P7PR4B_TELEMETRY_AVAILABLE = False
+    _P7PR4B_ArenaStageMetrics = None  # type: ignore[assignment]
+    _P7PR4B_UNKNOWN_PROFILE_ID = "UNKNOWN_PROFILE"
+    _P7PR4B_UNAVAILABLE_FINGERPRINT = "UNAVAILABLE"
+
+    def _p7pr4b_safe_emit_a2(*_a, **_kw):  # type: ignore[no-redef]
+        return False
+
+    def _p7pr4b_safe_emit_a3(*_a, **_kw):  # type: ignore[no-redef]
+        return False
+
+try:
+    from zangetsu.services.arena_rejection_taxonomy import (
+        classify as _p7pr4b_classify_rejection,
+    )
+    _P7PR4B_REJECTION_TAXONOMY_AVAILABLE = True
+except Exception:
+    _P7PR4B_REJECTION_TAXONOMY_AVAILABLE = False
+
+    def _p7pr4b_classify_rejection(*_a, **_kw):  # type: ignore[no-redef]
+        return None
+
+try:
+    from zangetsu.services.generation_profile_identity import (
+        safe_resolve_profile_identity as _p7pr4b_safe_resolve_profile,
+    )
+    _P7PR4B_PROFILE_IDENTITY_AVAILABLE = True
+except Exception:
+    _P7PR4B_PROFILE_IDENTITY_AVAILABLE = False
+
+    def _p7pr4b_safe_resolve_profile(*_a, **_kw):  # type: ignore[no-redef]
+        return {
+            "profile_id": _P7PR4B_UNKNOWN_PROFILE_ID,
+            "profile_fingerprint": _P7PR4B_UNAVAILABLE_FINGERPRINT,
+            "profile_name": _P7PR4B_UNKNOWN_PROFILE_ID,
+        }
+
+
+try:
+    _P7PR4B_BATCH_FLUSH_SIZE = max(
+        1, int(os.environ.get("A23_TELEMETRY_BATCH_SIZE", "20") or "20")
+    )
+except Exception:
+    _P7PR4B_BATCH_FLUSH_SIZE = 20
+
+
+def _p7pr4b_resolve_passport_profile(passport):
+    """Best-effort extraction of generation profile identity from upstream
+    A1 candidate metadata. Returns ``(profile_id, profile_fingerprint)``
+    with UNKNOWN / UNAVAILABLE fallbacks. Never raises so a missing
+    identity cannot block telemetry.
+    """
+    try:
+        if not isinstance(passport, dict):
+            return _P7PR4B_UNKNOWN_PROFILE_ID, _P7PR4B_UNAVAILABLE_FINGERPRINT
+        a1 = passport.get("arena1") or {}
+        pid = (
+            a1.get("generation_profile_id")
+            or passport.get("generation_profile_id")
+        )
+        pfp = (
+            a1.get("generation_profile_fingerprint")
+            or passport.get("generation_profile_fingerprint")
+        )
+        if not pid:
+            pid = _P7PR4B_UNKNOWN_PROFILE_ID
+        if not pfp:
+            pfp = _P7PR4B_UNAVAILABLE_FINGERPRINT
+        return pid, pfp
+    except Exception:
+        return _P7PR4B_UNKNOWN_PROFILE_ID, _P7PR4B_UNAVAILABLE_FINGERPRINT
+
+
+def _p7pr4b_make_acc_safe(stage, *, run_id, batch_id, profile_id, profile_fingerprint):
+    """Construct an ``ArenaStageMetrics`` accumulator. Returns ``None`` if
+    telemetry is unavailable or accumulator construction raises. Never
+    propagates exceptions."""
+    if not _P7PR4B_TELEMETRY_AVAILABLE or _P7PR4B_ArenaStageMetrics is None:
+        return None
+    try:
+        return _P7PR4B_ArenaStageMetrics(
+            arena_stage=stage,
+            run_id=run_id,
+            batch_id=batch_id,
+            generation_profile_id=profile_id or _P7PR4B_UNKNOWN_PROFILE_ID,
+            generation_profile_fingerprint=(
+                profile_fingerprint or _P7PR4B_UNAVAILABLE_FINGERPRINT
+            ),
+        )
+    except Exception:
+        return None
+
+
+def _p7pr4b_canonicalize_reason(raw_reason, stage):
+    """Map an orchestrator log/error string to a canonical reject reason.
+
+    Returns a string suitable for ``ArenaStageMetrics.on_rejected``.
+    Falls back to ``"UNKNOWN_REJECT"`` whenever the taxonomy cannot
+    classify the input. Never raises.
+    """
+    if raw_reason is None:
+        return "UNKNOWN_REJECT"
+    try:
+        if not _P7PR4B_REJECTION_TAXONOMY_AVAILABLE:
+            return "UNKNOWN_REJECT"
+        outcome = _p7pr4b_classify_rejection(
+            raw_reason=str(raw_reason), arena_stage=stage
+        )
+        if outcome is None:
+            return "UNKNOWN_REJECT"
+        reason = outcome[0]
+        return reason.value if hasattr(reason, "value") else str(reason)
+    except Exception:
+        return "UNKNOWN_REJECT"
+
+
+def _p7pr4b_record_outcome(
+    passport,
+    *,
+    stage,
+    outcome,
+    reject_reason,
+    acc,
+    batch_seq,
+    in_batch,
+    run_id,
+    consumer_profile,
+    flush_size,
+    log,
+    safe_emit,
+):
+    """Update an aggregate stage accumulator with one champion's outcome and
+    flush an emission when the batch threshold is reached.
+
+    Returns ``(acc, batch_seq, in_batch)`` updated for the next call. Never
+    raises — telemetry must remain non-blocking.
+    """
+    try:
+        if not _P7PR4B_TELEMETRY_AVAILABLE:
+            return acc, batch_seq, in_batch
+        if acc is None:
+            batch_seq = batch_seq + 1
+            pid, pfp = _p7pr4b_resolve_passport_profile(passport)
+            if pid == _P7PR4B_UNKNOWN_PROFILE_ID:
+                pid = consumer_profile.get(
+                    "profile_id", _P7PR4B_UNKNOWN_PROFILE_ID
+                )
+            if pfp == _P7PR4B_UNAVAILABLE_FINGERPRINT:
+                pfp = consumer_profile.get(
+                    "profile_fingerprint", _P7PR4B_UNAVAILABLE_FINGERPRINT
+                )
+            acc = _p7pr4b_make_acc_safe(
+                stage,
+                run_id=run_id,
+                batch_id=f"{stage}-batch-{batch_seq:04d}",
+                profile_id=pid,
+                profile_fingerprint=pfp,
+            )
+        if acc is None:
+            return acc, batch_seq, in_batch
+        acc.on_entered()
+        if outcome == "PASSED":
+            acc.on_passed()
+        elif outcome == "REJECTED":
+            canonical = _p7pr4b_canonicalize_reason(reject_reason, stage)
+            acc.on_rejected(canonical)
+        else:
+            acc.on_error(f"{stage}_runtime_exception")
+        in_batch = in_batch + 1
+        if in_batch >= flush_size:
+            # Trace-only A2/A3 pass events MUST NOT inflate
+            # deployable_count (P7-PR4B §9). Pass None so the
+            # authoritative source remains champion_pipeline VIEW.
+            try:
+                safe_emit(acc, deployable_count=None, log=log)
+            except Exception:
+                pass
+            acc = None
+            in_batch = 0
+        return acc, batch_seq, in_batch
+    except Exception:
+        return acc, batch_seq, in_batch
+
+
+def _p7pr4b_a2_record(passport, **kwargs):
+    return _p7pr4b_record_outcome(
+        passport,
+        stage="A2",
+        safe_emit=_p7pr4b_safe_emit_a2,
+        **kwargs,
+    )
+
+
+def _p7pr4b_a3_record(passport, **kwargs):
+    return _p7pr4b_record_outcome(
+        passport,
+        stage="A3",
+        safe_emit=_p7pr4b_safe_emit_a3,
+        **kwargs,
+    )
+
+
+class _P7PR4BLogCapture:
+    """Wrap a ``StructuredLogger`` to passively observe A2/A3 reject log
+    lines so that aggregate telemetry can map them to canonical reject
+    reasons.
+
+    The wrapper forwards every method call (info / warning / error /
+    debug / ...) to the underlying logger; it never suppresses or
+    rewrites log output. The most-recent reject log line for A2 and A3
+    is exposed via ``consume_a2`` / ``consume_a3``. Capture failures are
+    silenced — telemetry is non-blocking by design.
+    """
+
+    __slots__ = ("_log", "_latest_a2", "_latest_a3")
+
+    def __init__(self, log):
+        self._log = log
+        self._latest_a2 = None
+        self._latest_a3 = None
+
+    def info(self, msg, *args, **kwargs):
+        try:
+            text = msg if isinstance(msg, str) else str(msg)
+            if "A2 REJECT" in text or "A2 2IND-REJECT" in text:
+                self._latest_a2 = text
+            elif (
+                "A3 REJECT" in text
+                or "A3 PREFILTER SKIP" in text
+            ):
+                self._latest_a3 = text
+        except Exception:
+            pass  # never propagate
+        return self._log.info(msg, *args, **kwargs)
+
+    def __getattr__(self, name):
+        # Forward warning / error / debug / etc. to the wrapped logger.
+        return getattr(self._log, name)
+
+    def consume_a2(self):
+        msg = self._latest_a2
+        self._latest_a2 = None
+        return msg
+
+    def consume_a3(self):
+        msg = self._latest_a3
+        self._latest_a3 = None
+        return msg
+
 
 WORKER_ID = "arena23"
 LEASE_MINUTES = 15
@@ -1268,6 +1531,29 @@ async def main():
     a3_completed = 0
     loop_iteration = 0
 
+    # ── P7-PR4B: A2 / A3 aggregate telemetry state ─────────────────
+    # Trace-only / non-blocking. State, accumulator construction, and
+    # emission are all guarded so telemetry-path failures cannot alter
+    # A2 / A3 runtime decisions.
+    _p7pr4b_run_id = f"a23-{int(time.time())}-{os.getpid()}"
+    _p7pr4b_consumer_profile = _p7pr4b_safe_resolve_profile(
+        {
+            "consumer": "arena23_orchestrator",
+            "v10_entry_thr": _V10_ENTRY_THR,
+            "v10_exit_thr": _V10_EXIT_THR,
+            "v10_min_hold": _V10_MIN_HOLD,
+            "v10_cooldown": _V10_COOLDOWN,
+        },
+        profile_name="arena23_consumer",
+    )
+    _p7pr4b_a2_acc = None
+    _p7pr4b_a3_acc = None
+    _p7pr4b_a2_batch_seq = 0
+    _p7pr4b_a3_batch_seq = 0
+    _p7pr4b_a2_in_batch = 0
+    _p7pr4b_a3_in_batch = 0
+    _p7pr4b_log = _P7PR4BLogCapture(log)
+
     running = True
 
     def handle_sig(s, f):
@@ -1318,16 +1604,22 @@ async def main():
             champion = await pick_champion(db, "ARENA2_COMPLETE", "ARENA3_PROCESSING")
             if champion:
                 t0 = time.time()
+                _p7pr4b_a3_outcome = "ERROR"
+                _p7pr4b_a3_passport_raw = (
+                    champion.get("passport") if isinstance(champion, dict) else None
+                )
                 try:
-                    result = await process_arena3(champion, data_cache, cost_model, backtester, log)
+                    result = await process_arena3(champion, data_cache, cost_model, backtester, _p7pr4b_log)
                     if result is None:
                         await release_champion(db, champion["id"], "ARENA3_REJECTED", {
                             "passport_patch": {"arena3": {"error": "no_valid_atr_tp"}},
                         })
+                        _p7pr4b_a3_outcome = "REJECTED"
                     else:
                         status = result.pop("status")
                         await release_champion(db, champion["id"], status, result)
                         a3_completed += 1
+                        _p7pr4b_a3_outcome = "PASSED"
                     a3_processed += 1
                 except Exception as e:
                     log.error(f"A3 error id={champion['id']}: {e}\n{traceback.format_exc()}")
@@ -1339,6 +1631,35 @@ async def main():
                         await log_transition(db, champion["id"], "ARENA3_PROCESSING", "ARENA2_COMPLETE", worker_id=WORKER_ID, metadata={"reason": "error_rollback"})
                     except Exception as e:
                         log.debug(f"A3 error_rollback failed for champion {champion.get('id')}: {e}")
+                # ── P7-PR4B: telemetry update for A3 ──────────────────
+                try:
+                    if _P7PR4B_TELEMETRY_AVAILABLE:
+                        _passport_a3 = (
+                            json.loads(_p7pr4b_a3_passport_raw)
+                            if isinstance(_p7pr4b_a3_passport_raw, str)
+                            else _p7pr4b_a3_passport_raw
+                        )
+                        _raw_a3 = (
+                            None
+                            if _p7pr4b_a3_outcome != "REJECTED"
+                            else (_p7pr4b_log.consume_a3() or "no_valid_atr_tp")
+                        )
+                        _p7pr4b_a3_acc, _p7pr4b_a3_batch_seq, _p7pr4b_a3_in_batch = (
+                            _p7pr4b_a3_record(
+                                _passport_a3,
+                                outcome=_p7pr4b_a3_outcome,
+                                reject_reason=_raw_a3,
+                                acc=_p7pr4b_a3_acc,
+                                batch_seq=_p7pr4b_a3_batch_seq,
+                                in_batch=_p7pr4b_a3_in_batch,
+                                run_id=_p7pr4b_run_id,
+                                consumer_profile=_p7pr4b_consumer_profile,
+                                flush_size=_P7PR4B_BATCH_FLUSH_SIZE,
+                                log=log,
+                            )
+                        )
+                except Exception:
+                    pass
                 elapsed = time.time() - t0
                 if a3_processed <= 5 or a3_processed % 20 == 0:
                     log.info(f"A3 stats: processed={a3_processed} completed={a3_completed} ({elapsed:.1f}s)")
@@ -1348,6 +1669,8 @@ async def main():
             champion = await pick_champion(db, "ARENA1_COMPLETE", "ARENA2_PROCESSING")
             if champion:
                 t0 = time.time()
+                _p7pr4b_a2_outcome = "ERROR"
+                passport = None
                 try:
                     # Dedup check: skip if same indicator combo already exists at higher level
                     passport = json.loads(champion["passport"]) if isinstance(champion["passport"], str) else champion["passport"]
@@ -1357,22 +1680,44 @@ async def main():
                         })
                         a2_rejected += 1
                         a2_processed += 1
+                        # ── P7-PR4B: telemetry update for dedup-rejected ───
+                        try:
+                            if _P7PR4B_TELEMETRY_AVAILABLE:
+                                _p7pr4b_a2_acc, _p7pr4b_a2_batch_seq, _p7pr4b_a2_in_batch = (
+                                    _p7pr4b_a2_record(
+                                        passport,
+                                        outcome="REJECTED",
+                                        reject_reason="duplicate_indicator_combo",
+                                        acc=_p7pr4b_a2_acc,
+                                        batch_seq=_p7pr4b_a2_batch_seq,
+                                        in_batch=_p7pr4b_a2_in_batch,
+                                        run_id=_p7pr4b_run_id,
+                                        consumer_profile=_p7pr4b_consumer_profile,
+                                        flush_size=_P7PR4B_BATCH_FLUSH_SIZE,
+                                        log=log,
+                                    )
+                                )
+                        except Exception:
+                            pass
                         continue
 
-                    result = await process_arena2(champion, data_cache, cost_model, backtester, log)
+                    result = await process_arena2(champion, data_cache, cost_model, backtester, _p7pr4b_log)
                     if result is None:
                         await release_champion(db, champion["id"], "ARENA2_REJECTED", {
                             "passport_patch": {"arena2": {"error": "see_engine_log_for_reject_reason"}},
                         })
                         a2_rejected += 1
+                        _p7pr4b_a2_outcome = "REJECTED"
                     else:
                         improved, fields = result
                         status = fields.pop("status")
                         await release_champion(db, champion["id"], status, fields)
                         if improved:
                             a2_promoted += 1
+                            _p7pr4b_a2_outcome = "PASSED"
                         else:
                             a2_rejected += 1
+                            _p7pr4b_a2_outcome = "REJECTED"
                     a2_processed += 1
                 except Exception as e:
                     log.error(f"A2 error id={champion['id']}: {e}\n{traceback.format_exc()}")
@@ -1384,6 +1729,31 @@ async def main():
                         await log_transition(db, champion["id"], "ARENA2_PROCESSING", "ARENA1_COMPLETE", worker_id=WORKER_ID, metadata={"reason": "error_rollback"})
                     except Exception as e:
                         log.debug(f"A2 error_rollback failed for champion {champion.get('id')}: {e}")
+                    _p7pr4b_a2_outcome = "ERROR"
+                # ── P7-PR4B: telemetry update for normal A2 path ──────
+                try:
+                    if _P7PR4B_TELEMETRY_AVAILABLE:
+                        _raw_a2 = (
+                            None
+                            if _p7pr4b_a2_outcome != "REJECTED"
+                            else (_p7pr4b_log.consume_a2() or "see_engine_log_for_reject_reason")
+                        )
+                        _p7pr4b_a2_acc, _p7pr4b_a2_batch_seq, _p7pr4b_a2_in_batch = (
+                            _p7pr4b_a2_record(
+                                passport,
+                                outcome=_p7pr4b_a2_outcome,
+                                reject_reason=_raw_a2,
+                                acc=_p7pr4b_a2_acc,
+                                batch_seq=_p7pr4b_a2_batch_seq,
+                                in_batch=_p7pr4b_a2_in_batch,
+                                run_id=_p7pr4b_run_id,
+                                consumer_profile=_p7pr4b_consumer_profile,
+                                flush_size=_P7PR4B_BATCH_FLUSH_SIZE,
+                                log=log,
+                            )
+                        )
+                except Exception:
+                    pass
                 elapsed = time.time() - t0
                 if a2_processed <= 5 or a2_processed % 20 == 0:
                     log.info(f"A2 stats: processed={a2_processed} promoted={a2_promoted} rejected={a2_rejected} ({elapsed:.1f}s)")
@@ -1409,6 +1779,25 @@ async def main():
             await _event_queue.close()
         except Exception as e:
             log.warning(f"A23 PGQueuer close error: {e}")
+
+    # ── P7-PR4B: flush any remaining A2 / A3 batch accumulators ────
+    # Trace-only / non-blocking. Failures are silenced.
+    try:
+        if _P7PR4B_TELEMETRY_AVAILABLE and _p7pr4b_a2_acc is not None:
+            _p7pr4b_safe_emit_a2(
+                _p7pr4b_a2_acc, deployable_count=None, log=log
+            )
+            _p7pr4b_a2_acc = None
+    except Exception:
+        pass
+    try:
+        if _P7PR4B_TELEMETRY_AVAILABLE and _p7pr4b_a3_acc is not None:
+            _p7pr4b_safe_emit_a3(
+                _p7pr4b_a3_acc, deployable_count=None, log=log
+            )
+            _p7pr4b_a3_acc = None
+    except Exception:
+        pass
 
     await db.close()
     log.info(
