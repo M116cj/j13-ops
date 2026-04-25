@@ -589,9 +589,13 @@ def test_allocator_not_imported_by_execution_runtime():
 
 
 def test_allocator_output_not_consumed_by_generation_runtime():
-    # No runtime file references DryRunBudgetAllocation / allocate_dry_run_budget.
+    # No runtime / Arena / execution module references the allocator
+    # output. The 0-9R-IMPL-DRY consumer (`feedback_budget_consumer.py`)
+    # is the single legitimate downstream and is itself dry-run only —
+    # it is allow-listed below. All other modules must remain clean.
+    allowed = {"feedback_budget_allocator.py", "feedback_budget_consumer.py"}
     for path in _SERVICES_DIR.glob("*.py"):
-        if path.name == "feedback_budget_allocator.py":
+        if path.name in allowed:
             continue
         text = path.read_text(encoding="utf-8")
         assert "DryRunBudgetAllocation" not in text, (
