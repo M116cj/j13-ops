@@ -1,0 +1,198 @@
+{
+  "investigation_id": "0-9w-cost-threshold-horizon-calibration-diagnosis",
+  "total_cells": 405,
+  "evaluation_axes": {
+    "formula_count": 5,
+    "symbol_count": 3,
+    "cost_levels": [
+      "0",
+      "0.5x",
+      "1.0x"
+    ],
+    "entry_thresholds": [
+      0.6,
+      0.7,
+      0.8
+    ],
+    "max_holds": [
+      120,
+      360,
+      720
+    ]
+  },
+  "survivor_criteria": {
+    "val_pnl_gt": 0,
+    "val_sharpe_gte": 0.3,
+    "val_trades_gte": 15
+  },
+  "aggregate_by_cost": {
+    "0": {
+      "total": 135,
+      "survivors": 63,
+      "val_pos": 93
+    },
+    "0.5x": {
+      "total": 135,
+      "survivors": 8,
+      "val_pos": 12
+    },
+    "1.0x": {
+      "total": 135,
+      "survivors": 0,
+      "val_pos": 0
+    }
+  },
+  "survivors_per_formula": {
+    "sign_x(delta_20(close))": 3,
+    "neg(sub(close, scale(close)))": 22,
+    "protected_div(sub(vwap_20, close), add(vwap_20, close))": 16,
+    "delta_20(bollinger_bw_20)": 15,
+    "neg(protected_div(delta_20(close), close))": 15
+  },
+  "survivors_per_symbol": {
+    "ETHUSDT": 19,
+    "BTCUSDT": 23,
+    "SOLUSDT": 29
+  },
+  "survivors_per_combo_with_cost_gt_0": [
+    {
+      "cost": "0.5x",
+      "formula": "neg(sub(close, scale(close)))",
+      "symbol": "SOLUSDT",
+      "cells": 6,
+      "best_val_pnl": 0.12751852244392087
+    },
+    {
+      "cost": "0.5x",
+      "formula": "protected_div(sub(vwap_20, close), add(vwap_20, close))",
+      "symbol": "SOLUSDT",
+      "cells": 2,
+      "best_val_pnl": 0.06798220746206182
+    }
+  ],
+  "verdict": "DIAGNOSED_CALIBRATION_REQUIRED_SURVIVORS_FOUND",
+  "verdict_case": "D",
+  "next_order": "TEAM ORDER 0-9W-CALIBRATION-CANDIDATE-REVIEW",
+  "top_10_cells_by_val_pnl": [
+    {
+      "formula": "neg(sub(close, scale(close)))",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.7,
+      "max_hold": 120,
+      "train_pnl": 0.24808557828464514,
+      "train_trades": 1081,
+      "val_pnl": 0.3720750508786732,
+      "val_trades": 463,
+      "val_sharpe": 1.9601870160453765
+    },
+    {
+      "formula": "neg(sub(close, scale(close)))",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.6,
+      "max_hold": 120,
+      "train_pnl": 0.21007729933471683,
+      "train_trades": 1130,
+      "val_pnl": 0.33937299177515995,
+      "val_trades": 482,
+      "val_sharpe": 1.7693193014391586
+    },
+    {
+      "formula": "neg(sub(close, scale(close)))",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.7,
+      "max_hold": 360,
+      "train_pnl": 0.13407962212160476,
+      "train_trades": 790,
+      "val_pnl": 0.32255714519841183,
+      "val_trades": 340,
+      "val_sharpe": 1.7745023952562327
+    },
+    {
+      "formula": "neg(sub(close, scale(close)))",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.7,
+      "max_hold": 720,
+      "train_pnl": 0.017444812671525894,
+      "train_trades": 772,
+      "val_pnl": 0.30998179227801237,
+      "val_trades": 333,
+      "val_sharpe": 1.7663450354237982
+    },
+    {
+      "formula": "protected_div(sub(vwap_20, close), add(vwap_20, cl",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.6,
+      "max_hold": 120,
+      "train_pnl": -0.19890471500173562,
+      "train_trades": 1129,
+      "val_pnl": 0.30281803193354245,
+      "val_trades": 477,
+      "val_sharpe": 1.6538727115109155
+    },
+    {
+      "formula": "neg(sub(close, scale(close)))",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.6,
+      "max_hold": 360,
+      "train_pnl": 0.04299467013185601,
+      "train_trades": 837,
+      "val_pnl": 0.3000032900038023,
+      "val_trades": 356,
+      "val_sharpe": 1.6815687712092204
+    },
+    {
+      "formula": "neg(sub(close, scale(close)))",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.6,
+      "max_hold": 720,
+      "train_pnl": -0.006691038379610832,
+      "train_trades": 821,
+      "val_pnl": 0.29075448467000853,
+      "val_trades": 349,
+      "val_sharpe": 1.6211474923771707
+    },
+    {
+      "formula": "protected_div(sub(vwap_20, close), add(vwap_20, cl",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.7,
+      "max_hold": 120,
+      "train_pnl": 0.10938133476092166,
+      "train_trades": 1077,
+      "val_pnl": 0.2851787710741536,
+      "val_trades": 459,
+      "val_sharpe": 1.5135625563639317
+    },
+    {
+      "formula": "protected_div(sub(vwap_20, close), add(vwap_20, cl",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.7,
+      "max_hold": 360,
+      "train_pnl": -0.02406204422367819,
+      "train_trades": 792,
+      "val_pnl": 0.2620797124520818,
+      "val_trades": 339,
+      "val_sharpe": 1.5880446730561328
+    },
+    {
+      "formula": "protected_div(sub(vwap_20, close), add(vwap_20, cl",
+      "symbol": "SOLUSDT",
+      "cost_label": "0",
+      "entry_thr": 0.6,
+      "max_hold": 360,
+      "train_pnl": -0.36583244211463994,
+      "train_trades": 840,
+      "val_pnl": 0.2578707563593171,
+      "val_trades": 357,
+      "val_sharpe": 1.6145791293127163
+    }
+  ]
+}
