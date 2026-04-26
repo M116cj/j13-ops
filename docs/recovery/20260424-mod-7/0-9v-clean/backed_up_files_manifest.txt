@@ -1,0 +1,9 @@
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/calcifer/deploy_block_state.json
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/calcifer/maintenance_last.json
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/calcifer/maintenance.log
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/calcifer/report_state.json
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/docs/governance/snapshots/2026-04-24T221219Z-pre-p7-pr4b.json
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/zangetsu/services/arena23_orchestrator.py
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/zangetsu/services/arena_pass_rate_telemetry.py
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/zangetsu/services/generation_profile_metrics.py
+/home/j13/alaya-wip-backup-0-9v-clean-20260426T060553Z/zangetsu/tests/test_a2_a3_arena_batch_metrics.py
