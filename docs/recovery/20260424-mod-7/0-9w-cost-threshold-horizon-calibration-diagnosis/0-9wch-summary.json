@@ -1,0 +1,10 @@
+{
+  "elapsed_sec": 29.6,
+  "phase1_cost_evals": 75,
+  "phase2_threshold_evals": 75,
+  "phase3_horizon_evals": 75,
+  "phase4_sanity_evals": 30,
+  "phase5_signal_diagnostics": 3,
+  "phase7_matrix_cells": 405,
+  "total_evaluations": 663
+}
