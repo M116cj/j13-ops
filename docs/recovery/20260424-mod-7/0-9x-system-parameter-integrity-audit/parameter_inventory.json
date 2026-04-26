@@ -1,0 +1,142 @@
+{
+  "investigation_id": "0-9x-system-parameter-integrity-audit",
+  "audit_timestamp_utc": "2026-04-26T17:28:29Z",
+  "a1_generation": {
+    "N_GEN": {
+      "expected": 20,
+      "source_default": 20,
+      "env": null,
+      "effective": 20
+    },
+    "POP_SIZE": {
+      "expected": 100,
+      "source_default": 100,
+      "env": null,
+      "effective": 100
+    },
+    "TOP_K": {
+      "expected": 10,
+      "source_default": 10,
+      "env": null,
+      "effective": 10
+    },
+    "symbol_universe_count": 14,
+    "indicator_terminals": 126,
+    "operators": 35
+  },
+  "signal": {
+    "ENTRY_THR": 0.8,
+    "EXIT_THR": 0.5,
+    "MIN_HOLD": 60,
+    "COOLDOWN": 60,
+    "rank_window": 500
+  },
+  "validation": {
+    "TRAIN_SPLIT_RATIO": 0.7,
+    "gates_active": [
+      "val_constant",
+      "val_error",
+      "val_few_trades(<15)",
+      "val_neg_pnl(<=0)",
+      "val_low_sharpe(<0.3)",
+      "val_low_wr(<0.52)"
+    ],
+    "gates_missing": [
+      "train_pnl>0",
+      "combined_sharpe>=0.4",
+      "cross_symbol_consistency>=2/3"
+    ]
+  },
+  "cost": {
+    "stable_tier_round_trip_bps": 11.5,
+    "diversified_tier_round_trip_bps": 14.5,
+    "highvol_tier_round_trip_bps": 23.0,
+    "funding_8h_avg_bps_flat_per_RT": 1.0
+  },
+  "horizon": {
+    "MAX_HOLD_BARS_j01": 120,
+    "MAX_HOLD_BARS_j02": 120,
+    "ALPHA_FORWARD_HORIZON": 60
+  },
+  "arena": {
+    "A2_MIN_TRADES": 25,
+    "A2_MIN_TOTAL_PNL_j01": 0.0,
+    "A3_SEGMENTS": 5,
+    "A3_MIN_TRADES_PER_SEGMENT": 15,
+    "A3_WR_FLOOR": 0.45,
+    "A4_REGIME_WR_FLOOR": 0.4,
+    "A5_WINDOW_DAYS": 14
+  },
+  "db_schema": {
+    "tables_present": [
+      "champion_pipeline",
+      "paper_trades",
+      "pipeline_audit_log",
+      "pipeline_state",
+      "trade_journal"
+    ],
+    "tables_missing": [
+      "champion_pipeline_fresh",
+      "champion_pipeline_staging",
+      "champion_pipeline_rejected",
+      "champion_legacy_archive",
+      "engine_telemetry",
+      "champion_pipeline_v9"
+    ],
+    "functions_missing": [
+      "admission_validator(BIGINT)"
+    ],
+    "triggers_missing": [
+      "fresh_insert_guard",
+      "archive_readonly_triggers"
+    ],
+    "session_vars_missing": [
+      "zangetsu.admission_active"
+    ],
+    "champion_pipeline_row_count": 0,
+    "champion_pipeline_relkind": "r (TABLE \u2014 should be VIEW per v0.7.1)"
+  },
+  "env_vars": {
+    "present": [
+      "BINANCE_API_KEY",
+      "BINANCE_SECRET_KEY",
+      "ZV5_DB_PASSWORD"
+    ],
+    "override_keys_set": [],
+    "override_risk": "NONE"
+  },
+  "governance": {
+    "branch_protection": {
+      "enforce_admins": true,
+      "required_signatures": true,
+      "required_linear_history": true,
+      "allow_force_pushes": false,
+      "allow_deletions": false
+    },
+    "workflows_present": [
+      "module-migration-gate.yml",
+      "phase-7-gate.yml"
+    ],
+    "signed_commits": true
+  },
+  "cold_start_tools": {
+    "alpha_zoo_injection": {
+      "dry_run": "unimplemented",
+      "validator_dep_missing": true,
+      "class": "TOOL_REQUIRES_SAFETY_REFACTOR"
+    },
+    "seed_101_alphas": {
+      "class": "TOOL_DEPRECATED_BLOCKED"
+    },
+    "seed_101_alphas_batch2": {
+      "class": "TOOL_DEPRECATED_BLOCKED"
+    },
+    "factor_zoo": {
+      "class": "TOOL_DEPRECATED_BLOCKED"
+    },
+    "alpha_discovery": {
+      "class": "TOOL_REQUIRES_SAFETY_REFACTOR",
+      "concern": "DEPRECATED guard but cron-running every 30 min"
+    }
+  }
+}

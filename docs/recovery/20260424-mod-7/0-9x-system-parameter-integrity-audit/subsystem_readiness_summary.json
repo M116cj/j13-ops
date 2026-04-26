@@ -1,0 +1,75 @@
+{
+  "audit_id": "0-9x-system-parameter-integrity-audit",
+  "final_status": "SYSTEM_PARAMETERS_RED_BLOCK_COLD_START",
+  "subsystems": {
+    "runtime_services": {
+      "verdict": "RUNTIME_PARAMETERS_OK",
+      "severity": "YELLOW",
+      "cold_start_blocker": false
+    },
+    "environment_secrets": {
+      "verdict": "ENV_OK",
+      "severity": "GREEN",
+      "cold_start_blocker": false
+    },
+    "a1_generation": {
+      "verdict": "A1_GENERATION_PARAMS_OK + UNDOCUMENTED",
+      "severity": "YELLOW",
+      "cold_start_blocker": false
+    },
+    "signal_to_trade": {
+      "verdict": "SIGNAL_PARAMS_OK",
+      "severity": "GREEN",
+      "cold_start_blocker": false
+    },
+    "backtest_validation": {
+      "verdict": "VALIDATION_CONTRACT_TOO_WEAK",
+      "severity": "RED",
+      "cold_start_blocker": true
+    },
+    "cost_horizon": {
+      "verdict": "NO_DRIFT (minor funding bias)",
+      "severity": "GREEN",
+      "cold_start_blocker": false
+    },
+    "arena_thresholds": {
+      "verdict": "ARENA_PARAMS_OK",
+      "severity": "GREEN",
+      "cold_start_blocker": false
+    },
+    "arena_telemetry": {
+      "verdict": "ARENA_TELEMETRY_RISK",
+      "severity": "YELLOW",
+      "cold_start_blocker": false
+    },
+    "db_schema_session": {
+      "verdict": "DB_STALE_STATE + DB_VIEW_RISK + ADMISSION_SETTING_RISK",
+      "severity": "CRITICAL",
+      "cold_start_blocker": true
+    },
+    "telemetry": {
+      "verdict": "TELEMETRY_MISSING_EXPECTED",
+      "severity": "YELLOW",
+      "cold_start_blocker": false
+    },
+    "cold_start_tooling": {
+      "verdict": "TOOL_REQUIRES_SAFETY_REFACTOR",
+      "severity": "YELLOW",
+      "cold_start_blocker": true
+    },
+    "governance": {
+      "verdict": "GOVERNANCE_OK",
+      "severity": "GREEN",
+      "cold_start_blocker": false
+    }
+  },
+  "cold_start_blockers": {
+    "B1": "Apply v0.7.1 governance migration to live Postgres",
+    "B2": "Implement train_pnl + combined_sharpe + cross_symbol gates",
+    "B3": "Make alpha_zoo_injection.py safe (dry-run + validator guard)",
+    "B4": "Investigate A1 reject distribution drift (COUNTER_INCONSISTENCY/COST_NEGATIVE)",
+    "B5": "Resolve alpha_discovery.py cron-DEPRECATED conflict"
+  },
+  "recommended_next_order": "TEAM ORDER 0-9X-DB-MIGRATION-AND-VAL-FILTER-CONTRACT-UPGRADE",
+  "forbidden_ops_total": 0
+}
