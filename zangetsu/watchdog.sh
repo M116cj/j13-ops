@@ -1,4 +1,12 @@
 #!/bin/bash
+# Load local runtime secrets for cron-launched workers.
+# File is local-only, not committed, and must not be printed.
+if [ -f "$HOME/.env.global" ]; then
+  set -a
+  . "$HOME/.env.global"
+  set +a
+fi
+
 # Watchdog — checks each service independently, restarts only the dead one
 # Install: crontab -e → */5 * * * * ~/j13-ops/zangetsu/watchdog.sh >> /tmp/zangetsu_watchdog.log 2>&1
 #
