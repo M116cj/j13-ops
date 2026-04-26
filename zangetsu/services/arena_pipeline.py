@@ -905,6 +905,13 @@ async def main():
             continue
 
         round_champions = 0
+        # 0-9W-A1-PB-SCOPE-FIX: initialize _pb to None so the per-round
+        # batch metrics emit at line 1218 (getattr(_pb, "run_id", "") or "")
+        # never raises UnboundLocalError when no candidate in this round
+        # passes the 9-stage val-filter chain (lines 950-1100). Existing
+        # line 1116 _pb = _get_or_build_provenance(...) overwrites this
+        # default whenever a candidate reaches the INSERT block.
+        _pb = None
         for alpha_result in alphas:
             stats["alphas_evaluated"] += 1
 
