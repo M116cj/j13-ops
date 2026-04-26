@@ -1,0 +1,23 @@
+{
+  "baseline_status": "INSUFFICIENT_BASELINE",
+  "baseline_source": "no usable post-CANARY-activation telemetry available at PR time",
+  "baseline_rounds": 0,
+  "baseline_profiles": 0,
+  "baseline_time_start": "",
+  "baseline_time_end": "",
+  "baseline_signal_too_sparse_rate": null,
+  "baseline_a2_pass_rate": null,
+  "baseline_a3_pass_rate": null,
+  "baseline_oos_fail_rate": null,
+  "baseline_unknown_reject_rate": null,
+  "baseline_deployable_count": null,
+  "baseline_deployable_density": null,
+  "baseline_composite_score": null,
+  "baseline_limitations": [
+    "engine.jsonl.1 is from 2026-04-16 (pre-P7-PR4B); contains 14213 lines but 0 arena_batch_metrics events",
+    "0-9j_canary_redacted_event_sample.jsonl has 6 events explicitly marked _canary_note: redacted: PnL / sharpe numerics stripped",
+    "0-9k_lifecycle_reconstruction_sample.jsonl has 7 lifecycle records explicitly marked provenance_quality: PARTIAL",
+    "p7_pr1_shadow_raw_event_sample.jsonl has 10 pre-CANARY shadow events (P7-PR1 era, before sparse_canary_observer existed)",
+    "no production telemetry feed exists locally; production telemetry lives on Alaya behind 0-9P passport persistence which has not yet generated post-merge data"
+  ]
+}
