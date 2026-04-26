@@ -1,0 +1,91 @@
+{
+  "investigation_id": "0-9w-calibration-candidate-review",
+  "order_status": "REVIEW_REJECTS_SURVIVORS_AS_ARTIFACT",
+  "source_order": "0-9w-cost-threshold-horizon-calibration-diagnosis",
+  "source_pr": 40,
+  "source_pr_status": "merged",
+  "phases": {
+    "01_inventory": {
+      "total_survivors": 71,
+      "cost_0": 63,
+      "cost_0_5x": 8,
+      "cost_1_0x": 0
+    },
+    "02_economic_realism": "COST_0_5X_OPTIMISTIC_BUT_PLAUSIBLE + COST_MODEL_NEEDS_EXECUTION_SPLIT",
+    "03_robustness": {
+      "all_8_classify_as": "SINGLE_SYMBOL_ARTIFACT",
+      "mean_score": 2.6,
+      "robust_count": 0,
+      "fragile_count": 0
+    },
+    "04_risk": "CALIBRATION_CHANGE_HIGH_RISK + CALIBRATION_CHANGE_BLOCKED",
+    "05_options": {
+      "rejected": [
+        "A"
+      ],
+      "recommended": [
+        "E",
+        "F"
+      ],
+      "parallel_track": [
+        "G"
+      ],
+      "defer": [
+        "B",
+        "C",
+        "D"
+      ]
+    },
+    "06_recommendation": {
+      "primary": "R5",
+      "secondary": [
+        "R6",
+        "R4"
+      ]
+    },
+    "07_governance": "GOVERNANCE_PASS"
+  },
+  "best_survivor_at_cost_gt_0": {
+    "formula": "neg(sub(close, scale(close)))",
+    "symbol": "SOLUSDT",
+    "cost_label": "0.5x",
+    "entry_thr": 0.7,
+    "max_hold": 360,
+    "train_pnl": -0.3182,
+    "val_pnl": 0.1275,
+    "val_sharpe": 0.7,
+    "val_trades": 340,
+    "classification": "SINGLE_SYMBOL_ARTIFACT",
+    "cross_symbol_at_0_5x": {
+      "BTCUSDT": -0.0722,
+      "ETHUSDT": -0.1617,
+      "SOLUSDT": 0.1275
+    }
+  },
+  "critical_blockers": {
+    "B1_maker_fill_measurement": "absent \u2014 required before cost reduction",
+    "B2_multi_symbol_gate": "absent \u2014 required before tightened validation",
+    "B3_combined_sharpe_gate": "absent \u2014 required to filter train-val divergent artifacts"
+  },
+  "no_go_conditions_for_calibration": {
+    "NG1": "Maker order routing exists with per-symbol fill rate measurement",
+    "NG2": "Combined train+val Sharpe gate active",
+    "NG3": "Cross-symbol consistency gate active",
+    "NG4": "Expanded matrix shows >=3 ROBUST_CANDIDATE cells under tightened gates",
+    "NG5": ">=2 candidates on different symbols with positive train AND val PnL"
+  },
+  "next_order": "TEAM ORDER 0-9X-VAL-FILTER-CONTRACT-UPGRADE-AND-EXPANDED-CALIBRATION-MATRIX",
+  "block_status": {
+    "alpha_zoo_injection": "BLOCKED",
+    "live_canary": "BLOCKED",
+    "runtime_calibration_change": "BLOCKED until NG1-NG5 met"
+  },
+  "safety": {
+    "source_changes": 0,
+    "schema_changes": 0,
+    "db_writes": 0,
+    "alpha_injection": 0,
+    "threshold_changes": 0,
+    "forbidden_ops_total": 0
+  }
+}
