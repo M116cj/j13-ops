@@ -1,0 +1,155 @@
+{
+  "audit_id": "0-9x-system-parameter-integrity-audit",
+  "severity_summary": {
+    "CRITICAL": 9,
+    "HIGH": 5,
+    "MEDIUM": 2,
+    "LOW": 2
+  },
+  "rows": [
+    {
+      "param": "champion_pipeline_fresh",
+      "category": "db_schema",
+      "expected": "TABLE per v0.7.1",
+      "current": "MISSING",
+      "drift": "MISSING_VALUE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "champion_pipeline_staging",
+      "category": "db_schema",
+      "expected": "TABLE per v0.7.1",
+      "current": "MISSING",
+      "drift": "MISSING_VALUE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "champion_pipeline_rejected",
+      "category": "db_schema",
+      "expected": "TABLE per v0.7.1",
+      "current": "MISSING",
+      "drift": "MISSING_VALUE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "champion_legacy_archive",
+      "category": "db_schema",
+      "expected": "TABLE per v0.7.1",
+      "current": "MISSING",
+      "drift": "MISSING_VALUE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "engine_telemetry",
+      "category": "db_schema",
+      "expected": "TABLE per v0.7.1",
+      "current": "MISSING",
+      "drift": "MISSING_VALUE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "admission_validator()",
+      "category": "db_schema",
+      "expected": "function per v0.7.1",
+      "current": "MISSING",
+      "drift": "MISSING_VALUE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "fresh_insert_guard",
+      "category": "db_schema",
+      "expected": "trigger per v0.7.1",
+      "current": "MISSING",
+      "drift": "MISSING_VALUE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "zangetsu.admission_active",
+      "category": "db_schema",
+      "expected": "session var per v0.7.1",
+      "current": "MISSING",
+      "drift": "MISSING_VALUE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "champion_pipeline class",
+      "category": "db_schema",
+      "expected": "VIEW (or renamed to legacy_archive)",
+      "current": "still TABLE",
+      "drift": "DB_STALE_STATE",
+      "severity": "CRITICAL"
+    },
+    {
+      "param": "train_pnl > 0 gate",
+      "category": "validation",
+      "expected": "present per PR #41 NG2",
+      "current": "absent",
+      "drift": "MISSING_VALUE",
+      "severity": "HIGH"
+    },
+    {
+      "param": "combined_sharpe gate",
+      "category": "validation",
+      "expected": "present per PR #41 NG2",
+      "current": "absent",
+      "drift": "MISSING_VALUE",
+      "severity": "HIGH"
+    },
+    {
+      "param": "cross_symbol_consistency gate",
+      "category": "validation",
+      "expected": "present per PR #41 NG3",
+      "current": "absent",
+      "drift": "MISSING_VALUE",
+      "severity": "HIGH"
+    },
+    {
+      "param": "alpha_zoo_injection safety",
+      "category": "cold_start_tooling",
+      "expected": "dry-run+validator-gated",
+      "current": "unimplemented dry-run; validator missing",
+      "drift": "MISSING_VALUE",
+      "severity": "HIGH"
+    },
+    {
+      "param": "deployable_count materialization",
+      "category": "arena",
+      "expected": "derived from champion_pipeline_fresh",
+      "current": "broken (table missing)",
+      "drift": "MISSING_VALUE",
+      "severity": "HIGH"
+    },
+    {
+      "param": "A1 reject distribution",
+      "category": "a1_generation",
+      "expected": "val_neg_pnl dominant per prior orders",
+      "current": "COUNTER_INCONSISTENCY 50% + COST_NEGATIVE 50%",
+      "drift": "UNDOCUMENTED_DRIFT",
+      "severity": "MEDIUM"
+    },
+    {
+      "param": "alpha_discovery cron",
+      "category": "cold_start_tooling",
+      "expected": "either active and useful OR fully disabled",
+      "current": "DEPRECATED guard but cron-running */30 min",
+      "drift": "CONFLICTING_SOURCES",
+      "severity": "MEDIUM"
+    },
+    {
+      "param": "mutation/crossover rates",
+      "category": "a1_generation",
+      "expected": "documented",
+      "current": "AlphaEngine internal, unknown",
+      "drift": "UNKNOWN",
+      "severity": "LOW"
+    },
+    {
+      "param": "funding_8h_avg_bps modeling",
+      "category": "cost",
+      "expected": "hold-duration weighted",
+      "current": "flat per RT",
+      "drift": "EXPECTED_CHANGE (caveat: ~0.75 bps over-count)",
+      "severity": "LOW"
+    }
+  ]
+}
