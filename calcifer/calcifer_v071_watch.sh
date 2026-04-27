@@ -100,3 +100,69 @@ cat > "$out" <<EOF
   }
 }
 EOF
+
+# ============================================================
+# 0-9Y-B3: §17.3 outcome-watch deploy_block writer (NULL-safe).
+# ------------------------------------------------------------
+# Reads zangetsu_status VIEW and evaluates the deploy-block predicate
+# under NULL-safe semantics. The original §17.3 spec said
+# "deployable_count==0 AND last_live_at_age_h>6 → RED" which silently
+# fails for cold-start (last_live_at_age_h IS NULL): NULL > 6 = NULL,
+# not TRUE, so the predicate never fires and Calcifer never goes RED
+# during the 30+ day cold-start observed since project init.
+#
+# This patch handles the cold-start case explicitly by introducing a
+# third state UNKNOWN_BLOCKED. Both RED and UNKNOWN_BLOCKED block any
+# `feat(<proj>/vN)` commit per §17.3 enforcement; the distinction is
+# informational (post-mortem can tell cold-start from regression).
+#
+# State transitions:
+#   deployable_count > 0                                 → no file (recovers GREEN)
+#   dc = 0 AND last_live_at_age_h IS NULL               → UNKNOWN_BLOCKED (cold-start)
+#   dc = 0 AND last_live_at_age_h > 6                    → RED            (regression)
+#   dc = 0 AND last_live_at_age_h ≤ 6                    → no file (recovery window)
+# ============================================================
+DEPLOY_BLOCK_FILE=/tmp/calcifer_deploy_block.json
+
+if [ "$WORKER_UP" -eq -1 ]; then
+    # workers not running — leave deploy_block file untouched (consistent
+    # with process-side NOT_RUNNING semantics; do not judge).
+    :
+else
+    status_row=$(PSQL "SELECT COALESCE(deployable_count,0), last_live_at_age_h FROM zangetsu_status")
+    IFS="|" read -r DEPLOYABLE_COUNT LAST_LIVE_AGE <<< "${status_row:-0|}"
+
+    if [ "${DEPLOYABLE_COUNT:-0}" -gt 0 ]; then
+        rm -f "$DEPLOY_BLOCK_FILE" 2>/dev/null
+    elif [ -z "${LAST_LIVE_AGE:-}" ]; then
+        cat > "$DEPLOY_BLOCK_FILE" <<JSON
+{
+  "status": "UNKNOWN_BLOCKED",
+  "iso": "$TS",
+  "reason": "cold_start_no_live_champion_ever",
+  "deployable_count": 0,
+  "last_live_at_age_h": null,
+  "predicate": "0-9Y-B3-NULL-SAFE",
+  "writer": "calcifer_v071_watch.sh"
+}
+JSON
+    else
+        # Numeric comparison via awk (bash cannot compare floats portably).
+        age_gt_6=$(awk -v a="${LAST_LIVE_AGE:-0}" 'BEGIN { print (a > 6.0) ? 1 : 0 }')
+        if [ "$age_gt_6" = "1" ]; then
+            cat > "$DEPLOY_BLOCK_FILE" <<JSON
+{
+  "status": "RED",
+  "iso": "$TS",
+  "reason": "deployable_count_zero_for_more_than_6h",
+  "deployable_count": 0,
+  "last_live_at_age_h": ${LAST_LIVE_AGE:-0},
+  "predicate": "0-9Y-B3-NULL-SAFE",
+  "writer": "calcifer_v071_watch.sh"
+}
+JSON
+        else
+            rm -f "$DEPLOY_BLOCK_FILE" 2>/dev/null
+        fi
+    fi
+fi
