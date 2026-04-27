@@ -292,3 +292,22 @@ def test_worker_process_alive_uses_proc_environ_for_a1():
         r"pgrep\s+-fa\s+arena_pipeline\.py.*\|\s*grep\s+-qE",
         body, re.DOTALL,
     ), "worker_process_alive must not match A1_WORKER_ID via cmdline grep"
+
+
+# ---------- Regression: minute arithmetic must force base-10 ----------
+
+def test_periodic_health_log_minute_uses_base10():
+    """`minute=$(date +%M)` returns zero-padded values like '08' and '09'.
+    Bash arithmetic treats those as octal → 'value too great for base'.
+    The modulo on $minute must use the 10# prefix to force decimal."""
+    text = _watchdog_text()
+    block = re.search(
+        r"date \+%M.*?fi\b",
+        text, re.DOTALL,
+    )
+    assert block is not None, "periodic health log block not found"
+    body = block.group(0)
+    assert "10#" in body, (
+        "minute arithmetic must use 10# prefix to avoid octal interpretation "
+        "of zero-padded minutes (08, 09, etc.)."
+    )
