@@ -1,0 +1,10 @@
+{
+  "verdict": "A1_REVERIFY_BLOCKED_BY_COLD_BOOT_GAP",
+  "a1_workers_alive": 0,
+  "a23_alive": 0,
+  "a45_alive": 0,
+  "watchdog_cron": "running",
+  "watchdog_limitation": "cannot cold-boot when /tmp lock files are missing",
+  "schema_compat_test_deferred": true,
+  "next_order": "TEAM ORDER 0-9X-POST-DB-COLD-BOOT-RECOVERY"
+}

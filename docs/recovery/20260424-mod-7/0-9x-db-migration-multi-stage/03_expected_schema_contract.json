@@ -1,0 +1,19 @@
+{
+  "migration_files": [
+    "bootstrap_pre_v04.sql",
+    "v0.3.0_v9_view.sql",
+    "v0.4.0_v2_constraints.sql",
+    "v0.6.0_deployable_tier.sql",
+    "v0.7.0_strategy_id.sql",
+    "v0.7.1_governance.sql"
+  ],
+  "execution_order": [
+    "bootstrap",
+    "v0.3.0",
+    "v0.4.0",
+    "v0.6.0",
+    "v0.7.0",
+    "v0.7.1",
+    "post-migration champion_pipeline VIEW"
+  ]
+}

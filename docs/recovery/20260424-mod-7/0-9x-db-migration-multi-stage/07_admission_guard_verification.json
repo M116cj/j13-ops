@@ -1,0 +1,8 @@
+{
+  "verdict": "ADMISSION_GUARD_PASS",
+  "fresh_insert_guard_blocks_direct_insert": true,
+  "archive_readonly_trigger_blocks_modification": true,
+  "admission_validator_callable": true,
+  "admission_validator_0_returns": "not_found_or_already_processed",
+  "test_db_pre_existing_failure_explained": true
+}

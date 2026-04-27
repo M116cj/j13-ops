@@ -1,0 +1,10 @@
+{
+  "a2_min_trades": 25,
+  "a2_min_trades_locations": 5,
+  "deployable_count_changes": 0,
+  "champion_promotion_changes": 0,
+  "apply_mode_changes": 0,
+  "execution_capital_risk_changes": 0,
+  "source_code_changes": 0,
+  "verdict": "BOUNDARY_AUDIT_PASS"
+}

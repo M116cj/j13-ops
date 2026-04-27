@@ -1,0 +1,11 @@
+{
+  "classification": "EXPLAINED_DOCS_AND_MIGRATION_ASSET",
+  "evidence_files": 16,
+  "json_artifacts": 14,
+  "schema_assets": 2,
+  "source_changes": 0,
+  "threshold_changes": 0,
+  "config_changes": 0,
+  "forbidden_diffs": 0,
+  "verdict": "CONTROLLED_DIFF_PASS"
+}

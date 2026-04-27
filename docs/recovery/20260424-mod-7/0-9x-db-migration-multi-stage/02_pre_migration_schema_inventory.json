@@ -1,0 +1,29 @@
+{
+  "current_schema_level": "pre-v0.4",
+  "tables_present": [
+    "champion_pipeline",
+    "paper_trades",
+    "pipeline_audit_log",
+    "pipeline_state",
+    "trade_journal"
+  ],
+  "champion_pipeline_columns": 14,
+  "champion_pipeline_rows": 0,
+  "missing_tables": [
+    "champion_pipeline_staging",
+    "champion_pipeline_fresh",
+    "champion_pipeline_rejected",
+    "champion_legacy_archive",
+    "engine_telemetry"
+  ],
+  "missing_functions": [
+    "admission_validator",
+    "archive_readonly_trigger",
+    "fresh_insert_guard"
+  ],
+  "missing_triggers": 4,
+  "missing_views": 9,
+  "session_vars_missing": [
+    "zangetsu.admission_active"
+  ]
+}

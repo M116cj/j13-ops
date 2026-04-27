@@ -1,0 +1,7 @@
+{
+  "dry_run_via": "transaction rollback",
+  "discovery": "v0.7.0+v0.7.1 contain inner BEGIN/COMMIT, dry-run was effectively live",
+  "acceptable_because": "0 rows in source; full backup taken first; all migrations succeeded individually",
+  "errors": 0,
+  "fixes_required": 0
+}
