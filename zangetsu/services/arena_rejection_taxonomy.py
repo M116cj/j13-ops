@@ -243,15 +243,24 @@ RAW_TO_REASON: Dict[str, RejectionReason] = {
     "too_few_trades": RejectionReason.SIGNAL_TOO_SPARSE,
     "non_positive_pnl": RejectionReason.COST_NEGATIVE,
     "wrong_segment_count": RejectionReason.WINDOW_INSUFFICIENT,
-    # arena_pipeline.py — A1 reject counters (see stats dict at arena_pipeline.py:517)
+    # arena_pipeline.py — A1 reject counters (see stats dict at arena_pipeline.py:707)
     "reject_few_trades": RejectionReason.SIGNAL_TOO_SPARSE,
     "reject_neg_pnl": RejectionReason.COST_NEGATIVE,
+    # PR #43 (commit c873857) added the train-window negative-PnL gate.
+    # Same family as reject_neg_pnl / reject_val_neg_pnl. Mapped to
+    # COST_NEGATIVE to close the UNKNOWN_REJECT fallback path identified
+    # in TEAM ORDER 0-9X-A1-REJECT-DISTRIBUTION-SHIFT-DIAGNOSIS.
+    "reject_train_neg_pnl": RejectionReason.COST_NEGATIVE,
     "reject_val_constant": RejectionReason.INVALID_FORMULA,
     "reject_val_error": RejectionReason.INVALID_FORMULA,
     "reject_val_few_trades": RejectionReason.SIGNAL_TOO_SPARSE,
     "reject_val_neg_pnl": RejectionReason.COST_NEGATIVE,
     "reject_val_low_sharpe": RejectionReason.LOW_BACKTEST_SCORE,
     "reject_val_low_wr": RejectionReason.LOW_BACKTEST_SCORE,
+    # PR #43 also added the combined train+val Sharpe gate. Same family
+    # as reject_val_low_sharpe / reject_val_low_wr (backtest-score
+    # rejection). Mapped to LOW_BACKTEST_SCORE.
+    "reject_combined_sharpe_low": RejectionReason.LOW_BACKTEST_SCORE,
     # arena23_orchestrator.py — log strings at A2/A3 reject paths
     "alpha_invalid_or_flat": RejectionReason.INVALID_FORMULA,
     "no economically valid combos": RejectionReason.COST_NEGATIVE,
