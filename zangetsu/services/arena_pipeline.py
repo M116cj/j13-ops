@@ -164,6 +164,58 @@ def _emit_a1_batch_metrics_safe(accumulator, *, deployable_count=None, log=None)
         pass  # never propagate
 
 
+# Reject-stats keys walked by the A1 batch-metrics emitter. Stable order;
+# adding a new key here MUST be paired with an entry in
+# arena_rejection_taxonomy.RAW_TO_REASON or the new key falls through to
+# UNKNOWN_REJECT (see TEAM ORDER 0-9X-A1-REJECT-TAXONOMY-HOTFIX for the
+# regression-test contract).
+_A1_REJECT_STATS_KEYS: tuple[str, ...] = (
+    "reject_few_trades", "reject_neg_pnl", "reject_train_neg_pnl",
+    "reject_val_constant", "reject_val_error", "reject_val_few_trades",
+    "reject_val_neg_pnl", "reject_val_low_sharpe", "reject_val_low_wr",
+    "reject_combined_sharpe_low",
+)
+
+# Per-process snapshot of stats[reject_*] values from the last successful
+# emit. The `stats` dict in the worker main loop is worker-lifetime cumulative
+# (initialized at startup, never reset between rounds), but `entered_count`
+# passed into _emit_a1_batch_metrics_from_stats_safe() is per-round. Without
+# delta arithmetic the conservation identity entered = passed + rejected +
+# skipped fails after warmup and the residual-correction branch produces a
+# huge spurious COUNTER_INCONSISTENCY bucket every emit. Tracking the
+# previous snapshot per-process lets each emit publish per-round deltas.
+# TEAM ORDER 0-9X-ARENA-BATCH-METRICS-ACCOUNTING-FIX.
+_A1_PREV_REJECT_STATS_SNAPSHOT: dict[str, int] = {}
+
+
+def _compute_a1_reject_deltas(
+    current_stats: dict,
+    prev_snapshot: dict,
+    stats_keys: tuple,
+) -> tuple[dict, dict]:
+    """Pure helper: compute per-round reject deltas given the cumulative
+    `current_stats` and a `prev_snapshot` from the last emit.
+
+    Returns ``(deltas, new_snapshot)``:
+      - ``deltas``: dict[stats_key -> int] for keys whose delta > 0
+      - ``new_snapshot``: full snapshot dict for the caller to store
+        (covers all keys in ``stats_keys``, including those with delta == 0)
+
+    Pure function — no module-level state read or written, no I/O.
+    Importable in unit tests independently of arena_pipeline runtime deps.
+    """
+    new_snapshot = dict(prev_snapshot)
+    deltas: dict = {}
+    for k in stats_keys:
+        current = int(current_stats.get(k, 0) or 0)
+        previous = int(new_snapshot.get(k, 0))
+        new_snapshot[k] = current
+        delta = current - previous
+        if delta > 0:
+            deltas[k] = delta
+    return deltas, new_snapshot
+
+
 def _emit_a1_batch_metrics_from_stats_safe(
     *, run_id: str, batch_id: str, entered_count: int, passed_count: int,
     stats: dict, log=None,
@@ -177,10 +229,16 @@ def _emit_a1_batch_metrics_from_stats_safe(
 
     entered_count = len(alphas) for the round
     passed_count  = round_champions
-    stats[reject_*] keys supply the reject_reason_distribution (canonical-mapped).
+    stats[reject_*] keys are worker-lifetime cumulative; per-round deltas
+        are taken against the module-level snapshot
+        ``_A1_PREV_REJECT_STATS_SNAPSHOT`` so that the emitted
+        reject_reason_distribution matches the per-round entered/passed
+        counts. The snapshot is per-process; each Python worker has its
+        own module instance and tracks its own previous values.
     generation_profile_id / fingerprint (0-9O-A): optional profile identity.
         When omitted, UNKNOWN_PROFILE / UNAVAILABLE fallbacks are used.
     """
+    global _A1_PREV_REJECT_STATS_SNAPSHOT
     if not _ARENA_PASS_RATE_TELEMETRY_AVAILABLE:
         return
     try:
@@ -199,18 +257,15 @@ def _emit_a1_batch_metrics_from_stats_safe(
         acc.entered_count = int(entered_count)
         acc.passed_count = int(passed_count)
 
-        # Map stats["reject_*"] keys → canonical reasons (via taxonomy when
+        # Compute per-round deltas against the previous snapshot, then
+        # publish snapshot back to module state for the next emit. Map
+        # stats["reject_*"] keys → canonical reasons (via taxonomy when
         # importable). If taxonomy import fails, fall back to raw keys.
+        deltas, _A1_PREV_REJECT_STATS_SNAPSHOT = _compute_a1_reject_deltas(
+            stats, _A1_PREV_REJECT_STATS_SNAPSHOT, _A1_REJECT_STATS_KEYS,
+        )
         reject_total = 0
-        for stats_key in (
-            "reject_few_trades", "reject_neg_pnl", "reject_train_neg_pnl",
-            "reject_val_constant", "reject_val_error", "reject_val_few_trades",
-            "reject_val_neg_pnl", "reject_val_low_sharpe", "reject_val_low_wr",
-            "reject_combined_sharpe_low",
-        ):
-            n = int(stats.get(stats_key, 0) or 0)
-            if n <= 0:
-                continue
+        for stats_key, delta in deltas.items():
             canonical = stats_key  # default to raw key
             try:
                 from zangetsu.services.arena_rejection_taxonomy import classify
@@ -218,8 +273,8 @@ def _emit_a1_batch_metrics_from_stats_safe(
                 canonical = reason.value
             except Exception:
                 pass
-            acc.reject_counter.add(canonical, n)
-            reject_total += n
+            acc.reject_counter.add(canonical, delta)
+            reject_total += delta
         acc.rejected_count = reject_total
         # entered - passed - rejected becomes skipped_count (catch-all) so
         # conservation holds; defensive for runtime counter gaps.
