@@ -298,3 +298,63 @@ def test_taxonomy_category_count_unchanged_after_v10_patch():
 def test_taxonomy_severity_count_unchanged_after_v10_patch():
     """Severity count must remain 4 — V10 patch adds no new severity level."""
     assert len({s.value for s in RejectionSeverity}) == 4
+
+
+# ---------- TEAM ORDER 0-9X-A1-REJECT-TAXONOMY-HOTFIX (PR #43 mappings) ----------
+#
+# Background: PR #43 (commit c873857) added two new reject_* stats keys to the
+# A1 emitter walk in arena_pipeline.py:206-209 — `reject_train_neg_pnl` and
+# `reject_combined_sharpe_low` — but did not add corresponding RAW_TO_REASON
+# entries. classify() therefore fell through and returned UNKNOWN_REJECT,
+# producing the ~50% UNKNOWN_REJECT bucket diagnosed in TEAM ORDER
+# 0-9X-A1-REJECT-DISTRIBUTION-SHIFT-DIAGNOSIS. These tests prevent regression.
+
+
+def test_pr43_validation_rejects_are_mapped():
+    """Both PR #43 keys must classify to a non-UNKNOWN canonical reason."""
+    assert classify("reject_train_neg_pnl")[0] != RejectionReason.UNKNOWN_REJECT
+    assert classify("reject_combined_sharpe_low")[0] != RejectionReason.UNKNOWN_REJECT
+
+
+def test_pr43_validation_rejects_have_expected_canonical_reason():
+    """Exact canonical reason for each PR #43 key.
+
+    `reject_train_neg_pnl` is in the same family as `reject_neg_pnl` and
+    `reject_val_neg_pnl` (negative-PnL rejection on a training/validation
+    window) → COST_NEGATIVE.
+
+    `reject_combined_sharpe_low` is in the same family as
+    `reject_val_low_sharpe` and `reject_val_low_wr` (low backtest score
+    rejection) → LOW_BACKTEST_SCORE.
+    """
+    assert classify("reject_train_neg_pnl")[0] == RejectionReason.COST_NEGATIVE
+    assert (
+        classify("reject_combined_sharpe_low")[0]
+        == RejectionReason.LOW_BACKTEST_SCORE
+    )
+
+
+def test_unknown_reject_fallback_still_works():
+    """A truly unknown raw reason must still fall back to UNKNOWN_REJECT.
+    The hotfix must not break the deterministic-fallback contract."""
+    assert (
+        classify("some_totally_unknown_reason_for_fallback_test")[0]
+        == RejectionReason.UNKNOWN_REJECT
+    )
+
+
+def test_raw_to_reason_contains_pr43_keys():
+    """Both raw stats keys must exist in RAW_TO_REASON after the hotfix."""
+    assert "reject_train_neg_pnl" in RAW_TO_REASON
+    assert "reject_combined_sharpe_low" in RAW_TO_REASON
+
+
+def test_existing_core_mappings_unchanged():
+    """5 existing stable mappings must classify to their pre-hotfix reasons.
+    Catches accidental regression of taxonomy contract (RAW_TO_REASON is
+    additive — existing entries may not change without a separate order)."""
+    assert classify("reject_few_trades")[0] == RejectionReason.SIGNAL_TOO_SPARSE
+    assert classify("reject_neg_pnl")[0] == RejectionReason.COST_NEGATIVE
+    assert classify("reject_val_neg_pnl")[0] == RejectionReason.COST_NEGATIVE
+    assert classify("reject_val_low_sharpe")[0] == RejectionReason.LOW_BACKTEST_SCORE
+    assert classify("reject_val_low_wr")[0] == RejectionReason.LOW_BACKTEST_SCORE
