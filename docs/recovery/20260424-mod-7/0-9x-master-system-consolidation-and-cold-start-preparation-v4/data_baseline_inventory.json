@@ -1,0 +1,13 @@
+{
+  "symbols": 14,
+  "tiers": {
+    "stable": 6,
+    "diversified": 5,
+    "high_vol": 3
+  },
+  "bar_timeframe": "1-min",
+  "train_split_ratio": 0.7,
+  "train_bars_per_symbol": 140000,
+  "holdout_bars_per_symbol": 60000,
+  "data_freshness_h": "<24h"
+}

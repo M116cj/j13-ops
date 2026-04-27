@@ -1,0 +1,12 @@
+{
+  "subsystems": {
+    "A1": "arena_pipeline.py",
+    "A13": "arena13_feedback.py",
+    "A23": "arena23_orchestrator.py",
+    "A45": "arena45_orchestrator.py",
+    "validation": "inline in arena_pipeline.py:982-1059",
+    "db": "champion_pipeline_staging/fresh/rejected (per v0.7.1)",
+    "cold_start": "alpha_zoo_injection.py",
+    "governance": ".github/workflows/{phase-7-gate,module-migration-gate}.yml"
+  }
+}

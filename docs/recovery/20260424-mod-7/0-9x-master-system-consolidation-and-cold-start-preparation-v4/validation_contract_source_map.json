@@ -1,0 +1,49 @@
+{
+  "gates": {
+    "val_constant": {
+      "line": 1015,
+      "active": true,
+      "change": "unchanged"
+    },
+    "val_error": {
+      "line": 1034,
+      "active": true,
+      "change": "unchanged"
+    },
+    "val_few_trades": {
+      "line": 1043,
+      "active": true,
+      "change": "unchanged"
+    },
+    "val_neg_pnl": {
+      "line": 1046,
+      "active": true,
+      "change": "unchanged"
+    },
+    "val_low_sharpe": {
+      "line": 1049,
+      "active": true,
+      "change": "unchanged"
+    },
+    "val_low_wr": {
+      "line": 1053,
+      "active": true,
+      "change": "unchanged"
+    },
+    "train_neg_pnl": {
+      "line": 982,
+      "active": true,
+      "change": "NEW (PR #43)"
+    },
+    "combined_sharpe_low": {
+      "line": 1059,
+      "active": true,
+      "change": "NEW (PR #43)"
+    },
+    "cross_symbol_inconsistent": {
+      "line": null,
+      "active": false,
+      "change": "DEFERRED \u2014 architectural refactor"
+    }
+  }
+}

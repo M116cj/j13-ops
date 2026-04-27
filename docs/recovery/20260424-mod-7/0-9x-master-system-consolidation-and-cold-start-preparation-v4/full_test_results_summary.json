@@ -1,0 +1,9 @@
+{
+  "total": 712,
+  "passed": 708,
+  "failed": 1,
+  "skipped": 3,
+  "pass_rate": 0.9986,
+  "critical_failures": 0,
+  "pre_existing_failure": "test_integration.py::test_db (schema-dependent, Track A BLOCKED)"
+}

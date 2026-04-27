@@ -1,0 +1,15 @@
+{
+  "sources": {
+    "arxiv": 291,
+    "bigquant": 339,
+    "joinquant": 1393,
+    "quantpedia": 166,
+    "ssrn": 165,
+    "tquantlab": 171,
+    "wq_brain": 390,
+    "worldquant_101_raw": 235,
+    "translatability_matrix": 103,
+    "alpha_zoo_injection_zoo": 30
+  },
+  "estimated_unique_formulas": 280
+}

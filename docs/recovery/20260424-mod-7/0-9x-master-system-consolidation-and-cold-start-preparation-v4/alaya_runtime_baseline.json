@@ -1,0 +1,25 @@
+{
+  "timestamp_utc": "2026-04-26T18:21:33Z",
+  "host": "j13@100.123.49.102",
+  "repo": "/home/j13/j13-ops",
+  "head": "9f6dc60ac5350a2bf454394a47b1ebfc1b74f899",
+  "branch": "main",
+  "pre_audit_services": {
+    "a1_workers": 4,
+    "a23": "alive 7h35m",
+    "a45": "alive 7h35m",
+    "a13_cron": "running",
+    "watchdog_cron": "running"
+  },
+  "post_reboot_services": {
+    "timestamp_utc": "2026-04-27T04:08:45Z",
+    "uptime_min": 8,
+    "a1_workers": 0,
+    "a23": "gone",
+    "a45": "gone",
+    "a13_last_run": "2026-04-27T04:05:02Z",
+    "note": "Alaya rebooted ~04:00Z during audit; watchdog will respawn next */5 boundary"
+  },
+  "canary_active": false,
+  "production_active": false
+}

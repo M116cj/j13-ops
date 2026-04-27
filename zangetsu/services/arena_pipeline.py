@@ -203,9 +203,10 @@ def _emit_a1_batch_metrics_from_stats_safe(
         # importable). If taxonomy import fails, fall back to raw keys.
         reject_total = 0
         for stats_key in (
-            "reject_few_trades", "reject_neg_pnl",
+            "reject_few_trades", "reject_neg_pnl", "reject_train_neg_pnl",
             "reject_val_constant", "reject_val_error", "reject_val_few_trades",
             "reject_val_neg_pnl", "reject_val_low_sharpe", "reject_val_low_wr",
+            "reject_combined_sharpe_low",
         ):
             n = int(stats.get(stats_key, 0) or 0)
             if n <= 0:
@@ -709,12 +710,14 @@ async def main():
         "alphas_evaluated": 0,
         "reject_few_trades": 0,
         "reject_neg_pnl": 0,
+        "reject_train_neg_pnl": 0,
         "reject_val_constant": 0,
         "reject_val_error": 0,
         "reject_val_few_trades": 0,
         "reject_val_neg_pnl": 0,
         "reject_val_low_sharpe": 0,
         "reject_val_low_wr": 0,
+        "reject_combined_sharpe_low": 0,
         "champions_inserted": 0,
         "alpha_compile_errors": 0,
     }
@@ -978,6 +981,18 @@ async def main():
                 )
                 continue
 
+            # PR #43 (NG2 from order 4-1): early-reject train-negative PnL.
+            # Blocks train-val divergent artifacts (PR #41 found 8/8 SOL survivors
+            # at cost=0.5x had negative train PnL but positive val PnL).
+            if float(bt.net_pnl) <= 0:
+                stats["reject_train_neg_pnl"] += 1
+                _emit_a1_lifecycle_safe(
+                    stage_event=_SE_EXIT, status=_LS_REJECTED,
+                    alpha_hash=alpha_hash, source_pool=sym,
+                    reject_reason="TRAIN_NEG_PNL", log=log,
+                )
+                continue
+
             # ── v0.5.9: VAL backtest on holdout slice (prevents overfit flooding A4) ──
             # Gate calibration:
             #   val_trades >= 15   (CI half-width < 0.15 at WR=0.55)
@@ -1041,6 +1056,14 @@ async def main():
             val_wilson = wilson_lower(bt_val.winning_trades, bt_val.total_trades)
             if float(val_wilson) < 0.52:
                 stats["reject_val_low_wr"] += 1
+                continue
+
+            # PR #43 (NG2 from order 4-1): combined train+val Sharpe gate.
+            # Blocks single-slice-favoured artifacts. Threshold 0.4 is mid-point
+            # between val-only 0.3 floor and "robust" 0.5+ regime.
+            combined_sharpe = (float(bt.sharpe_ratio) + float(bt_val.sharpe_ratio)) / 2.0
+            if combined_sharpe < 0.4:
+                stats["reject_combined_sharpe_low"] += 1
                 continue
 
             adjusted_wr = wilson_lower(bt.winning_trades, bt.total_trades)
@@ -1212,10 +1235,12 @@ async def main():
                 f"R{round_number} | {sym}/{regime} | "
                 f"champions={round_champions}/{len(alphas)} | {elapsed:.1f}s | "
                 f"rejects: few_trades={stats['reject_few_trades']} "
+                f"train_neg={stats['reject_train_neg_pnl']} "
                 f"val_few={stats['reject_val_few_trades']} "
                 f"val_neg_pnl={stats['reject_val_neg_pnl']} "
                 f"val_sharpe={stats['reject_val_low_sharpe']} "
-                f"val_wr={stats['reject_val_low_wr']}"
+                f"val_wr={stats['reject_val_low_wr']} "
+                f"combined_sharpe={stats['reject_combined_sharpe_low']}"
             )
 
         # P7-PR4-LITE: aggregate A1 batch pass-rate telemetry.
@@ -1256,10 +1281,12 @@ async def main():
                 f"inserted={stats['champions_inserted']} | "
                 f"reject_few_trades={stats['reject_few_trades']} "
                 f"reject_neg_pnl={stats['reject_neg_pnl']} "
+                f"reject_train_neg={stats['reject_train_neg_pnl']} "
                 f"reject_val_few={stats['reject_val_few_trades']} "
                 f"reject_val_neg={stats['reject_val_neg_pnl']} "
                 f"reject_val_sharpe={stats['reject_val_low_sharpe']} "
                 f"reject_val_wr={stats['reject_val_low_wr']} "
+                f"reject_combined_sharpe={stats['reject_combined_sharpe_low']} "
                 f"reject_val_err={stats['reject_val_error']} "
                 f"reject_val_const={stats['reject_val_constant']} | "
                 f"bloom_size={bloom.count}"

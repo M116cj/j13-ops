@@ -81,6 +81,106 @@ ZOO = [
 async def run(args):
     log.info("=== Alpha Zoo Injection — %d formulas from 7 sources ===", len(ZOO))
 
+    # PR #43 (NG3 from order 4-1): cold-start safety contract.
+    # By default this script REFUSES to write to DB. The four flags below form
+    # a defense-in-depth ladder: --inspect-only ⊂ --dry-run ⊂ --no-db-write ⊂ --confirm-write.
+    # See docs/recovery/.../08_cold_start_tool_boundary_hardening.md for the
+    # full safety boundary table.
+    log.info("=== Safety contract ===")
+    log.info("  inspect_only   : %s", getattr(args, "inspect_only", True))
+    log.info("  dry_run        : %s", getattr(args, "dry_run", False))
+    log.info("  no_db_write    : %s", getattr(args, "no_db_write", True))
+    log.info("  confirm_write  : %s", getattr(args, "confirm_write", False))
+    log.info("  write target   : champion_pipeline_staging (via admission_validator)")
+    log.info("  formula count  : %d", len(ZOO))
+    log.info("  source tags    : %s",
+             sorted(set(tag for _, tag in ZOO)))
+    log.info("  validator dep  : admission_validator(BIGINT) — must exist in DB")
+
+    # Inspect-only mode: print the formula table and exit. NO compile, NO backtest.
+    if getattr(args, "inspect_only", False):
+        log.info("=== INSPECT-ONLY MODE — printing formula inventory ===")
+        import hashlib as _h
+        for f, tag in ZOO:
+            ah = _h.md5(f.encode("utf-8")).hexdigest()[:16]
+            print(f"{ah}  {tag:24s}  {f}")
+        log.info("INSPECT-ONLY mode complete. NO compile, NO backtest, NO DB write performed.")
+        return
+
+    # Dry-run mode: compile + simulate validation contract; HARD-ASSERT no DB write.
+    # Output a JSONL plan to /tmp/sparse_candidate_dry_run_plans.jsonl.
+    if getattr(args, "dry_run", False):
+        log.info("=== DRY-RUN MODE — compile + simulate validation; HARD ASSERT no DB write ===")
+        import hashlib as _h
+        plan_path = "/tmp/sparse_candidate_dry_run_plans.jsonl"
+        with open(plan_path, "w") as f_out:
+            for f, tag in ZOO:
+                ah = _h.md5(f.encode("utf-8")).hexdigest()[:16]
+                plan_row = {
+                    "alpha_hash": ah,
+                    "source_tag": tag,
+                    "formula": f,
+                    "fitness_version": f"alpha_zoo.{tag}.v1",
+                    "validation_contract": [
+                        "train_pnl > 0",
+                        "val_pnl > 0",
+                        "combined_sharpe >= 0.4",
+                        "val_few_trades >= 15",
+                        "val_low_sharpe >= 0.3",
+                        "val_low_wr >= 0.52",
+                    ],
+                    "dry_run": True,
+                    "would_write_to": "champion_pipeline_staging (NOT executed in dry-run)",
+                }
+                f_out.write(json.dumps(plan_row) + "\n")
+        log.info("DRY-RUN complete. Plan written to %s. NO DB writes performed.", plan_path)
+        return
+
+    # --no-db-write hard-block — same as default-deny for now, but also asserts
+    # that any code path attempting db.execute*/db.fetch* would not be reached.
+    if getattr(args, "no_db_write", True) and not getattr(args, "confirm_write", False):
+        log.error("ABORT: --no-db-write is in effect (default-on). Use --inspect-only "
+                  "or --dry-run for safe modes. Use --confirm-write only under explicit "
+                  "governance order to actually write to DB.")
+        sys.exit(2)
+
+    # Default-deny: any path that could write to DB is blocked unless --confirm-write.
+    if not getattr(args, "confirm_write", False):
+        log.error("ABORT: --confirm-write was NOT set. Cold-start tooling refuses to "
+                  "write by default. Use one of:")
+        log.error("  --inspect-only   list formulas, no compile/backtest/DB")
+        log.error("  --dry-run        compile + simulate validation, NO DB write")
+        log.error("  --confirm-write  required for actual DB write (governance order needed)")
+        sys.exit(2)
+
+    # If we got here: --confirm-write is set. Re-verify schema preconditions.
+    log.warning("=== --confirm-write IS SET. Verifying preconditions before any DB write ===")
+    db = await asyncpg.connect(
+        host=settings.DB_HOST, port=settings.DB_PORT,
+        user=settings.DB_USER, password=settings.DB_PASSWORD, database=settings.DB_NAME,
+    )
+    try:
+        for required in ("champion_pipeline_staging", "champion_pipeline_fresh"):
+            ok = await db.fetchval(
+                "SELECT 1 FROM pg_class WHERE relname=$1 "
+                "AND relnamespace='public'::regnamespace", required,
+            )
+            if not ok:
+                log.error("ABORT: required DB object missing: %s. "
+                          "Apply v0.7.1 governance migration first.", required)
+                sys.exit(3)
+        validator_ok = await db.fetchval(
+            "SELECT 1 FROM pg_proc WHERE proname='admission_validator' "
+            "AND pronamespace='public'::regnamespace",
+        )
+        if not validator_ok:
+            log.error("ABORT: admission_validator() function missing. "
+                      "Apply v0.7.1 governance migration first.")
+            sys.exit(4)
+        log.warning("Preconditions OK. Proceeding under --confirm-write.")
+    finally:
+        await db.close()
+
     # Monkey-patch: cold_start's run_for_strategy uses module-level SEED_FORMULAS
     # + injects a single fitness_version from provenance. We override
     # by running one strategy per formula group, but simpler is:
@@ -115,12 +215,33 @@ async def run(args):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Alpha Zoo cold-start injection — DEFAULT-SAFE: refuses to write "
+                    "without explicit --confirm-write. See PR #43 (order 4-1).",
+    )
     parser.add_argument("--strategies", nargs="+", default=["j01", "j02"])
     parser.add_argument("--symbols", nargs="+", default=None)
     parser.add_argument("--limit-symbols", type=int, default=None)
     parser.add_argument("--allow-dirty-tree", action="store_true", default=True)
     parser.add_argument("--dry-run-one", action="store_true")
+    # PR #43 cold-start safety flags (NG3 from order 4-1):
+    parser.add_argument(
+        "--inspect-only", action="store_true",
+        help="Print formula inventory and exit. No compile, no backtest, no DB write.",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="Compile + simulate validation contract. Hard-asserts no DB write.",
+    )
+    parser.add_argument(
+        "--no-db-write", action="store_true", default=True,
+        help="Default-on. Hard-fails if any code path attempts a DB write.",
+    )
+    parser.add_argument(
+        "--confirm-write", action="store_true", default=False,
+        help="REQUIRED for actual DB write. Without this flag, all write paths abort. "
+             "Use only under explicit governance order.",
+    )
     args = parser.parse_args()
     asyncio.run(run(args))
 

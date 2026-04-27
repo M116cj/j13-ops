@@ -1,0 +1,19 @@
+{
+  "verdict": "APPROVE_WITH_WARNINGS",
+  "findings_high": [
+    "F1 dead_code_alpha_zoo_flags",
+    "F3 combined_sharpe_overclaim",
+    "F6 track_a_silent_failure_mode"
+  ],
+  "findings_medium": [
+    "F11 status_framing"
+  ],
+  "resolution": {
+    "F1": "fixed in code",
+    "F3": "demoted in evidence",
+    "F6": "surfaced in final verdict",
+    "F11": "final = SYSTEM_MASTER_BLOCKED_DB not GREEN"
+  },
+  "unresolved_block": 0,
+  "unresolved_red_flag": 0
+}

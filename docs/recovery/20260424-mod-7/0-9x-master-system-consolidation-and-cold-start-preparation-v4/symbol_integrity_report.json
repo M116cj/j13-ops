@@ -1,0 +1,9 @@
+{
+  "symbols": 14,
+  "all_resolvable_on_binance": true,
+  "tier_assignment": {
+    "stable": 6,
+    "diversified": 5,
+    "high_vol": 3
+  }
+}

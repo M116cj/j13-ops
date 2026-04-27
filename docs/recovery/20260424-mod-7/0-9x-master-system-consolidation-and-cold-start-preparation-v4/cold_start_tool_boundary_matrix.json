@@ -1,0 +1,12 @@
+{
+  "tool": "alpha_zoo_injection.py",
+  "flags": {
+    "inspect_only": "NEW",
+    "dry_run": "NEW",
+    "no_db_write": "NEW (default ON)",
+    "confirm_write": "NEW (default OFF)"
+  },
+  "default_mode_safe": true,
+  "precondition_check_added": true,
+  "deprecated_seeds_blocked": 4
+}

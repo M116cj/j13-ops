@@ -1,0 +1,7 @@
+{
+  "note": "IDENTICAL to db_pre_inventory.json \u2014 Track A BLOCKED, no migration applied",
+  "migration_apply_attempted": true,
+  "migration_apply_succeeded": false,
+  "rollback_verified": true,
+  "reason_blocked": "multi-stage migration prereqs (v0.4/v0.6/v0.7.0) missing"
+}

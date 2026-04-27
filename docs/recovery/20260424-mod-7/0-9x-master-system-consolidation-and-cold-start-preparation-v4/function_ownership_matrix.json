@@ -1,0 +1,10 @@
+{
+  "critical_functions": 20,
+  "classifications": {
+    "FUNCTION_OK": 17,
+    "FUNCTION_DB_WRITE_RISK": 3,
+    "FUNCTION_DEPRECATED_BLOCKED": 4,
+    "FUNCTION_BOUNDARY_AMBIGUOUS": 0,
+    "FUNCTION_WRONG_OWNER": 0
+  }
+}

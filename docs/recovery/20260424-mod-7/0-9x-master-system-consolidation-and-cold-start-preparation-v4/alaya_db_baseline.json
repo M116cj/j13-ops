@@ -1,0 +1,38 @@
+{
+  "tables": [
+    "champion_pipeline",
+    "paper_trades",
+    "pipeline_audit_log",
+    "pipeline_state",
+    "trade_journal"
+  ],
+  "champion_pipeline_columns_count": 14,
+  "champion_pipeline_rows": 0,
+  "champion_pipeline_relkind": "r (TABLE \u2014 should be VIEW per v0.7.1)",
+  "views": [],
+  "triggers": [],
+  "functions": [],
+  "session_vars": [],
+  "schema_version": "pre-v0.4",
+  "expected_v0_7_1_objects_present": false,
+  "tables_missing": [
+    "champion_pipeline_fresh",
+    "champion_pipeline_staging",
+    "champion_pipeline_rejected",
+    "champion_legacy_archive",
+    "engine_telemetry",
+    "champion_pipeline_v9"
+  ],
+  "functions_missing": [
+    "admission_validator(BIGINT)"
+  ],
+  "triggers_missing": [
+    "fresh_insert_guard",
+    "archive_readonly_insert",
+    "archive_readonly_update",
+    "archive_readonly_delete"
+  ],
+  "session_vars_missing": [
+    "zangetsu.admission_active"
+  ]
+}

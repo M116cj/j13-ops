@@ -1,0 +1,11 @@
+{
+  "total_refs_checked": 150,
+  "classifications": {
+    "REF_OK": 139,
+    "REF_MISSING_TARGET": 11,
+    "REF_DEPRECATED_ACTIVE": 0,
+    "REF_MAC_ONLY": 0,
+    "REF_DB_SCHEMA_DRIFT": 11,
+    "REF_TELEMETRY_DRIFT": 1
+  }
+}
