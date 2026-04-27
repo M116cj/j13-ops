@@ -1,0 +1,12 @@
+{
+  "verdict": "APPROVE_WITH_WARNINGS",
+  "questions_answered": 10,
+  "block_findings": 0,
+  "red_flag_findings": 0,
+  "warnings": [
+    "W1 inner BEGIN/COMMIT discovery",
+    "W2 test_db pre-existing",
+    "W3 cold-boot gap deferred",
+    "W4 A1 reject shift deferred"
+  ]
+}

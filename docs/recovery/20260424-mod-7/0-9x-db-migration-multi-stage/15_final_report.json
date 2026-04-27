@@ -1,0 +1,31 @@
+{
+  "final_verdict": "COMPLETE_DB_MIGRATED_V071",
+  "backup_path": "/home/j13/db-backups/zangetsu-20260427T050506Z",
+  "backup_sha256": "488ff17cfc8c52794eaef5a55f8f6c67e214bb4002d392648f67dd56d6b9b352",
+  "schema_before": "pre-v0.4 14-col champion_pipeline 0 rows",
+  "schema_after": "v0.7.1 (9 tables + 9 views + 3 functions + 4 triggers)",
+  "stages_completed": [
+    "bootstrap",
+    "v0.3.0",
+    "v0.4.0",
+    "v0.6.0",
+    "v0.7.0",
+    "v0.7.1",
+    "champion_pipeline_view"
+  ],
+  "row_counts_preserved": true,
+  "row_count_before": 0,
+  "row_count_after": 0,
+  "object_verification": "PASS",
+  "admission_guard": "PASS",
+  "test_result": "708/712 pass (1 pre-existing)",
+  "a1_reverify": "BLOCKED_BY_COLD_BOOT_GAP",
+  "remaining_blockers": [
+    "cold_boot_gap",
+    "a1_reject_distribution_shift"
+  ],
+  "next_order": "TEAM ORDER 0-9X-POST-DB-COLD-BOOT-RECOVERY",
+  "forbidden_ops_total": 0,
+  "branch_protection_intact": true,
+  "signed_commit": true
+}

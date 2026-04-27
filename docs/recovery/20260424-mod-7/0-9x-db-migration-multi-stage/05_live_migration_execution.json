@@ -1,0 +1,11 @@
+{
+  "start_utc": "2026-04-27T05:11:00Z",
+  "end_utc": "2026-04-27T05:12:00Z",
+  "stages_completed": 7,
+  "stages_failed": 0,
+  "row_count_before": 0,
+  "row_count_after": 0,
+  "errors": 0,
+  "advisory_lock_used": false,
+  "advisory_lock_skipped_reason": "0 alive arena workers, 0 row table"
+}

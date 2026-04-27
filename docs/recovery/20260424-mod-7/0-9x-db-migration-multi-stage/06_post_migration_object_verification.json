@@ -1,0 +1,16 @@
+{
+  "verdict": "OBJECT_VERIFICATION_PASS",
+  "tables_present": 9,
+  "views_present": 9,
+  "functions_present": 3,
+  "triggers_present": 4,
+  "champion_pipeline_resolves_to": "VIEW over champion_pipeline_fresh",
+  "row_counts_after": {
+    "champion_pipeline": 0,
+    "champion_pipeline_staging": 0,
+    "champion_pipeline_fresh": 0,
+    "champion_pipeline_rejected": 0,
+    "champion_legacy_archive": 0,
+    "engine_telemetry": 0
+  }
+}

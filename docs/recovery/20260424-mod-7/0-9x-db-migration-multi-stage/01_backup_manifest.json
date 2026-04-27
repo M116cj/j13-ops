@@ -1,0 +1,19 @@
+{
+  "backup_dir": "/home/j13/db-backups/zangetsu-20260427T050506Z",
+  "files": {
+    "full_dump": {
+      "sha256": "488ff17cfc8c52794eaef5a55f8f6c67e214bb4002d392648f67dd56d6b9b352",
+      "size": 13794
+    },
+    "schema_only": {
+      "sha256": "27b9dd701238f52fe74305ad88bb84b24cf4b03cbb6dab8923a8402922c280ad",
+      "size": 8347
+    },
+    "data_only": {
+      "sha256": "f687221cecce97f1ce50f2ceea92c5f3cba72f39be962f4094f96f683a0423c1",
+      "size": 2617
+    }
+  },
+  "pg_restore_list_toc_entries": 43,
+  "verified": true
+}

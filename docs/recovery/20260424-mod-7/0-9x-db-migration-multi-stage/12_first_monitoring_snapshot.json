@@ -1,0 +1,15 @@
+{
+  "snapshot_ts_utc": "2026-04-27T06:44:28Z",
+  "row_counts": {
+    "champion_pipeline": 0,
+    "champion_pipeline_staging": 0,
+    "champion_pipeline_fresh": 0,
+    "champion_pipeline_rejected": 0,
+    "champion_legacy_archive": 0,
+    "engine_telemetry": 0
+  },
+  "schema_errors_per_hour": 0,
+  "admission_guard_errors_per_hour": 0,
+  "a1_crash_count": 0,
+  "verdict": "MONITORING_BASELINE_ESTABLISHED"
+}
