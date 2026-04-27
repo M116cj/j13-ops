@@ -1,0 +1,29 @@
+{
+  "final_status": "SYSTEM_MASTER_BLOCKED_DB",
+  "tracks_complete": 17,
+  "tracks_blocked": 1,
+  "tracks_yellow": 3,
+  "tracks_green": 14,
+  "cold_start_readiness": "NO",
+  "next_order": "TEAM ORDER 0-9X-DB-MIGRATION-MULTI-STAGE",
+  "safety": {
+    "alpha_injection": 0,
+    "canary_started": false,
+    "production_started": false,
+    "forbidden_ops": 0
+  },
+  "governance": {
+    "branch_protection_intact": true,
+    "signed_commit": true,
+    "gate_a_pass": "pending_pr",
+    "gate_b_pass": "pending_pr",
+    "controlled_diff": "EXPLAINED_DOCS+2_SOURCE_FILES"
+  },
+  "pytest": {
+    "total": 712,
+    "passed": 708,
+    "failed": 1,
+    "skipped": 3
+  },
+  "gemini_verdict": "APPROVE_WITH_WARNINGS"
+}

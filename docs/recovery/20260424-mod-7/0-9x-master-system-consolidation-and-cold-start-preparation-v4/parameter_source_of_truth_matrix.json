@@ -1,0 +1,10 @@
+{
+  "total_checked": 40,
+  "no_drift": 32,
+  "expected_change": 4,
+  "critical_drift": 4,
+  "unknown_low": 1,
+  "deferred": 2,
+  "a2_min_trades": 25,
+  "apply_mode_present": false
+}

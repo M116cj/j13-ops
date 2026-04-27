@@ -1,0 +1,11 @@
+{
+  "verdict": "YELLOW \u2014 RUNTIME_RECOVERY_PENDING",
+  "reboot_during_audit": true,
+  "reboot_uptime_min_at_check": 8,
+  "a1_alive_post_reboot": false,
+  "a1_alive_after_watchdog_respawn": "pending",
+  "db_schema_after_pr": "unchanged (Track A BLOCKED)",
+  "no_canary": true,
+  "no_production": true,
+  "execution_capital_risk_unchanged": true
+}

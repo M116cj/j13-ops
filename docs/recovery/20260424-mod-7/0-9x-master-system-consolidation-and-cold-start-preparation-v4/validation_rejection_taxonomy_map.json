@@ -1,0 +1,20 @@
+{
+  "reasons_emitted": [
+    "SIGNAL_TOO_SPARSE",
+    "TRAIN_NEG_PNL",
+    "COST_NEGATIVE",
+    "COUNTER_INCONSISTENCY",
+    "INVALID_FORMULA",
+    "reject_val_constant",
+    "reject_val_error",
+    "reject_val_few_trades",
+    "reject_val_neg_pnl",
+    "reject_val_low_sharpe",
+    "reject_val_low_wr",
+    "reject_combined_sharpe_low"
+  ],
+  "pending_canonical_names": [
+    "COMBINED_SHARPE_LOW",
+    "CROSS_SYMBOL_INCONSISTENT"
+  ]
+}

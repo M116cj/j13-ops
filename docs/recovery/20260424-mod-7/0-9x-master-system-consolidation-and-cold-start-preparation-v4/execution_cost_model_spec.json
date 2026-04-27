@@ -1,0 +1,6 @@
+{
+  "components": 7,
+  "phased_rollout": 4,
+  "key_insight": "hold-fraction funding fix is single-line: (hold_bars/480) * funding_8h_avg_bps * side_mult",
+  "phase_a_additive_no_runtime_change": true
+}

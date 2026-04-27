@@ -1,0 +1,11 @@
+{
+  "families": {
+    "trend": 8,
+    "mean_reversion": 7,
+    "volume_x_price": 6,
+    "volatility": 4,
+    "liquidity": 3,
+    "funding_crypto": 1,
+    "price_action": 1
+  }
+}

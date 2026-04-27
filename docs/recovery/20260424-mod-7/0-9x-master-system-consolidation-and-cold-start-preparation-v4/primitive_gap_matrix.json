@@ -1,0 +1,21 @@
+{
+  "available_primitives": 28,
+  "missing_primitives": 17,
+  "classifications": {
+    "ADD": [
+      "cross_sectional_rank"
+    ],
+    "APPROXIMATE": [
+      "delay",
+      "log"
+    ],
+    "RESEARCH_ONLY": [
+      "signedpower_arbitrary",
+      "ternary"
+    ],
+    "DO_NOT_ADD": [
+      "indneutralize",
+      "cap"
+    ]
+  }
+}

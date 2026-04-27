@@ -1,0 +1,7 @@
+{
+  "verdict": "DATA_YELLOW_MINOR_GAPS",
+  "symbols_checked": 14,
+  "zero_volume_bars": 12,
+  "duplicate_timestamps": 0,
+  "funding_data": "present_but_underestimated_in_model"
+}

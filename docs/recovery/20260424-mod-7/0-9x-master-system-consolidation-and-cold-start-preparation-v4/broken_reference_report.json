@@ -1,0 +1,16 @@
+{
+  "broken_refs": [
+    "champion_pipeline_fresh",
+    "champion_pipeline_staging",
+    "champion_pipeline_rejected",
+    "champion_legacy_archive",
+    "champion_pipeline_v9",
+    "engine_telemetry",
+    "admission_validator",
+    "fresh_insert_guard",
+    "archive_readonly_insert",
+    "archive_readonly_update",
+    "archive_readonly_delete"
+  ],
+  "root_cause": "Track A BLOCKED \u2014 v0.7.1 governance migration prereqs missing"
+}

@@ -1,0 +1,8 @@
+{
+  "cited_assumptions": 17,
+  "data_gaps_flagged": 4,
+  "binance_vip_0_taker_bps": 5.0,
+  "binance_vip_0_maker_bps": 2.0,
+  "estimated_realistic_round_trip_taker_only": 11.5,
+  "estimated_realistic_round_trip_maker_only": 5.5
+}

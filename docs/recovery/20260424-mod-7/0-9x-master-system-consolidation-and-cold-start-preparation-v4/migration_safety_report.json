@@ -1,0 +1,6 @@
+{
+  "transaction_rollback_verified": true,
+  "pre_state_preserved": true,
+  "data_loss_risk": 0,
+  "rows_in_legacy_table": 0
+}

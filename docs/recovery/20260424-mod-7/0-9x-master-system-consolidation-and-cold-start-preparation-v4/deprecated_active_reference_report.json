@@ -1,0 +1,10 @@
+{
+  "deprecated_scripts_with_guards": [
+    "seed_101_alphas.py",
+    "seed_101_alphas_batch2.py",
+    "factor_zoo.py",
+    "alpha_discovery.py"
+  ],
+  "guards_intact": true,
+  "cron_calls": 0
+}
