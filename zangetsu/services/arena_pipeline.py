@@ -221,6 +221,8 @@ def _emit_a1_batch_metrics_from_stats_safe(
     stats: dict, log=None,
     generation_profile_id: str | None = None,
     generation_profile_fingerprint: str | None = None,
+    aggregate_metrics: dict | None = None,
+    aggregate_metrics_availability: dict | None = None,
 ) -> None:
     """Build + emit an A1 arena_batch_metrics event directly from the
     existing stats dict used by arena_pipeline. Zero-intrusion wrapper for
@@ -237,6 +239,11 @@ def _emit_a1_batch_metrics_from_stats_safe(
         own module instance and tracks its own previous values.
     generation_profile_id / fingerprint (0-9O-A): optional profile identity.
         When omitted, UNKNOWN_PROFILE / UNAVAILABLE fallbacks are used.
+    aggregate_metrics / aggregate_metrics_availability (0-9Y-B1):
+        optional per-batch diagnostic aggregates (gross_pnl/net_pnl/
+        trade_count/etc.). Defaults None preserve the pre-0-9Y-B1 emit
+        shape. When provided, both flow through verbatim onto the
+        ArenaBatchMetrics event so downstream parsers can consume them.
     """
     global _A1_PREV_REJECT_STATS_SNAPSHOT
     if not _ARENA_PASS_RATE_TELEMETRY_AVAILABLE:
@@ -256,6 +263,13 @@ def _emit_a1_batch_metrics_from_stats_safe(
         # Record entered/passed directly (aggregate view, no per-candidate hook).
         acc.entered_count = int(entered_count)
         acc.passed_count = int(passed_count)
+        # 0-9Y-B1: per-batch diagnostic aggregates pass-through; both
+        # fields are optional and additive — they do not affect any
+        # rejection / passing decision.
+        if aggregate_metrics is not None:
+            acc.aggregate_metrics = dict(aggregate_metrics)
+        if aggregate_metrics_availability is not None:
+            acc.aggregate_metrics_availability = dict(aggregate_metrics_availability)
 
         # Compute per-round deltas against the previous snapshot, then
         # publish snapshot back to module state for the next emit. Map
@@ -970,6 +984,33 @@ async def main():
         # line 1116 _pb = _get_or_build_provenance(...) overwrites this
         # default whenever a candidate reaches the INSERT block.
         _pb = None
+
+        # 0-9Y-B1: per-round telemetry-only diagnostic accumulator. Reset
+        # at the start of every batch, populated after each train / val
+        # backtest, and shipped via aggregate_metrics on the emit call at
+        # batch close. None of the bookkeeping below influences any
+        # rejection / passing decision; it is strictly read-after-the-fact.
+        # Cost-tier helper (defensive: cost_model may not be importable
+        # in every code-path; treat lookup failure as null-availability).
+        _b1_round_total_cost_bps_for_sym: float | None = None
+        try:
+            _b1_round_total_cost_bps_for_sym = float(
+                cost_model.get(sym).total_round_trip_bps
+            )
+        except Exception:
+            _b1_round_total_cost_bps_for_sym = None
+
+        _b1_train_gross_pnl: list[float] = []
+        _b1_train_net_pnl: list[float] = []
+        _b1_train_total_trades: list[int] = []
+        _b1_train_sharpe: list[float] = []
+        _b1_train_win_rate: list[float] = []
+        _b1_val_net_pnl: list[float] = []
+        _b1_val_total_trades: list[int] = []
+        _b1_val_sharpe: list[float] = []
+        _b1_combined_sharpe: list[float] = []
+        _b1_primary_reject_gates: dict[str, int] = {}
+
         for alpha_result in alphas:
             stats["alphas_evaluated"] += 1
 
@@ -1025,6 +1066,32 @@ async def main():
             except Exception as _be:
                 log.debug(f"backtest failed ({alpha_hash}): {_be}")
                 continue
+
+            # 0-9Y-B1: capture per-alpha train backtest diagnostics. Pure
+            # read of the BacktestResult dataclass; no decision is taken
+            # based on these. Defensive: any field missing or non-numeric
+            # is silently skipped (try/except per field) so a future
+            # backtester schema change cannot break the worker round loop.
+            try:
+                _b1_train_gross_pnl.append(float(bt.gross_pnl))
+            except Exception:
+                pass
+            try:
+                _b1_train_net_pnl.append(float(bt.net_pnl))
+            except Exception:
+                pass
+            try:
+                _b1_train_total_trades.append(int(bt.total_trades))
+            except Exception:
+                pass
+            try:
+                _b1_train_sharpe.append(float(bt.sharpe_ratio))
+            except Exception:
+                pass
+            try:
+                _b1_train_win_rate.append(float(bt.win_rate))
+            except Exception:
+                pass
 
             if bt.total_trades < 30:
                 stats["reject_few_trades"] += 1
@@ -1099,6 +1166,20 @@ async def main():
                 engine.indicator_cache.clear()
                 engine.indicator_cache.update(symbol_indicator_cache.get(sym, {}))
 
+            # 0-9Y-B1: capture per-alpha val backtest diagnostics (read-only).
+            try:
+                _b1_val_net_pnl.append(float(bt_val.net_pnl))
+            except Exception:
+                pass
+            try:
+                _b1_val_total_trades.append(int(bt_val.total_trades))
+            except Exception:
+                pass
+            try:
+                _b1_val_sharpe.append(float(bt_val.sharpe_ratio))
+            except Exception:
+                pass
+
             if bt_val.total_trades < 15:
                 stats["reject_val_few_trades"] += 1
                 continue
@@ -1117,6 +1198,11 @@ async def main():
             # Blocks single-slice-favoured artifacts. Threshold 0.4 is mid-point
             # between val-only 0.3 floor and "robust" 0.5+ regime.
             combined_sharpe = (float(bt.sharpe_ratio) + float(bt_val.sharpe_ratio)) / 2.0
+            # 0-9Y-B1: capture combined sharpe (telemetry-only).
+            try:
+                _b1_combined_sharpe.append(float(combined_sharpe))
+            except Exception:
+                pass
             if combined_sharpe < 0.4:
                 stats["reject_combined_sharpe_low"] += 1
                 continue
@@ -1298,6 +1384,96 @@ async def main():
                 f"combined_sharpe={stats['reject_combined_sharpe_low']}"
             )
 
+        # 0-9Y-B1: build per-batch diagnostic aggregates from the per-alpha
+        # accumulators populated above. All values are read-only summaries
+        # of BacktestResult fields already computed by the engine; nothing
+        # below influences any rejection / passing decision.
+        # availability flags distinguish "value present" from "value missing
+        # because the alpha never reached the relevant code path"
+        # (e.g., val_* unavailable for alphas that died on train_neg_pnl).
+
+        def _b1_median(xs):
+            n = len(xs)
+            if n == 0:
+                return None
+            ys = sorted(xs)
+            mid = n // 2
+            return float(ys[mid] if n % 2 == 1 else 0.5 * (ys[mid - 1] + ys[mid]))
+
+        def _b1_mean(xs):
+            return float(sum(xs) / len(xs)) if xs else None
+
+        _b1_signal_density = (
+            float(sum(_b1_train_total_trades) / len(_b1_train_total_trades))
+            / 140000.0  # train window = 70% of 200k bars
+            if _b1_train_total_trades else None
+        )
+
+        _b1_aggregate_metrics = {
+            "schema_version": "0-9y-b1-v1",
+            "symbol": sym,
+            "regime": regime,
+            "lane": os.environ.get("A1_LANE", "baseline"),
+            "round_total_cost_bps": _b1_round_total_cost_bps_for_sym,
+            "alphas_with_train_backtest": len(_b1_train_net_pnl),
+            "alphas_with_val_backtest": len(_b1_val_net_pnl),
+            "alphas_with_combined_sharpe": len(_b1_combined_sharpe),
+            "train_gross_pnl_median": _b1_median(_b1_train_gross_pnl),
+            "train_gross_pnl_mean": _b1_mean(_b1_train_gross_pnl),
+            "train_net_pnl_median": _b1_median(_b1_train_net_pnl),
+            "train_net_pnl_mean": _b1_mean(_b1_train_net_pnl),
+            "train_gross_minus_net_median": (
+                _b1_median([
+                    g - n for g, n in zip(_b1_train_gross_pnl, _b1_train_net_pnl)
+                ]) if (_b1_train_gross_pnl and _b1_train_net_pnl
+                       and len(_b1_train_gross_pnl) == len(_b1_train_net_pnl))
+                else None
+            ),
+            "train_total_trades_median": _b1_median(_b1_train_total_trades),
+            "train_total_trades_mean": _b1_mean(_b1_train_total_trades),
+            "train_sharpe_median": _b1_median(_b1_train_sharpe),
+            "train_win_rate_median": _b1_median(_b1_train_win_rate),
+            "val_net_pnl_median": _b1_median(_b1_val_net_pnl),
+            "val_total_trades_median": _b1_median(_b1_val_total_trades),
+            "val_sharpe_median": _b1_median(_b1_val_sharpe),
+            "combined_sharpe_median": _b1_median(_b1_combined_sharpe),
+            "signal_density_per_bar": _b1_signal_density,
+        }
+        # availability flags: True when at least one alpha contributed a
+        # numeric sample for that field this batch; False when zero samples
+        # (because all alphas exited before reaching the relevant code path).
+        _b1_availability = {
+            "round_total_cost_bps": _b1_round_total_cost_bps_for_sym is not None,
+            "train_gross_pnl_median": bool(_b1_train_gross_pnl),
+            "train_gross_pnl_mean": bool(_b1_train_gross_pnl),
+            "train_net_pnl_median": bool(_b1_train_net_pnl),
+            "train_net_pnl_mean": bool(_b1_train_net_pnl),
+            "train_gross_minus_net_median": bool(
+                _b1_train_gross_pnl and _b1_train_net_pnl
+                and len(_b1_train_gross_pnl) == len(_b1_train_net_pnl)
+            ),
+            "train_total_trades_median": bool(_b1_train_total_trades),
+            "train_total_trades_mean": bool(_b1_train_total_trades),
+            "train_sharpe_median": bool(_b1_train_sharpe),
+            "train_win_rate_median": bool(_b1_train_win_rate),
+            "val_net_pnl_median": bool(_b1_val_net_pnl),
+            "val_total_trades_median": bool(_b1_val_total_trades),
+            "val_sharpe_median": bool(_b1_val_sharpe),
+            "combined_sharpe_median": bool(_b1_combined_sharpe),
+            "signal_density_per_bar": _b1_signal_density is not None,
+            # Fields requested by 0-9Y-B1 spec but not currently separable
+            # in the runtime: cost components fee/slippage/funding are
+            # bundled into a single round_total_cost_bps; long/short trade
+            # split is not exposed by BacktestResult; primary_reject_gate
+            # is available indirectly via top_reject_reason on the same event.
+            "fee_cost_separate": False,
+            "slippage_cost_separate": False,
+            "funding_cost_separate": False,
+            "long_trade_count_separate": False,
+            "short_trade_count_separate": False,
+            "primary_reject_gate_explicit": False,
+        }
+
         # P7-PR4-LITE: aggregate A1 batch pass-rate telemetry.
         # Zero-intrusion: derives entered_count / passed_count from existing
         # `len(alphas)` and `round_champions`; rejection distribution from
@@ -1307,6 +1483,8 @@ async def main():
         # 0-9O-A: generation_profile_id / fingerprint resolved from GP
         # parameters at worker startup (`_gen_profile_identity`). Read-only
         # identity — does not affect Arena decisions.
+        # 0-9Y-B1: aggregate_metrics + availability flow through; both are
+        # additive optional fields and do not affect runtime.
         _emit_a1_batch_metrics_from_stats_safe(
             run_id=getattr(_pb, "run_id", "") or "",
             batch_id=f"R{round_number}-{sym}-{regime}",
@@ -1318,6 +1496,8 @@ async def main():
             generation_profile_fingerprint=_gen_profile_identity.get(
                 "profile_fingerprint"
             ),
+            aggregate_metrics=_b1_aggregate_metrics,
+            aggregate_metrics_availability=_b1_availability,
         )
 
         if total_champions > 0 and total_champions % 200 == 0:

@@ -242,6 +242,18 @@ class ArenaBatchMetrics:
 
     source: str = "arena_pipeline"
 
+    # 0-9Y-B1: per-batch aggregate diagnostic metrics (telemetry-only).
+    # Schema-additive; default None preserves backward compatibility for
+    # all downstream consumers that pre-date this field. Populated by the
+    # arena_pipeline worker round loop when a batch finishes; absent
+    # otherwise. Inner dict keys are documented in
+    # docs/recovery/20260424-mod-7/0-9y-system-completion-and-runtime-enablement/b1-metrics-exposure/.
+    aggregate_metrics: Optional[Dict[str, Any]] = None
+    # Companion availability flags: per-key boolean indicating whether the
+    # underlying value was actually computed for this batch. Allows
+    # downstream parsers to distinguish "unknown" from "zero".
+    aggregate_metrics_availability: Optional[Dict[str, bool]] = None
+
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
 
@@ -316,6 +328,12 @@ class ArenaStageMetrics:
     timestamp_end: str = ""
 
     deployable_count: Optional[int] = None
+
+    # 0-9Y-B1: per-batch aggregate diagnostic metrics. Caller fills these
+    # in before build_arena_batch_metrics() is invoked. Defaults None so
+    # accumulator behavior is unchanged when the field is not populated.
+    aggregate_metrics: Optional[Dict[str, Any]] = None
+    aggregate_metrics_availability: Optional[Dict[str, bool]] = None
 
     def on_entered(self) -> None:
         self.entered_count += 1
@@ -406,6 +424,8 @@ def build_arena_batch_metrics(
         timestamp_start=stage_metrics.timestamp_start,
         timestamp_end=stage_metrics.timestamp_end or _utcnow_iso(),
         source="arena_pipeline",
+        aggregate_metrics=stage_metrics.aggregate_metrics,
+        aggregate_metrics_availability=stage_metrics.aggregate_metrics_availability,
     )
 
 
