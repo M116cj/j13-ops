@@ -242,6 +242,85 @@ for lock in $LOCK_DIR/*.lock; do
   fi
 done
 
+# --- COLD-BOOT pass: respawn required workers absent post-reboot ---
+# Post-reboot tmpfs wipes /tmp/zangetsu/, so the lockfile-driven loop
+# above produces zero work for daemons that have not yet started. This
+# pass walks REQUIRED_WORKERS and, for any worker whose lockfile AND
+# live process are both absent, calls restart_service() — the same
+# spawn path used for stale-lock recovery. Lockfile-present cases are
+# already handled above (idempotent skip here).
+
+REQUIRED_WORKERS=(
+  arena_pipeline_w0
+  arena_pipeline_w1
+  arena_pipeline_w2
+  arena_pipeline_w3
+  arena23_orchestrator
+  arena45_orchestrator
+)
+
+DISABLE_MARKER=/tmp/zangetsu_disable_autostart
+
+worker_process_alive() {
+  local name=$1
+  case "$name" in
+    arena_pipeline_w*)
+      # A1 workers are launched by restart_service() with the per-worker
+      # ID passed as an env var (`env A1_WORKER_ID=$wid ... arena_pipeline.py`),
+      # so it does NOT appear in /proc/<pid>/cmdline. Match by inspecting
+      # /proc/<pid>/environ directly — the only reliable identifier.
+      local wid=${name##*_w}
+      local pids p
+      pids=$(pgrep -f 'arena_pipeline\.py' 2>/dev/null) || pids=""
+      [ -z "$pids" ] && return 1
+      for p in $pids; do
+        if tr '\0' '\n' < /proc/$p/environ 2>/dev/null \
+            | grep -qx "A1_WORKER_ID=${wid}"; then
+          return 0
+        fi
+      done
+      return 1
+      ;;
+    arena23_orchestrator)
+      pgrep -f 'arena23_orchestrator\.py' >/dev/null 2>&1
+      ;;
+    arena45_orchestrator)
+      pgrep -f 'arena45_orchestrator\.py' >/dev/null 2>&1
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+cold_boot_log() {
+  local worker=$1 action=$2 reason=$3
+  echo "[ZANGETSU_COLD_BOOT] worker=$worker action=$action reason=$reason ts=$(timestamp)"
+}
+
+for name in "${REQUIRED_WORKERS[@]}"; do
+  lock="$LOCK_DIR/${name}.lock"
+
+  if [ -f "$lock" ]; then
+    cold_boot_log "$name" "skipped" "lockfile_present_main_loop_owns"
+    continue
+  fi
+
+  if [ -f "$DISABLE_MARKER" ]; then
+    cold_boot_log "$name" "blocked" "disable_marker_present"
+    continue
+  fi
+
+  if worker_process_alive "$name"; then
+    cold_boot_log "$name" "skipped" "process_alive_no_lock"
+    continue
+  fi
+
+  cold_boot_log "$name" "started" "cold_boot_post_reboot"
+  restart_service "$name"
+  dead_count=$((dead_count + 1))
+done
+
 # 4. Also check systemd-only services (console-api, dashboard-api)
 for unit in console-api dashboard-api; do
   if ! systemctl is-active --quiet "$unit" 2>/dev/null; then
