@@ -335,7 +335,8 @@ done
 # 5. Periodic health log (every 30 min)
 if [ "$dead_count" -eq 0 ]; then
   minute=$(date +%M)
-  if [ $((minute % 30)) -lt 5 ]; then
+  # 10# forces base-10; bare 08 / 09 trigger "value too great for base" octal error.
+  if [ $((10#$minute % 30)) -lt 5 ]; then
     echo "$(timestamp) WATCHDOG: all $running_count services healthy"
   fi
 fi
