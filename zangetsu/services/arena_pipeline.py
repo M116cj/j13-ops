@@ -337,6 +337,23 @@ from zangetsu.services.tf3_shadow import (
     build_shadow_profiles_payload as _tf3_build_payload,
 )
 
+# 0-9Y-TF4 INTEGRATION DECISION (production pre-filter, default OFF) — env-driven
+# config; resolved + cached at module import. Live invocation only when
+# ARENA_AGGREGATION_MODE != OFF; otherwise zero overhead, baseline path identical.
+from zangetsu.services.aggregation_config import get_aggregation_config as _tf4_get_config
+from zangetsu.services.signal_aggregation import (
+    apply_signal_aggregation as _tf4_apply,
+    PROFILE_STRENGTH_FILTER as _TF4_P_STRENGTH,
+    PROFILE_TOP_K_PER_BAR as _TF4_P_TOPK,
+    PROFILE_HYBRID as _TF4_P_HYBRID,
+)
+_TF4_CFG = _tf4_get_config()
+_TF4_PROFILE_MAP = {
+    "STRENGTH_FILTER": _TF4_P_STRENGTH,
+    "TOP_K_PER_BAR":   _TF4_P_TOPK,
+    "HYBRID_TOPK_STRENGTH": _TF4_P_HYBRID,
+}
+
 # Strategy-specific fitness injection (v0.7.0 engine split).
 # STRATEGY_ID env must be set by the launcher (zangetsu_ctl.sh) to
 # select which strategy project supplies the fitness function. Engine
@@ -1020,6 +1037,11 @@ async def main():
         # 0-9Y-TF3: shadow-only per-profile per-symbol-regime accumulators.
         # `_tf3_shadow_accs` is None when ARENA_TF3_SHADOW != "1" → zero overhead.
         _tf3_shadow_accs = _tf3_make_accumulators() if _tf3_is_enabled() else None
+        # 0-9Y-TF4: per-batch (per-symbol-regime) aggregation counters,
+        # populated only when _TF4_CFG.is_active. Default OFF → all zero.
+        _tf4_skipped_total = 0
+        _tf4_kept_total = 0
+        _tf4_entered_total = 0
         _b1_combined_sharpe: list[float] = []
         _b1_primary_reject_gates: dict[str, int] = {}
 
@@ -1085,6 +1107,32 @@ async def main():
                     )
                 except Exception as _tf3_e:
                     log.debug(f"[tf3] shadow harness failed ({alpha_hash}): {_tf3_e}")
+
+            # 0-9Y-TF4: PRE_FILTER — production-grade single-profile aggregation.
+            # When ARENA_AGGREGATION_MODE != OFF, the chosen profile filters the
+            # signal series before backtest. Default OFF → pass-through (zero
+            # overhead). Defensive try/except: any aggregation failure logs at
+            # DEBUG and the original (signals, sizes) pass through unchanged.
+            if _TF4_CFG.is_active:
+                try:
+                    _tf4_kwargs = {}
+                    if _TF4_CFG.mode in ("STRENGTH_FILTER", "HYBRID_TOPK_STRENGTH"):
+                        _tf4_kwargs["strength_quantile"] = _TF4_CFG.strength_quantile
+                    if _TF4_CFG.mode in ("TOP_K_PER_BAR", "HYBRID_TOPK_STRENGTH"):
+                        _tf4_kwargs["top_k"] = _TF4_CFG.top_k
+                    _tf4_res = _tf4_apply(
+                        signals, sizes,
+                        profile=_TF4_PROFILE_MAP[_TF4_CFG.mode],
+                        strength=sizes,
+                        **_tf4_kwargs,
+                    )
+                    signals = _tf4_res.signals
+                    sizes = _tf4_res.sizes
+                    _tf4_entered_total += _tf4_res.entered_count
+                    _tf4_kept_total += _tf4_res.kept_count
+                    _tf4_skipped_total += _tf4_res.skipped_count
+                except Exception as _tf4_e:
+                    log.debug(f"[tf4] pre-filter failed ({alpha_hash}): {_tf4_e}")
 
             # ── Backtest (unchanged Arena 1 gates) ──
             try:
@@ -1514,6 +1562,18 @@ async def main():
         # identity — does not affect Arena decisions.
         # 0-9Y-B1: aggregate_metrics + availability flow through; both are
         # additive optional fields and do not affect runtime.
+        # 0-9Y-TF4: attach aggregation_* telemetry fields (additive). Only emit
+        # when production pre-filter is active; OFF mode keeps schema identical.
+        if _TF4_CFG.is_active:
+            _b1_aggregate_metrics["aggregation_mode"] = _TF4_CFG.mode
+            _b1_aggregate_metrics["aggregation_skipped_count_total"] = _tf4_skipped_total
+            _b1_aggregate_metrics["aggregation_kept_count_total"] = _tf4_kept_total
+            _b1_aggregate_metrics["aggregation_entered_count_total"] = _tf4_entered_total
+            _b1_aggregate_metrics["aggregation_params"] = {
+                "strength_quantile": _TF4_CFG.strength_quantile,
+                "top_k": _TF4_CFG.top_k,
+            }
+
         # 0-9Y-TF3: attach shadow_profiles dict (additive, no overwrite of
         # existing aggregate_metrics fields). When shadow disabled, this block
         # is a no-op (the dict key is simply not added).
