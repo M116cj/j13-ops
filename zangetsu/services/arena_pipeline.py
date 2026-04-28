@@ -328,6 +328,15 @@ _last_telemetry_flush_ts = 0.0
 from zangetsu.engine.components.alpha_signal import generate_alpha_signals
 from zangetsu.engine.components.indicator_bridge import build_indicator_cache
 
+# 0-9Y-TF3 SHADOW ACTIVATION (env-gated; default OFF) — additive, no
+# baseline behavior change when ARENA_TF3_SHADOW != "1".
+from zangetsu.services.tf3_shadow import (
+    is_shadow_enabled as _tf3_is_enabled,
+    run_shadow_for_alpha as _tf3_run_shadow,
+    make_accumulators as _tf3_make_accumulators,
+    build_shadow_profiles_payload as _tf3_build_payload,
+)
+
 # Strategy-specific fitness injection (v0.7.0 engine split).
 # STRATEGY_ID env must be set by the launcher (zangetsu_ctl.sh) to
 # select which strategy project supplies the fitness function. Engine
@@ -1008,6 +1017,9 @@ async def main():
         _b1_val_net_pnl: list[float] = []
         _b1_val_total_trades: list[int] = []
         _b1_val_sharpe: list[float] = []
+        # 0-9Y-TF3: shadow-only per-profile per-symbol-regime accumulators.
+        # `_tf3_shadow_accs` is None when ARENA_TF3_SHADOW != "1" → zero overhead.
+        _tf3_shadow_accs = _tf3_make_accumulators() if _tf3_is_enabled() else None
         _b1_combined_sharpe: list[float] = []
         _b1_primary_reject_gates: dict[str, int] = {}
 
@@ -1056,6 +1068,23 @@ async def main():
             except Exception as _se:
                 log.debug(f"alpha→signal failed ({alpha_hash}): {_se}")
                 continue
+
+            # 0-9Y-TF3: SHADOW activation — runs aggregation profiles on a copy of
+            # the signals; baseline `signals`/`sizes` arrays are NOT mutated. Only
+            # invoked when ARENA_TF3_SHADOW=1 at module-import time. Per-alpha
+            # exceptions are caught inside _tf3_run_shadow and logged at DEBUG.
+            if _tf3_shadow_accs is not None:
+                try:
+                    _tf3_run_shadow(
+                        signals=signals, sizes=sizes,
+                        backtester=backtester,
+                        close_f32=close_f32, high_f32=high_f32, low_f32=low_f32,
+                        sym=sym, cost_bps=cost_bps,
+                        max_hold=_STRATEGY_MAX_HOLD,
+                        accumulators=_tf3_shadow_accs,
+                    )
+                except Exception as _tf3_e:
+                    log.debug(f"[tf3] shadow harness failed ({alpha_hash}): {_tf3_e}")
 
             # ── Backtest (unchanged Arena 1 gates) ──
             try:
@@ -1485,6 +1514,21 @@ async def main():
         # identity — does not affect Arena decisions.
         # 0-9Y-B1: aggregate_metrics + availability flow through; both are
         # additive optional fields and do not affect runtime.
+        # 0-9Y-TF3: attach shadow_profiles dict (additive, no overwrite of
+        # existing aggregate_metrics fields). When shadow disabled, this block
+        # is a no-op (the dict key is simply not added).
+        if _tf3_shadow_accs is not None:
+            try:
+                _b1_aggregate_metrics["shadow_profiles"] = _tf3_build_payload(
+                    _tf3_shadow_accs,
+                    baseline_train_gross_pnl=_b1_train_gross_pnl,
+                    baseline_train_net_pnl=_b1_train_net_pnl,
+                    baseline_train_total_trades=_b1_train_total_trades,
+                    baseline_train_win_rate=_b1_train_win_rate,
+                )
+            except Exception as _tf3_pe:
+                log.debug(f"[tf3] shadow payload build failed: {_tf3_pe}")
+
         _emit_a1_batch_metrics_from_stats_safe(
             run_id=getattr(_pb, "run_id", "") or "",
             batch_id=f"R{round_number}-{sym}-{regime}",
