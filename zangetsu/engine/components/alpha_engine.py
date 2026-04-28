@@ -219,6 +219,224 @@ class _FallbackPrims:
             return np.zeros_like(arr)
         return arr / denom
 
+    # ----- OP1 (0-9y) fallback stubs ----------------------------------------
+    # numpy-only equivalents of alpha_primitives.{ts_sum, ts_mean, ts_std,
+    # ts_argmax, ts_argmin, covariance, rolling_scale, log_x, exp_x}.
+    # Used only when alpha_primitives import fails (HAS_PRIMS=False).
+    # Semantics match the numba versions; clipping constants kept local so
+    # _FallbackPrims has zero coupling to alpha_primitives module globals.
+
+    _OP1_LARGE = 1e6
+    _OP1_LOG_FLOOR = 1e-10
+    _OP1_EXP_CLIP = 50.0
+    _OP1_EPS = 1e-12
+
+    @classmethod
+    def ts_sum(cls, x: Any, d: int) -> np.ndarray:
+        arr = cls._as_array(x)
+        d = int(d)
+        n = arr.size
+        out = np.zeros(n, dtype=np.float32)
+        if d <= 0:
+            return out
+        for i in range(d - 1, n):
+            s = 0.0
+            for k in range(i - d + 1, i + 1):
+                v = arr[k]
+                if not np.isnan(v):
+                    s += v
+            if s > cls._OP1_LARGE:
+                s = cls._OP1_LARGE
+            elif s < -cls._OP1_LARGE:
+                s = -cls._OP1_LARGE
+            out[i] = s
+        return out
+
+    @classmethod
+    def ts_mean(cls, x: Any, d: int) -> np.ndarray:
+        arr = cls._as_array(x)
+        d = int(d)
+        n = arr.size
+        out = np.zeros(n, dtype=np.float32)
+        if d <= 0:
+            return out
+        for i in range(d - 1, n):
+            s = 0.0
+            c = 0
+            for k in range(i - d + 1, i + 1):
+                v = arr[k]
+                if not np.isnan(v):
+                    s += v
+                    c += 1
+            out[i] = (s / c) if c > 0 else 0.0
+        return out
+
+    @classmethod
+    def ts_std(cls, x: Any, d: int) -> np.ndarray:
+        arr = cls._as_array(x)
+        d = int(d)
+        n = arr.size
+        out = np.zeros(n, dtype=np.float32)
+        if d <= 1:
+            return out
+        for i in range(d - 1, n):
+            s = 0.0
+            c = 0
+            for k in range(i - d + 1, i + 1):
+                v = arr[k]
+                if not np.isnan(v):
+                    s += v
+                    c += 1
+            if c <= 1:
+                continue
+            mean = s / c
+            ss = 0.0
+            for k in range(i - d + 1, i + 1):
+                v = arr[k]
+                if not np.isnan(v):
+                    diff = v - mean
+                    ss += diff * diff
+            out[i] = float(np.sqrt(ss / c))
+        return out
+
+    @classmethod
+    def ts_argmax(cls, x: Any, d: int) -> np.ndarray:
+        arr = cls._as_array(x)
+        d = int(d)
+        n = arr.size
+        out = np.zeros(n, dtype=np.float32)
+        if d <= 1:
+            return out
+        for i in range(d - 1, n):
+            mv = -np.inf
+            midx = i
+            any_valid = False
+            for k in range(i - d + 1, i + 1):
+                v = arr[k]
+                if not np.isnan(v):
+                    if v > mv:
+                        mv = v
+                        midx = k
+                    any_valid = True
+            if any_valid:
+                offset = midx - (i - d + 1)
+                out[i] = offset / (d - 1)
+        return out
+
+    @classmethod
+    def ts_argmin(cls, x: Any, d: int) -> np.ndarray:
+        arr = cls._as_array(x)
+        d = int(d)
+        n = arr.size
+        out = np.zeros(n, dtype=np.float32)
+        if d <= 1:
+            return out
+        for i in range(d - 1, n):
+            mv = np.inf
+            midx = i
+            any_valid = False
+            for k in range(i - d + 1, i + 1):
+                v = arr[k]
+                if not np.isnan(v):
+                    if v < mv:
+                        mv = v
+                        midx = k
+                    any_valid = True
+            if any_valid:
+                offset = midx - (i - d + 1)
+                out[i] = offset / (d - 1)
+        return out
+
+    @classmethod
+    def covariance(cls, x: Any, y: Any, d: int) -> np.ndarray:
+        a, b = cls._align(cls._as_array(x), cls._as_array(y))
+        d = int(d)
+        n = a.size
+        out = np.zeros(n, dtype=np.float32)
+        if d <= 1:
+            return out
+        for i in range(d - 1, n):
+            sx = 0.0
+            sy = 0.0
+            c = 0
+            for k in range(i - d + 1, i + 1):
+                vx = a[k]
+                vy = b[k]
+                if not (np.isnan(vx) or np.isnan(vy)):
+                    sx += vx
+                    sy += vy
+                    c += 1
+            if c <= 1:
+                continue
+            mx = sx / c
+            my = sy / c
+            sxy = 0.0
+            for k in range(i - d + 1, i + 1):
+                vx = a[k]
+                vy = b[k]
+                if not (np.isnan(vx) or np.isnan(vy)):
+                    sxy += (vx - mx) * (vy - my)
+            v = sxy / c
+            if v > cls._OP1_LARGE:
+                v = cls._OP1_LARGE
+            elif v < -cls._OP1_LARGE:
+                v = -cls._OP1_LARGE
+            out[i] = v
+        return out
+
+    @classmethod
+    def rolling_scale(cls, x: Any, d: int) -> np.ndarray:
+        arr = cls._as_array(x)
+        d = int(d)
+        n = arr.size
+        out = np.zeros(n, dtype=np.float32)
+        if d <= 0:
+            return out
+        for i in range(d - 1, n):
+            total = 0.0
+            for k in range(i - d + 1, i + 1):
+                v = arr[k]
+                if not np.isnan(v):
+                    total += v if v >= 0.0 else -v
+            if total < cls._OP1_EPS:
+                continue
+            cur = arr[i]
+            if not np.isnan(cur):
+                out[i] = cur / total
+        return out
+
+    @classmethod
+    def log_x(cls, x: Any) -> np.ndarray:
+        arr = cls._as_array(x)
+        n = arr.size
+        out = np.zeros(n, dtype=np.float32)
+        for i in range(n):
+            a = arr[i]
+            if np.isnan(a):
+                continue
+            if a > cls._OP1_LOG_FLOOR:
+                out[i] = float(np.log(a))
+            elif a < -cls._OP1_LOG_FLOOR:
+                out[i] = float(-np.log(-a))
+        return out
+
+    @classmethod
+    def exp_x(cls, x: Any) -> np.ndarray:
+        arr = cls._as_array(x)
+        n = arr.size
+        out = np.zeros(n, dtype=np.float32)
+        for i in range(n):
+            a = arr[i]
+            if np.isnan(a):
+                continue
+            if a > cls._OP1_EXP_CLIP:
+                a = cls._OP1_EXP_CLIP
+            elif a < -cls._OP1_EXP_CLIP:
+                a = -cls._OP1_EXP_CLIP
+            out[i] = float(np.exp(a))
+        return out
+
+
 
 if not HAS_PRIMS:
     prims = _FallbackPrims  # type: ignore
@@ -492,6 +710,45 @@ class AlphaEngine:
 
         pset.addPrimitive(prims.scale, 1, name="scale")
         operator_names.append("scale")
+
+        # OP1 (0-9y): time-series primitives at periods (20, 60, 240)
+        for d in (20, 60, 240):
+            pset.addPrimitive(
+                (lambda x, dd=d: prims.ts_sum(x, dd)), 1, name=f"ts_sum_{d}"
+            )
+            pset.addPrimitive(
+                (lambda x, dd=d: prims.ts_mean(x, dd)), 1, name=f"ts_mean_{d}"
+            )
+            pset.addPrimitive(
+                (lambda x, dd=d: prims.ts_std(x, dd)), 1, name=f"ts_std_{d}"
+            )
+            pset.addPrimitive(
+                (lambda x, dd=d: prims.ts_argmax(x, dd)), 1, name=f"ts_argmax_{d}"
+            )
+            pset.addPrimitive(
+                (lambda x, dd=d: prims.ts_argmin(x, dd)), 1, name=f"ts_argmin_{d}"
+            )
+            pset.addPrimitive(
+                (lambda x, dd=d: prims.rolling_scale(x, dd)), 1,
+                name=f"rolling_scale_{d}",
+            )
+            operator_names.extend([
+                f"ts_sum_{d}", f"ts_mean_{d}", f"ts_std_{d}",
+                f"ts_argmax_{d}", f"ts_argmin_{d}", f"rolling_scale_{d}",
+            ])
+
+        # OP1 (0-9y): binary covariance at periods (20, 60, 240)
+        for d in (20, 60, 240):
+            pset.addPrimitive(
+                (lambda a, b, dd=d: prims.covariance(a, b, dd)),
+                2, name=f"covariance_{d}",
+            )
+            operator_names.append(f"covariance_{d}")
+
+        # OP1 (0-9y): pointwise unary log_x / exp_x (no period parameter)
+        pset.addPrimitive(prims.log_x, 1, name="log_x")
+        pset.addPrimitive(prims.exp_x, 1, name="exp_x")
+        operator_names.extend(["log_x", "exp_x"])
 
         self._operator_names = operator_names
 
