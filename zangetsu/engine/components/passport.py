@@ -16,7 +16,12 @@ class ChampionPassport:
 
     def stamp_arena1(self, indicator_configs, n_indicators, base_wr, base_pnl,
                      base_weighted_pnl, base_score, base_n_trades, round_number,
-                     symbol, parent_hash=None, generation=0, evolution_operator="random"):
+                     symbol, parent_hash=None, generation=0, evolution_operator="random",
+                     # 0-9Y-HE2: optional horizon attribution. Default None preserves
+                     # pre-HE2 schema (no key added). When provided, embedded under
+                     # arena1.horizon. Live wiring deferred to a future order; this is
+                     # schema-support-only.
+                     horizon=None):
         self._data["arena1"] = {
             "indicator_configs": indicator_configs,
             "n_indicators": n_indicators,
@@ -33,6 +38,10 @@ class ChampionPassport:
             "generation": generation,
             "evolution_operator": evolution_operator,
         }
+        # 0-9Y-HE2: attach horizon to arena1 when provided. Default None -> field
+        # not added (pre-HE2 schema preserved).
+        if horizon is not None:
+            self._data["arena1"]["horizon"] = int(horizon)
 
     def stamp_arena2(self, entry_thr, exit_thr, signal_strength_min,
                      signal_strength_grade, optimized_wr, optimized_pnl,

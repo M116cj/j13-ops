@@ -573,7 +573,7 @@ class AlphaEngine:
         # (ALPHA_FORWARD_HORIZON, default 60) for backward compatibility.
         if horizon is None:
             import os as _os
-            self.horizon: int = max(1, int(_os.environ.get(ALPHA_FORWARD_HORIZON, 60)))
+            self.horizon: int = max(1, int(_os.environ.get('ALPHA_FORWARD_HORIZON', '60')))
         else:
             self.horizon = max(1, int(horizon))
         self._build_primitive_set()

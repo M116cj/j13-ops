@@ -65,16 +65,27 @@ except Exception:
 
 def _emit_a1_lifecycle_safe(*, stage_event: str, status: str, alpha_hash=None,
                             source_pool=None, reject_reason=None, next_stage=None,
-                            notes=None, log=None) -> None:
+                            notes=None, log=None,
+                            # 0-9Y-HE2: optional horizon attribution forwarded into
+                            # LifecycleTraceEvent.extras. Default None preserves
+                            # pre-HE2 trace events bit-for-bit.
+                            horizon=None) -> None:
     """Exception-safe A1 lifecycle trace emission.
 
     Any failure here is swallowed silently so that a trace-path bug cannot
     alter Arena pass/fail behavior. The emission is a plain INFO-level JSONL
     log line whose payload is a serialized LifecycleTraceEvent dict.
+
+    0-9Y-HE2: when `horizon` is provided, it is forwarded as `extras={\"horizon\": h}`.
     """
     if not _LIFECYCLE_TRACE_AVAILABLE:
         return
     try:
+        # 0-9Y-HE2: build extras dict only when horizon is non-None to keep
+        # default trace events identical to pre-HE2 emission.
+        _extras = None
+        if horizon is not None:
+            _extras = {"horizon": int(horizon)}
         ev = _build_lc_event(
             arena_stage="A1",
             stage_event=stage_event,
@@ -86,6 +97,7 @@ def _emit_a1_lifecycle_safe(*, stage_event: str, status: str, alpha_hash=None,
             reject_reason=reject_reason,
             next_stage=next_stage,
             notes=notes,
+            extras=_extras,
         )
         if log is not None:
             log.info(ev.to_json())
@@ -1095,6 +1107,8 @@ async def main():
             _emit_a1_lifecycle_safe(
                 stage_event=_SE_ENTRY, status=_LS_ENTERED,
                 alpha_hash=alpha_hash, source_pool=sym, log=log,
+                # 0-9Y-HE2: forward selected per-round horizon into trace extras.
+                horizon=_he1_horizon,
             )
             _bloom_key = f"{regime}|{alpha_hash}"
             if _bloom_key in bloom:
@@ -1589,11 +1603,30 @@ async def main():
         # forward (additive int field). Default value for production = 60,
         # bit-identical to pre-HE1 batches that omitted the field.
         _b1_aggregate_metrics["horizon"] = int(_he1_horizon)
+        # 0-9Y-HE2: explicit alias kept under master-order Phase 3 spec naming.
+        _b1_aggregate_metrics["selected_horizon"] = int(_he1_horizon)
         if _HE1_CFG.is_multi_horizon:
             _b1_aggregate_metrics["horizon_config"] = {
                 "mode": _HE1_CFG.mode,
                 "active_horizons": list(_HE1_CFG.active_horizons),
             }
+            # 0-9Y-HE2: flat aliases for easier downstream parsing
+            _b1_aggregate_metrics["active_horizons"] = list(_HE1_CFG.active_horizons)
+            _b1_aggregate_metrics["horizon_mode"] = str(_HE1_CFG.mode)
+        # 0-9Y-HE2: per-batch horizon-aware generation profile id.
+        # Worker-static `_gen_profile_identity["profile_id"]` is unchanged; this
+        # additive field appends `:h<selected_horizon>` so consumers can split
+        # entered_count / pass_rate per (profile, horizon) without affecting the
+        # stable identity used by attribution chain (passport, A2/A3 fallback).
+        # Only emitted when horizon != 60 (avoid noise on baseline batches).
+        if int(_he1_horizon) != 60:
+            try:
+                _base_pid = str(_gen_profile_identity.get("profile_id") or "UNKNOWN_PROFILE")
+                _b1_aggregate_metrics["generation_profile_horizon"] = (
+                    f"{_base_pid}:h{int(_he1_horizon)}"
+                )
+            except Exception as _he2_pe:
+                log.debug(f"[he2] generation_profile_horizon build failed: {_he2_pe}")
 
         # 0-9Y-TF4: attach aggregation_* telemetry fields (additive). Only emit
         # when production pre-filter is active; OFF mode keeps schema identical.

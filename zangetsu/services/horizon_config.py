@@ -165,3 +165,13 @@ def select_horizon(round_index: int) -> int:
         return random.choice(cfg.active_horizons)
     # Defensive — _resolve_mode already validated, but guard against a future bug.
     return cfg.fixed_horizon
+
+# 0-9Y-HE2: convenience helpers for HE2-style imports.
+def get_active_a1_horizons() -> tuple:
+    """Return the resolved active A1 horizons tuple. Default = (60,)."""
+    return _CONFIG.active_horizons
+
+
+def get_horizon_mode() -> str:
+    """Return the resolved horizon-selection mode. Default = FIXED."""
+    return _CONFIG.mode
