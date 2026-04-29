@@ -463,6 +463,10 @@ class AlphaResult:
     stability: float = 0.0
     generation: int = 0
     parent_hash: Optional[str] = None
+    # 0-9Y-HE1: forward-return horizon (in bars) used during this alphas evaluation.
+    # Default 60 = pre-HE1 baseline. Stored on the result so downstream
+    # consumers (champion_pipeline, arena_pipeline telemetry) can attribute.
+    horizon: int = 60
 
     @property
     def hash(self) -> str:  # noqa: A003 - legacy name
@@ -546,6 +550,9 @@ class AlphaEngine:
         indicator_cache: Optional[Dict[str, np.ndarray]] = None,
         seed: Optional[int] = None,
         fitness_fn: Optional[Callable[[np.ndarray, np.ndarray, int], float]] = None,
+        # 0-9Y-HE1: per-engine forward-return horizon. None -> resolve from
+        # ALPHA_FORWARD_HORIZON env (pre-HE1 path); explicit int overrides.
+        horizon: Optional[int] = None,
     ) -> None:
         # fitness_fn is required for .evolve(); optional for pure
         # compile_ast / signal reconstruction (orchestrator signal
@@ -562,6 +569,13 @@ class AlphaEngine:
         self.toolbox: Any = None
         self._indicator_terminal_names: List[str] = []
         self._operator_names: List[str] = []
+        # 0-9Y-HE1: resolve effective horizon. None -> fall back to env
+        # (ALPHA_FORWARD_HORIZON, default 60) for backward compatibility.
+        if horizon is None:
+            import os as _os
+            self.horizon: int = max(1, int(_os.environ.get(ALPHA_FORWARD_HORIZON, 60)))
+        else:
+            self.horizon = max(1, int(horizon))
         self._build_primitive_set()
 
     # ------------------------------------------------------------------
@@ -887,11 +901,16 @@ class AlphaEngine:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _forward_returns(close: np.ndarray) -> np.ndarray:
-        # Cumulative forward return over ALPHA_FORWARD_HORIZON bars.
-        # Must match the min_hold used downstream in alpha_to_signal.
-        import os as _os
-        horizon = max(1, int(_os.environ.get('ALPHA_FORWARD_HORIZON', '60')))
+    def _forward_returns(close: np.ndarray, horizon: Optional[int] = None) -> np.ndarray:
+        # 0-9Y-HE1: explicit `horizon` arg overrides env. None -> fall back to
+        # ALPHA_FORWARD_HORIZON env (default 60) for backward compatibility.
+        # Cumulative forward return over `horizon` bars; must match min_hold
+        # used downstream in alpha_to_signal.
+        if horizon is None:
+            import os as _os
+            horizon = max(1, int(_os.environ.get('ALPHA_FORWARD_HORIZON', '60')))
+        else:
+            horizon = max(1, int(horizon))
         fr = np.zeros_like(close, dtype=np.float32)
         n = close.size
         if n > horizon:
@@ -927,7 +946,7 @@ class AlphaEngine:
         # `returns` positional retained for backward-compat; forward returns always
         # derived from close for IC consistency.
         _ = returns
-        forward_returns = self._forward_returns(close)
+        forward_returns = self._forward_returns(close, horizon=self.horizon)
 
         self.toolbox.register(
             "evaluate", self._evaluate,
@@ -973,7 +992,7 @@ class AlphaEngine:
         min_abs_ic: float = 0.005,
     ) -> List[AlphaResult]:
         """Pure random AST sampling — no selection pressure."""
-        forward_returns = self._forward_returns(close)
+        forward_returns = self._forward_returns(close, horizon=self.horizon)
 
         results: List[AlphaResult] = []
         for _ in range(int(n_samples)):
@@ -1059,7 +1078,15 @@ class AlphaEngine:
         _precomputed: Optional[Tuple[float, float]] = None,
     ) -> AlphaResult:
         formula = str(ind)
-        alpha_hash = hashlib.md5(formula.encode("utf-8")).hexdigest()[:16]
+        # 0-9Y-HE1: alpha_hash composition.
+        # horizon == 60 -> legacy fast-path: md5(formula) -- preserves pre-HE1
+        # hash format so existing champion_pipeline_fresh / bloom records remain
+        # consistent. horizon != 60 -> multi-horizon distinction.
+        _h = int(self.horizon)
+        if _h == 60:
+            alpha_hash = hashlib.md5(formula.encode("utf-8")).hexdigest()[:16]
+        else:
+            alpha_hash = hashlib.md5(f"{formula}|h{_h}".encode("utf-8")).hexdigest()[:16]
         if _precomputed is not None:
             ic, pval = _precomputed
         else:
@@ -1089,6 +1116,7 @@ class AlphaEngine:
             formula=formula,
             ast_json=self._tree_to_ast_json(ind),
             alpha_hash=alpha_hash,
+            horizon=int(self.horizon),
             depth=int(ind.height),
             node_count=int(len(ind)),
             used_indicators=used_indicators,

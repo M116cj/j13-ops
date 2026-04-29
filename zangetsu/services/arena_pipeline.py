@@ -341,6 +341,15 @@ from zangetsu.services.tf3_shadow import (
 # config; resolved + cached at module import. Live invocation only when
 # ARENA_AGGREGATION_MODE != OFF; otherwise zero overhead, baseline path identical.
 from zangetsu.services.aggregation_config import get_aggregation_config as _tf4_get_config
+
+# 0-9Y-HE1 HORIZON PLUMBING (multi-horizon ready, default = single horizon=60).
+# select_horizon() resolves per-round horizon based on env config; the resolved
+# value is plumbed into AlphaEngine constructor + emitted as telemetry.
+from zangetsu.services.horizon_config import (
+    select_horizon as _he1_select_horizon,
+    get_horizon_config as _he1_get_config,
+)
+_HE1_CFG = _he1_get_config()
 from zangetsu.services.signal_aggregation import (
     apply_signal_aggregation as _tf4_apply,
     PROFILE_STRENGTH_FILTER as _TF4_P_STRENGTH,
@@ -986,8 +995,22 @@ async def main():
         # end-to-end-upgrade fix 2026-04-19: pass pre-built indicator cache so the
         # 126 indicator terminals are not silently pruned to zeros by GP tournament
         # selection (was the latent cause of V10 path producing 0 A4-passing alphas).
+        # 0-9Y-HE1: select per-round horizon. Default config = (60,) FIXED, so
+        # `_he1_horizon` evaluates to 60 every round on bit-identical baseline.
+        # Multi-horizon mode requires explicit env opt-in (ACTIVE_A1_HORIZONS +
+        # ARENA_HORIZON_MODE).
         try:
-            engine = AlphaEngine(indicator_cache=symbol_indicator_cache.get(sym, {}), fitness_fn=_strategy_fitness_fn)
+            _he1_horizon = int(_he1_select_horizon(int(round_number) - 1))
+        except Exception as _he1_e:
+            log.debug(f"[he1] select_horizon failed; falling back to 60: {_he1_e}")
+            _he1_horizon = 60
+
+        try:
+            engine = AlphaEngine(
+                indicator_cache=symbol_indicator_cache.get(sym, {}),
+                fitness_fn=_strategy_fitness_fn,
+                horizon=_he1_horizon,
+            )
             alphas = engine.evolve(
                 close_f64, high_f64, low_f64, vol_f64, returns_f64,
                 n_gen=N_GEN, pop_size=POP_SIZE, top_k=TOP_K,
@@ -1562,6 +1585,16 @@ async def main():
         # identity — does not affect Arena decisions.
         # 0-9Y-B1: aggregate_metrics + availability flow through; both are
         # additive optional fields and do not affect runtime.
+        # 0-9Y-HE1: attach horizon telemetry. Always emitted from this point
+        # forward (additive int field). Default value for production = 60,
+        # bit-identical to pre-HE1 batches that omitted the field.
+        _b1_aggregate_metrics["horizon"] = int(_he1_horizon)
+        if _HE1_CFG.is_multi_horizon:
+            _b1_aggregate_metrics["horizon_config"] = {
+                "mode": _HE1_CFG.mode,
+                "active_horizons": list(_HE1_CFG.active_horizons),
+            }
+
         # 0-9Y-TF4: attach aggregation_* telemetry fields (additive). Only emit
         # when production pre-filter is active; OFF mode keeps schema identical.
         if _TF4_CFG.is_active:
