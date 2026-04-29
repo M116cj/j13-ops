@@ -361,6 +361,11 @@ from zangetsu.services.horizon_config import (
     select_horizon as _he1_select_horizon,
     get_horizon_config as _he1_get_config,
 )
+
+# 0-9Y-HE3 HORIZON ECONOMIC TELEMETRY (telemetry-only, additive).
+# Builds per-horizon metrics dict from per-alpha lists already populated
+# by the round. Pure helper; never raises.
+from zangetsu.services.horizon_metrics import build_horizon_metrics as _he3_build_metrics
 _HE1_CFG = _he1_get_config()
 from zangetsu.services.signal_aggregation import (
     apply_signal_aggregation as _tf4_apply,
@@ -1627,6 +1632,37 @@ async def main():
                 )
             except Exception as _he2_pe:
                 log.debug(f"[he2] generation_profile_horizon build failed: {_he2_pe}")
+
+        # 0-9Y-HE3: per-horizon economic telemetry. Builds horizon_metrics dict
+        # keyed by selected_horizon from the per-alpha lists already populated
+        # this round. Pure helper; never raises (returns {} on internal error).
+        # Default behavior (single-horizon=60): {60: {...all economics...}}.
+        try:
+            _he3_skipped = 0
+            _he3_kept = 0
+            _he3_entered = 0
+            # If TF4 PRE-FILTER is active in this batch, pull its per-batch totals.
+            if _TF4_CFG.is_active:
+                _he3_skipped = int(_tf4_skipped_total)
+                _he3_kept = int(_tf4_kept_total)
+                _he3_entered = int(_tf4_entered_total)
+            _he3_metrics = _he3_build_metrics(
+                int(_he1_horizon),
+                train_gross_pnl=_b1_train_gross_pnl,
+                train_net_pnl=_b1_train_net_pnl,
+                train_total_trades=_b1_train_total_trades,
+                train_win_rate=_b1_train_win_rate,
+                round_total_cost_bps=_b1_round_total_cost_bps_for_sym,
+                signal_density_per_bar=_b1_signal_density,
+                skipped_count_total=_he3_skipped,
+                kept_count_total=_he3_kept,
+                entered_count_total=_he3_entered,
+            )
+            if _he3_metrics:
+                _b1_aggregate_metrics["horizon_metrics"] = _he3_metrics
+                _b1_aggregate_metrics["horizon_metrics_keys"] = list(_he3_metrics.keys())
+        except Exception as _he3_e:
+            log.debug(f"[he3] horizon_metrics build failed: {_he3_e}")
 
         # 0-9Y-TF4: attach aggregation_* telemetry fields (additive). Only emit
         # when production pre-filter is active; OFF mode keeps schema identical.
