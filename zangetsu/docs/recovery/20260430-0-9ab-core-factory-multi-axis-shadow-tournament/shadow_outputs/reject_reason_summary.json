@@ -1,0 +1,51 @@
+{
+  "overall": {
+    "error_total": 0,
+    "not_evaluated_total": 0,
+    "passed_total": 8,
+    "rejected_by_reason": {
+      "no_trades_generated": 399,
+      "non_positive_net": 129,
+      "too_few_trades": 40
+    },
+    "rejected_total": 568,
+    "unknown_reject_count": 0
+  },
+  "per_axis": {
+    "C": {
+      "error_total": 0,
+      "not_evaluated_total": 0,
+      "passed_total": 3,
+      "rejected_by_reason": {
+        "no_trades_generated": 148,
+        "non_positive_net": 22,
+        "too_few_trades": 19
+      },
+      "rejected_total": 189,
+      "unknown_reject_count": 0
+    },
+    "D": {
+      "error_total": 0,
+      "not_evaluated_total": 0,
+      "passed_total": 0,
+      "rejected_by_reason": {
+        "no_trades_generated": 174,
+        "non_positive_net": 18
+      },
+      "rejected_total": 192,
+      "unknown_reject_count": 0
+    },
+    "H": {
+      "error_total": 0,
+      "not_evaluated_total": 0,
+      "passed_total": 5,
+      "rejected_by_reason": {
+        "no_trades_generated": 77,
+        "non_positive_net": 89,
+        "too_few_trades": 21
+      },
+      "rejected_total": 187,
+      "unknown_reject_count": 0
+    }
+  }
+}
