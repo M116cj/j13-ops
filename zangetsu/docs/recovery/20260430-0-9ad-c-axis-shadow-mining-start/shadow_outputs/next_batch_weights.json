@@ -1,0 +1,108 @@
+{
+  "overall": {
+    "based_on": "evaluated_rejections",
+    "by_reason": {
+      "no_trades_generated": {
+        "action": "increase_trigger_density_or_adjust_regime_condition",
+        "count": 1058,
+        "failure_mode": "NO_TRADES_GENERATED",
+        "grammar_weight_delta": -0.1,
+        "share": 0.603537
+      },
+      "non_positive_net": {
+        "action": "reduce_similar_grammar_family",
+        "count": 585,
+        "failure_mode": "TRAIN_NEG_PNL",
+        "grammar_weight_delta": -0.2,
+        "share": 0.333714
+      },
+      "too_few_trades": {
+        "action": "increase_denser_signal_variants",
+        "count": 110,
+        "failure_mode": "SIGNAL_TOO_SPARSE",
+        "grammar_weight_delta": -0.15,
+        "share": 0.06275
+      }
+    },
+    "recommended_actions": [
+      {
+        "action": "increase_trigger_density_or_adjust_regime_condition",
+        "failure_mode": "NO_TRADES_GENERATED",
+        "grammar_weight_delta": -0.1,
+        "reason": "no_trades_generated",
+        "share": 0.603537
+      },
+      {
+        "action": "reduce_similar_grammar_family",
+        "failure_mode": "TRAIN_NEG_PNL",
+        "grammar_weight_delta": -0.2,
+        "reason": "non_positive_net",
+        "share": 0.333714
+      },
+      {
+        "action": "increase_denser_signal_variants",
+        "failure_mode": "SIGNAL_TOO_SPARSE",
+        "grammar_weight_delta": -0.15,
+        "reason": "too_few_trades",
+        "share": 0.06275
+      }
+    ],
+    "rejected_total": 1753,
+    "status": "OK",
+    "unknown_reject_count": 0
+  },
+  "per_axis": {
+    "C": {
+      "based_on": "evaluated_rejections",
+      "by_reason": {
+        "no_trades_generated": {
+          "action": "increase_trigger_density_or_adjust_regime_condition",
+          "count": 1058,
+          "failure_mode": "NO_TRADES_GENERATED",
+          "grammar_weight_delta": -0.1,
+          "share": 0.603537
+        },
+        "non_positive_net": {
+          "action": "reduce_similar_grammar_family",
+          "count": 585,
+          "failure_mode": "TRAIN_NEG_PNL",
+          "grammar_weight_delta": -0.2,
+          "share": 0.333714
+        },
+        "too_few_trades": {
+          "action": "increase_denser_signal_variants",
+          "count": 110,
+          "failure_mode": "SIGNAL_TOO_SPARSE",
+          "grammar_weight_delta": -0.15,
+          "share": 0.06275
+        }
+      },
+      "recommended_actions": [
+        {
+          "action": "increase_trigger_density_or_adjust_regime_condition",
+          "failure_mode": "NO_TRADES_GENERATED",
+          "grammar_weight_delta": -0.1,
+          "reason": "no_trades_generated",
+          "share": 0.603537
+        },
+        {
+          "action": "reduce_similar_grammar_family",
+          "failure_mode": "TRAIN_NEG_PNL",
+          "grammar_weight_delta": -0.2,
+          "reason": "non_positive_net",
+          "share": 0.333714
+        },
+        {
+          "action": "increase_denser_signal_variants",
+          "failure_mode": "SIGNAL_TOO_SPARSE",
+          "grammar_weight_delta": -0.15,
+          "reason": "too_few_trades",
+          "share": 0.06275
+        }
+      ],
+      "rejected_total": 1753,
+      "status": "OK",
+      "unknown_reject_count": 0
+    }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "overall": {
+    "error_total": 0,
+    "not_evaluated_total": 0,
+    "passed_total": 39,
+    "rejected_by_reason": {
+      "no_trades_generated": 1058,
+      "non_positive_net": 585,
+      "too_few_trades": 110
+    },
+    "rejected_total": 1753,
+    "unknown_reject_count": 0
+  },
+  "per_axis": {
+    "C": {
+      "error_total": 0,
+      "not_evaluated_total": 0,
+      "passed_total": 39,
+      "rejected_by_reason": {
+        "no_trades_generated": 1058,
+        "non_positive_net": 585,
+        "too_few_trades": 110
+      },
+      "rejected_total": 1753,
+      "unknown_reject_count": 0
+    }
+  }
+}

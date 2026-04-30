@@ -1,0 +1,3 @@
+axis_id,intended_side_mode,n_candidates,n_passed,n_rejected,n_not_evaluated,n_error,realized_long_trade_count,realized_short_trade_count,trade_count_sum,avg_gross_bps,avg_net_bps
+C,LONG,896,36,860,0,0,3610239,0,3610051,161.23153362090542,154.06244879947687
+C,SHORT,896,3,893,0,0,0,3420868,3420754,-0.9128082394563778,-5.622071632313519

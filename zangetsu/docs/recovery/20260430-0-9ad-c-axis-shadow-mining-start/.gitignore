@@ -1,0 +1,2 @@
+# Re-include shadow mining evidence artifacts (override ../zangetsu/.gitignore *.jsonl rule).
+!shadow_outputs/*.jsonl
