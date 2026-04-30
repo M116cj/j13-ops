@@ -1,0 +1,89 @@
+{
+  "a2_min_trades": 25,
+  "axes": [
+    "H",
+    "C",
+    "D"
+  ],
+  "candidates_per_axis": {
+    "C": 192,
+    "D": 896,
+    "H": 192
+  },
+  "candidates_total": 1280,
+  "d_band_k_list": [
+    0.5,
+    1.0,
+    1.5
+  ],
+  "d_symbol_mode": "all14",
+  "d_trigger": "band_crossing",
+  "evaluation_seconds": 153.59,
+  "generation_id": "0-9ac-round2",
+  "h_value_clip": "p99_abs",
+  "overall_feedback_status": "OK",
+  "overall_reject_summary": {
+    "error_total": 0,
+    "not_evaluated_total": 0,
+    "passed_total": 20,
+    "rejected_by_reason": {
+      "no_trades_generated": 915,
+      "non_positive_net": 313,
+      "too_few_trades": 32
+    },
+    "rejected_total": 1260,
+    "unknown_reject_count": 0
+  },
+  "scoreboard": [
+    {
+      "axis_id": "C",
+      "candidate_generation": 15.0,
+      "correction_success": 10.0,
+      "cost_robustness": 15.0,
+      "economic_result_quality": 14.21,
+      "feedback_usability": 10.0,
+      "formula_diversity": 15.0,
+      "long_short_balance": 9.89,
+      "rank": 1,
+      "reject_reason_quality": 10.0,
+      "total": 99.1
+    },
+    {
+      "axis_id": "H",
+      "candidate_generation": 15.0,
+      "correction_success": 5.0,
+      "cost_robustness": 15.0,
+      "economic_result_quality": 14.31,
+      "feedback_usability": 10.0,
+      "formula_diversity": 15.0,
+      "long_short_balance": 7.39,
+      "rank": 2,
+      "reject_reason_quality": 10.0,
+      "total": 91.7
+    },
+    {
+      "axis_id": "D",
+      "candidate_generation": 15.0,
+      "correction_success": 3.0,
+      "cost_robustness": 12.0,
+      "economic_result_quality": 14.53,
+      "feedback_usability": 10.0,
+      "formula_diversity": 15.0,
+      "long_short_balance": 9.78,
+      "rank": 3,
+      "reject_reason_quality": 10.0,
+      "total": 89.31
+    }
+  ],
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT"
+  ],
+  "timeframe": "15m",
+  "unique_formulas_per_axis": {
+    "C": 32,
+    "D": 32,
+    "H": 32
+  }
+}
