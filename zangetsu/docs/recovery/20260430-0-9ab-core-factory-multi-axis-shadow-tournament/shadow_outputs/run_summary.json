@@ -1,0 +1,78 @@
+{
+  "a2_min_trades": 25,
+  "axes": [
+    "H",
+    "C",
+    "D"
+  ],
+  "candidates_per_axis": {
+    "C": 192,
+    "D": 192,
+    "H": 192
+  },
+  "candidates_total": 576,
+  "evaluation_seconds": 141.75,
+  "generation_id": "0-9ab-shadow-v1",
+  "overall_feedback_status": "OK",
+  "overall_reject_summary": {
+    "error_total": 0,
+    "not_evaluated_total": 0,
+    "passed_total": 8,
+    "rejected_by_reason": {
+      "no_trades_generated": 399,
+      "non_positive_net": 129,
+      "too_few_trades": 40
+    },
+    "rejected_total": 568,
+    "unknown_reject_count": 0
+  },
+  "scoreboard": [
+    {
+      "axis_id": "C",
+      "candidate_generation": 15.0,
+      "cost_robustness": 15.0,
+      "economic_result_quality": 14.61,
+      "feedback_usability": 10.0,
+      "formula_diversity": 15.0,
+      "long_short_balance": 9.51,
+      "rank": 1,
+      "reject_reason_quality": 10.0,
+      "total": 89.12
+    },
+    {
+      "axis_id": "H",
+      "candidate_generation": 15.0,
+      "cost_robustness": 15.0,
+      "economic_result_quality": 13.83,
+      "feedback_usability": 10.0,
+      "formula_diversity": 15.0,
+      "long_short_balance": 9.98,
+      "rank": 2,
+      "reject_reason_quality": 10.0,
+      "total": 88.81
+    },
+    {
+      "axis_id": "D",
+      "candidate_generation": 15.0,
+      "cost_robustness": 12.0,
+      "economic_result_quality": 14.77,
+      "feedback_usability": 10.0,
+      "formula_diversity": 15.0,
+      "long_short_balance": 9.44,
+      "rank": 3,
+      "reject_reason_quality": 10.0,
+      "total": 86.21
+    }
+  ],
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT",
+    "SOLUSDT"
+  ],
+  "timeframe": "15m",
+  "unique_formulas_per_axis": {
+    "C": 32,
+    "D": 32,
+    "H": 32
+  }
+}

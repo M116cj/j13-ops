@@ -1,0 +1,4 @@
+axis_id,candidate_generation,formula_diversity,long_short_balance,economic_result_quality,cost_robustness,reject_reason_quality,feedback_usability,total,rank
+C,15.0,15.0,9.51,14.61,15.0,10.0,10.0,89.12,1
+H,15.0,15.0,9.98,13.83,15.0,10.0,10.0,88.81,2
+D,15.0,15.0,9.44,14.77,12.0,10.0,10.0,86.21,3
