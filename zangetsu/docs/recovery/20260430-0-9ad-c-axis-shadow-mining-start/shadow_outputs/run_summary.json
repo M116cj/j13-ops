@@ -1,0 +1,66 @@
+{
+  "a2_min_trades": 25,
+  "axes": [
+    "C"
+  ],
+  "candidates_per_axis": {
+    "C": 1792
+  },
+  "candidates_total": 1792,
+  "d_band_k_list": [
+    1.0
+  ],
+  "d_symbol_mode": "default",
+  "d_trigger": "sign_flip",
+  "evaluation_seconds": 44.36,
+  "generation_id": "0-9ad-c-axis-mining-v1",
+  "h_value_clip": null,
+  "overall_feedback_status": "OK",
+  "overall_reject_summary": {
+    "error_total": 0,
+    "not_evaluated_total": 0,
+    "passed_total": 39,
+    "rejected_by_reason": {
+      "no_trades_generated": 1058,
+      "non_positive_net": 585,
+      "too_few_trades": 110
+    },
+    "rejected_total": 1753,
+    "unknown_reject_count": 0
+  },
+  "scoreboard": [
+    {
+      "axis_id": "C",
+      "candidate_generation": 15.0,
+      "correction_success": 10.0,
+      "cost_robustness": 15.0,
+      "economic_result_quality": 14.2,
+      "feedback_usability": 10.0,
+      "formula_diversity": 15.0,
+      "long_short_balance": 9.48,
+      "rank": 1,
+      "reject_reason_quality": 10.0,
+      "total": 98.68
+    }
+  ],
+  "symbols": [
+    "1000PEPEUSDT",
+    "1000SHIBUSDT",
+    "AAVEUSDT",
+    "AVAXUSDT",
+    "BNBUSDT",
+    "BTCUSDT",
+    "DOGEUSDT",
+    "DOTUSDT",
+    "ETHUSDT",
+    "FILUSDT",
+    "GALAUSDT",
+    "LINKUSDT",
+    "SOLUSDT",
+    "XRPUSDT"
+  ],
+  "timeframe": "15m",
+  "unique_formulas_per_axis": {
+    "C": 64
+  }
+}

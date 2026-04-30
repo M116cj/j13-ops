@@ -44,7 +44,8 @@ from .rejection_feedback import (
     summarize_reject_reasons,
 )
 from .axis_scoreboard import rank_axes
-from .survivor_bank import is_near_survivor
+from .next_batch_weights import next_batch_weights_from_summary
+from .survivor_bank import is_near_survivor, is_survivor
 
 
 ALL14_SYMBOLS = (
@@ -300,6 +301,23 @@ def run(
                     'intended_side_mode','net_bps','gross_bps','trade_count',
                     'reject_reason','clip_method','trigger_type','band_k'])
     write_csv(near_rows, output_dir / 'near_survivor_report.csv', near_fields)
+
+    # Survivor report (PASSED only) — distinct from near-survivor.
+    survivor_rows = [r for r in result_rows if is_survivor(r)]
+    survivor_fields = (list(survivor_rows[0].keys()) if survivor_rows else
+                       ['candidate_id','axis_id','alpha_hash','symbol','timeframe',
+                        'intended_side_mode','net_bps','gross_bps','trade_count',
+                        'a1_pass','a2_pass'])
+    write_csv(survivor_rows, output_dir / 'survivor_report.csv', survivor_fields)
+
+    # next_batch_weights.json — derived from overall reject summary; honest empty if blocked.
+    write_json({
+        'overall': next_batch_weights_from_summary(overall_summary),
+        'per_axis': {a: next_batch_weights_from_summary(
+            summarize_reject_reasons([r for r in result_rows if r['axis_id'] == a]))
+                     for a in axes},
+    }, output_dir / 'next_batch_weights.json')
+
 
     coll_rows = [
         {'axis_id': a, 'collisions_dropped': int(formula_collisions.get(a, 0)),
