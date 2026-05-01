@@ -6,25 +6,52 @@
   <meta name="theme-color" content="#000000">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta http-equiv="refresh" content="30">
+  <meta http-equiv="refresh" content="10">
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>{% block title %}ZANGETSU TERM{% endblock %}</title>
-  <link rel="stylesheet" href="/static/style.css">
+  <link rel="stylesheet" href="/static/style.css?v={{ now_epoch }}">
 </head>
-<body>
+<body data-page-loaded="{{ now_epoch }}" data-data-mtime="{{ data_mtime_epoch or 0 }}">
   {% include '_topbar.html' %}
   <main>
     {% block main %}{% endblock %}
   </main>
   {% include '_bottomnav.html' %}
   <script>
-    document.querySelectorAll('.clock').forEach(el => {
-      const tick = () => {
+    (function() {
+      const REFRESH_S = 10;
+      const loaded = parseFloat(document.body.dataset.pageLoaded) || (Date.now() / 1000);
+      const dataMtime = parseFloat(document.body.dataset.dataMtime) || 0;
+      const fmt = (s) => {
+        if (s == null || s < 0) return '—';
+        if (s < 60) return Math.floor(s) + 's';
+        if (s < 3600) return Math.floor(s / 60) + 'm';
+        if (s < 86400) return Math.floor(s / 3600) + 'h';
+        return Math.floor(s / 86400) + 'd';
+      };
+      const tickClock = () => {
         const d = new Date();
         const pad = n => String(n).padStart(2, '0');
-        el.textContent = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()) + 'z';
+        document.querySelectorAll('.clock').forEach(el => {
+          el.textContent = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()) + 'z';
+        });
       };
-      tick(); setInterval(tick, 1000);
-    });
+      const tickAges = () => {
+        const nowS = Date.now() / 1000;
+        const pageAge = nowS - loaded;
+        const dataAge = dataMtime ? (nowS - dataMtime) : null;
+        const remain = Math.max(0, REFRESH_S - pageAge);
+        document.querySelectorAll('.live-page-age').forEach(el => el.textContent = fmt(pageAge));
+        document.querySelectorAll('.live-data-age').forEach(el => el.textContent = dataAge != null ? fmt(dataAge) : '—');
+        document.querySelectorAll('.live-refresh-in').forEach(el => el.textContent = Math.ceil(remain) + 's');
+        // Pulse the data-age pill briefly when data mtime changes (post-refresh)
+      };
+      tickClock(); tickAges();
+      setInterval(tickClock, 1000);
+      setInterval(tickAges, 1000);
+    })();
   </script>
 </body>
 </html>
