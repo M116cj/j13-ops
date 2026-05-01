@@ -1,0 +1,40 @@
+{% extends '_base.html' %}
+{% block title %}FEED · ZANGETSU{% endblock %}
+{% block main %}
+<div class="section-title">{{ ov.folder_name }}</div>
+<div class="kpi-grid">
+  <div class="kpi {{ 'green' if fw_status == 'OK' else 'gray' }}"><div class="lbl">FEEDBACK</div><div class="val">{{ fw_status }}</div></div>
+  <div class="kpi"><div class="lbl">REJECTED</div><div class="val">{{ '{:,}'.format(rejected_total) if rejected_total is not none else 'NO DATA' }}</div></div>
+</div>
+<div class="card">
+  <div class="title">Feedback weights</div>
+  <div class="depth">
+    {% for w in weights %}
+    <div class="depth-row">
+      <span class="lbl">{{ w.label }}</span>
+      <span class="bar"><span style="width: {{ w.pct }}%; background: var(--accent);"></span></span>
+      <span class="pct">{{ '%.1f'|format(w.pct) }}%</span>
+    </div>
+    {% endfor %}
+    {% if not weights %}<div class="empty">EMPTY_WITH_REASON</div>{% endif %}
+  </div>
+</div>
+<div class="card">
+  <div class="title">Next-batch recommended actions</div>
+  <table class="tbl">
+    <thead><tr><th>REASON</th><th>FAILURE_MODE</th><th>ACTION</th><th class="num">Δ</th><th class="num">SHARE</th></tr></thead>
+    <tbody>
+    {% for a in actions %}
+      <tr>
+        <td>{{ a.reason }}</td>
+        <td><span class="tag yellow">{{ a.failure_mode }}</span></td>
+        <td>{{ a.action }}</td>
+        <td class="num {{ 'green' if a.grammar_weight_delta > 0 else 'red' }}">{{ '%+0.2f'|format(a.grammar_weight_delta) }}</td>
+        <td class="num">{{ '%.1f'|format(a.share*100) }}%</td>
+      </tr>
+    {% endfor %}
+    {% if not actions %}<tr><td colspan="5" class="empty">no recommendations</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

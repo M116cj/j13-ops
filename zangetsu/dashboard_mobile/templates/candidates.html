@@ -1,0 +1,53 @@
+{% extends '_base.html' %}
+{% block title %}CANDS · ZANGETSU{% endblock %}
+{% block main %}
+<div class="section-title">{{ ov.folder_name }}</div>
+<div class="card">
+  <div class="title">Filters</div>
+  <form method="get" action="/candidates" style="display:flex;flex-wrap:wrap;gap:6px;">
+    <select name="status" style="background:#000;color:#e7eaf0;border:1px solid #1b2230;padding:4px;font-size:11px;font-family:inherit;">
+      <option value="">status: any</option>
+      {% for s in ['PASSED','REJECTED','NOT_EVALUATED','ERROR'] %}
+      <option value="{{s}}" {{'selected' if status==s else ''}}>{{s}}</option>
+      {% endfor %}
+    </select>
+    <select name="symbol" style="background:#000;color:#e7eaf0;border:1px solid #1b2230;padding:4px;font-size:11px;font-family:inherit;">
+      <option value="">symbol: any</option>
+      {% for s in symbols %}<option value="{{s}}" {{'selected' if symbol==s else ''}}>{{s}}</option>{% endfor %}
+    </select>
+    <select name="side" style="background:#000;color:#e7eaf0;border:1px solid #1b2230;padding:4px;font-size:11px;font-family:inherit;">
+      <option value="">side: any</option>
+      {% for s in ['LONG','SHORT','BOTH'] %}<option value="{{s}}" {{'selected' if side==s else ''}}>{{s}}</option>{% endfor %}
+    </select>
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="search id/hash" style="background:#000;color:#e7eaf0;border:1px solid #1b2230;padding:4px;font-size:11px;flex:1;font-family:inherit;">
+    <button type="submit" style="background:#11161d;color:#38bdf8;border:1px solid #38bdf8;padding:4px 10px;font-size:11px;font-family:inherit;">APPLY</button>
+  </form>
+</div>
+
+<div class="card">
+  <div class="title">Rows {{ shown }} / {{ total }}</div>
+  <table class="tbl">
+    <thead><tr><th>ID</th><th>SYMBOL</th><th>SIDE</th><th>STATUS</th><th>REASON</th><th class="num">NET bps</th><th class="num">N</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td><a href="/candidate/{{ r.candidate_id }}" class="mono">{{ r.candidate_id[:10] }}…</a></td>
+        <td>{{ r.symbol }}</td>
+        <td>{{ r.intended_side_mode }}</td>
+        <td>
+          {% if r.status == 'PASSED' %}<span class="tag green">PASSED</span>
+          {% elif r.status == 'REJECTED' %}<span class="tag red">REJ</span>
+          {% elif r.status == 'NOT_EVALUATED' %}<span class="tag gray">NEV</span>
+          {% else %}<span class="tag yellow">{{ r.status }}</span>
+          {% endif %}
+        </td>
+        <td>{{ (r.reject_reason or '')[:18] }}</td>
+        <td class="num {{ 'green' if r.net_bps > 0 else ('red' if r.net_bps < 0 else '') }}">{{ '%.2f'|format(r.net_bps) }}</td>
+        <td class="num">{{ r.trade_count }}</td>
+      </tr>
+    {% endfor %}
+    {% if not rows %}<tr><td colspan="7" class="empty">NO MATCH</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends '_base.html' %}
+{% block title %}{{ r.candidate_id[:10] }} · ZANGETSU{% endblock %}
+{% block main %}
+<div class="section-title"><a href="/candidates">← back</a></div>
+<div class="card">
+  <div class="title">
+    {% if r.status == 'PASSED' %}<span class="tag green">PASSED</span>
+    {% elif r.status == 'REJECTED' %}<span class="tag red">REJECTED</span>
+    {% elif r.status == 'NOT_EVALUATED' %}<span class="tag gray">NOT_EVALUATED</span>
+    {% else %}<span class="tag yellow">{{ r.status }}</span>{% endif %}
+    &nbsp;<span class="mono">{{ r.candidate_id[:24] }}…</span>
+  </div>
+  <div class="row"><span class="label">SYMBOL</span><span class="value">{{ r.symbol }}</span></div>
+  <div class="row"><span class="label">SIDE</span><span class="value">{{ r.intended_side_mode }}</span></div>
+  <div class="row"><span class="label">TIMEFRAME</span><span class="value">{{ r.timeframe }}</span></div>
+  <div class="row"><span class="label">AXIS</span><span class="value">{{ r.axis_id }}</span></div>
+  <div class="row"><span class="label">GROSS</span><span class="value mono">{{ '%.3f'|format(r.gross_bps) }} bps</span></div>
+  <div class="row"><span class="label">COST</span><span class="value mono">{{ '%.3f'|format(r.cost_bps) }} bps</span></div>
+  <div class="row"><span class="label">NET</span><span class="value mono" style="color: {{ 'var(--green)' if r.net_bps > 0 else 'var(--red)' }}">{{ '%.3f'|format(r.net_bps) }} bps</span></div>
+  <div class="row"><span class="label">TRADES</span><span class="value">{{ r.trade_count }} (L={{ r.long_trade_count }} S={{ r.short_trade_count }})</span></div>
+  <div class="row"><span class="label">A1_PASS</span><span class="value">{{ r.a1_pass }}</span></div>
+  <div class="row"><span class="label">A2_PASS</span><span class="value">{{ r.a2_pass }}</span></div>
+  <div class="row"><span class="label">REJECT</span><span class="value">{{ r.reject_reason or '—' }}</span></div>
+  <div class="row"><span class="label">BLOCKER</span><span class="value">{{ r.blocker_reason or '—' }}</span></div>
+  <div class="row"><span class="label">NEAR-ELIG</span><span class="value">{% if near_eligible %}<span class="tag yellow">NEAR</span>{% else %}—{% endif %}</span></div>
+  <div class="row"><span class="label">ALPHA_HASH</span><span class="value mono" style="font-size:10px;word-break:break-all;">{{ r.alpha_hash }}</span></div>
+</div>
+<div class="card">
+  <div class="title">Formula</div>
+  <pre style="background:#000;border:1px solid var(--border);border-radius:4px;padding:8px;color:var(--accent);font-size:11px;white-space:pre-wrap;word-break:break-all;">{{ formula }}</pre>
+  <div class="row" style="margin-top:6px;"><span class="label">GRAMMAR</span><span class="value">{{ grammar }}</span></div>
+  <div class="row"><span class="label">PRIMITIVE</span><span class="value">{{ primitive }}</span></div>
+</div>
+{% endblock %}

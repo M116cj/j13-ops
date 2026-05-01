@@ -1,0 +1,50 @@
+{% extends '_base.html' %}
+{% block title %}FUNNEL · ZANGETSU{% endblock %}
+{% block main %}
+<div class="section-title">{{ ov.folder_name }}</div>
+<div class="card">
+  <div class="title">Arena Funnel</div>
+  <div class="funnel">
+    {% for s in stages %}
+    <div class="funnel-row {{ 'last' if loop.last else '' }} {{ 'na' if s.na else '' }}">
+      <span class="name">{{ s.name }}</span>
+      <span class="bar"><span style="width: {{ s.pct }}%"></span></span>
+      <span class="num">{{ s.value if not s.na else 'NOT_REACHED' }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="title">Side split</div>
+  <div class="funnel">
+    {% for s in side_rows %}
+    <div class="funnel-row">
+      <span class="name">{{ s.side }}</span>
+      <span class="bar"><span style="width: {{ s.pct }}%; background: {{ s.color }};"></span></span>
+      <span class="num">{{ '{:,}'.format(s.value) }}</span>
+    </div>
+    {% endfor %}
+    {% if not side_rows %}<div class="empty">NO DATA</div>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="title">Reject depth</div>
+  <div class="depth">
+    {% for r in rejects %}
+    <div class="depth-row">
+      <span class="lbl">{{ r.label }}</span>
+      <span class="bar"><span style="width: {{ r.pct }}%"></span></span>
+      <span class="pct">{{ '%.1f'|format(r.pct) }}% <span class="mono">({{ r.count }})</span></span>
+    </div>
+    {% endfor %}
+    {% if not rejects %}<div class="empty">NO REJECTED</div>{% endif %}
+    <div class="depth-row" style="margin-top: 6px;">
+      <span class="lbl">UNKNOWN_REJECT</span>
+      <span class="bar"></span>
+      <span class="pct"><span class="tag {{ 'green' if (ov.unknown_reject == 0) else 'red' }}">{{ ov.unknown_reject if ov.unknown_reject is not none else 'NO DATA' }}</span></span>
+    </div>
+  </div>
+</div>
+{% endblock %}

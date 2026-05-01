@@ -1,0 +1,33 @@
+{% extends '_base.html' %}
+{% block title %}HLTH · ZANGETSU{% endblock %}
+{% block main %}
+<div class="section-title">{{ ov.folder_name }} · HEAD {{ head_sha[:8] if head_sha else 'NA' }}</div>
+<div class="kpi-grid">
+  <div class="kpi green"><div class="lbl">FRESH</div><div class="val">{{ counts.FRESH }}</div></div>
+  <div class="kpi yellow"><div class="lbl">STALE/OLD</div><div class="val">{{ counts.STALE_OR_OLD }}</div></div>
+  <div class="kpi {{ 'green' if counts.MISSING == 0 else 'red' }}"><div class="lbl">MISSING</div><div class="val">{{ counts.MISSING }}</div></div>
+  <div class="kpi {{ 'green' if counts.PARSE_ERR == 0 else 'red' }}"><div class="lbl">PARSE_ERR</div><div class="val">{{ counts.PARSE_ERR }}</div></div>
+</div>
+<div class="card">
+  <div class="title">Per-source state</div>
+  <table class="tbl">
+    <thead><tr><th>SOURCE</th><th>PARSE</th><th>FRESH</th><th class="num">AGE_h</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{{ r.source_key }}</td>
+        <td>{% if r.parse_state == 'OK' %}<span class="tag green">OK</span>
+            {% elif r.parse_state == 'EMPTY' %}<span class="tag gray">EMPTY</span>
+            {% else %}<span class="tag red">{{ r.parse_state }}</span>{% endif %}</td>
+        <td>{% if r.freshness_state == 'FRESH' %}<span class="tag green">FRESH</span>
+            {% elif r.freshness_state == 'STALE' %}<span class="tag yellow">STALE</span>
+            {% elif r.freshness_state == 'OLD' %}<span class="tag red">OLD</span>
+            {% elif r.freshness_state == 'MISSING' %}<span class="tag gray">MISSING</span>
+            {% else %}<span class="tag red">{{ r.freshness_state }}</span>{% endif %}</td>
+        <td class="num">{{ '%.1f'|format(r.age_seconds/3600) if r.age_seconds else '—' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
