@@ -30,6 +30,16 @@ app = FastAPI(title='ZANGETSU Mobile Terminal v3', docs_url=None, redoc_url=None
               openapi_url=None)
 app.mount('/static', StaticFiles(directory=str(PKG / 'static')), name='static')
 
+@app.middleware('http')
+async def _no_cache(request, call_next):
+    response = await call_next(request)
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
+
+
+
 
 def _head_sha() -> str | None:
     try:
@@ -47,16 +57,33 @@ def _head_sha() -> str | None:
 
 
 def _common_ctx(active: str) -> dict:
+    import time as _time
     bv = load_latest_batch()
     ov = build_overview(bv)
     fr = bv.freshness.get('run_summary')
     fr_state = fr.state if fr else 'UNKNOWN'
     fr_class = {'FRESH': 'green', 'STALE': 'yellow', 'OLD': 'red',
                 'MISSING': 'gray', 'ERROR': 'red'}.get(fr_state, 'gray')
+    # Compute data mtime epoch from the freshest available artifact (run_summary
+    # if present, else the most recent of any tracked artifact). This is what
+    # the client-side ticker uses to display "DATA Xs ago" live.
+    data_mtime_epoch = None
+    if fr is not None and fr.exists:
+        try:
+            data_mtime_epoch = _time.time() - (fr.age_seconds or 0)
+        except Exception:
+            data_mtime_epoch = None
+    if data_mtime_epoch is None:
+        # fallback: max mtime across all artifacts
+        ages = [(_time.time() - (f.age_seconds or 0)) for f in bv.freshness.values()
+                if f.exists and f.age_seconds is not None]
+        data_mtime_epoch = max(ages) if ages else None
     return {
         'active': active, 'bv': bv, 'ov': ov,
         'fresh_state': fr_state, 'fresh_class': fr_class,
         'now_utc': datetime.now(tz=timezone.utc).strftime('%H:%M:%S UTC'),
+        'now_epoch': _time.time(),
+        'data_mtime_epoch': data_mtime_epoch,
     }
 
 

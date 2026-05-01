@@ -12,5 +12,7 @@
     <span class="pill {{ 'green' if (ov.error == 0) else 'red' }}"><span class="lbl">ERR</span><span class="val">{{ ov.error if ov.error is not none else 'NA' }}</span></span>
     <span class="pill {{ fresh_class }}"><span class="lbl">FRESH</span><span class="val">{{ fresh_state }}</span></span>
     <span class="pill"><span class="lbl">A2_MIN</span><span class="val">{{ ov.a2_min_trades or 'NA' }}</span></span>
+    <span class="pill"><span class="lbl">DATA</span><span class="val live-data-age">—</span> ago</span>
+    <span class="pill"><span class="lbl">RFR</span><span class="val live-refresh-in">—</span></span>
   </div>
 </header>
