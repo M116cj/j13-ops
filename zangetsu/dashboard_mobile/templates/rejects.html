@@ -1,0 +1,52 @@
+{% extends '_base.html' %}
+{% block title %}REJ · ZANGETSU{% endblock %}
+{% block main %}
+<div class="section-title">{{ ov.folder_name }}</div>
+<div class="kpi-grid">
+  <div class="kpi red"><div class="lbl">REJECTED TOTAL</div><div class="val">{{ '{:,}'.format(rej_total) }}</div></div>
+  <div class="kpi {{ 'green' if (ov.unknown_reject == 0) else 'red' }}"><div class="lbl">UNKNOWN_REJ</div><div class="val">{{ ov.unknown_reject }}</div></div>
+</div>
+
+<div class="card">
+  <div class="title">Reject reasons (overall)</div>
+  <div class="depth">
+    {% for r in by_reason %}
+    <div class="depth-row">
+      <span class="lbl">{{ r.label }}</span>
+      <span class="bar"><span style="width: {{ r.pct }}%"></span></span>
+      <span class="pct">{{ '%.1f'|format(r.pct) }}% <span class="mono">({{ r.count }})</span></span>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="title">By symbol (top reasons)</div>
+  <table class="tbl">
+    <thead><tr><th>SYMBOL</th><th class="num">REJ</th><th>NO_TRADE</th><th>NON_POS</th><th>TOO_FEW</th></tr></thead>
+    <tbody>
+    {% for s in by_symbol %}
+      <tr>
+        <td>{{ s.symbol }}</td>
+        <td class="num">{{ s.rej }}</td>
+        <td class="num">{{ s.no_trade }}</td>
+        <td class="num">{{ s.non_pos }}</td>
+        <td class="num">{{ s.too_few }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <div class="title">By side</div>
+  <table class="tbl">
+    <thead><tr><th>SIDE</th><th class="num">REJ</th><th>NO_TRADE</th><th>NON_POS</th><th>TOO_FEW</th></tr></thead>
+    <tbody>
+    {% for s in by_side %}
+      <tr><td>{{ s.side }}</td><td class="num">{{ s.rej }}</td><td class="num">{{ s.no_trade }}</td><td class="num">{{ s.non_pos }}</td><td class="num">{{ s.too_few }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

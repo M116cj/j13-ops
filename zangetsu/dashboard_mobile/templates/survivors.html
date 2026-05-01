@@ -1,0 +1,43 @@
+{% extends '_base.html' %}
+{% block title %}SURV · ZANGETSU{% endblock %}
+{% block main %}
+<div class="section-title">{{ ov.folder_name }}</div>
+<div class="kpi-grid">
+  <div class="kpi green"><div class="lbl">SURVIVORS (PASSED)</div><div class="val">{{ n_surv }}</div></div>
+  <div class="kpi yellow"><div class="lbl">NEAR-SURVIVORS</div><div class="val">{{ n_near }}</div></div>
+</div>
+<div class="card">
+  <div class="title">Survivors</div>
+  <table class="tbl">
+    <thead><tr><th>ID</th><th>SYMBOL</th><th>SIDE</th><th class="num">NET</th></tr></thead>
+    <tbody>
+    {% for r in survivors %}
+      <tr>
+        <td><a href="/candidate/{{ r.candidate_id }}" class="mono">{{ r.candidate_id[:10] }}…</a></td>
+        <td>{{ r.symbol }}</td>
+        <td>{{ r.intended_side_mode }}</td>
+        <td class="num green">{{ '%.2f'|format(r.net_bps) }}</td>
+      </tr>
+    {% endfor %}
+    {% if not survivors %}<tr><td colspan="4" class="empty">no survivors</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+<div class="card">
+  <div class="title">Near-survivors (REJECTED, net ∈ [-5, 0])</div>
+  <table class="tbl">
+    <thead><tr><th>ID</th><th>SYMBOL</th><th>SIDE</th><th class="num">NET</th></tr></thead>
+    <tbody>
+    {% for r in near %}
+      <tr>
+        <td><a href="/candidate/{{ r.candidate_id }}" class="mono">{{ r.candidate_id[:10] }}…</a></td>
+        <td>{{ r.symbol or '—' }}</td>
+        <td>{{ r.intended_side_mode or '—' }}</td>
+        <td class="num yellow">{{ '%.2f'|format(r.net_bps) }}</td>
+      </tr>
+    {% endfor %}
+    {% if not near %}<tr><td colspan="4" class="empty">no near-survivors</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

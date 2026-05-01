@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta http-equiv="refresh" content="30">
+  <title>{% block title %}ZANGETSU TERM{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  {% include '_topbar.html' %}
+  <main>
+    {% block main %}{% endblock %}
+  </main>
+  {% include '_bottomnav.html' %}
+  <script>
+    document.querySelectorAll('.clock').forEach(el => {
+      const tick = () => {
+        const d = new Date();
+        const pad = n => String(n).padStart(2, '0');
+        el.textContent = pad(d.getUTCHours()) + ':' + pad(d.getUTCMinutes()) + ':' + pad(d.getUTCSeconds()) + 'z';
+      };
+      tick(); setInterval(tick, 1000);
+    });
+  </script>
+</body>
+</html>

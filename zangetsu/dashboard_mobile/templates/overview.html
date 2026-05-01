@@ -1,0 +1,53 @@
+{% extends '_base.html' %}
+{% block title %}HOME · ZANGETSU{% endblock %}
+{% block main %}
+{% if ov.state != 'OK' %}
+  <div class="empty">NO BATCH FOUND</div>
+{% else %}
+<div class="section-title">{{ ov.folder_name }} · gen={{ ov.generation_id }}</div>
+<div class="kpi-grid">
+  <div class="kpi"><div class="lbl">CANDIDATES</div><div class="val">{{ '{:,}'.format(ov.candidates_total) if ov.candidates_total is not none else 'NO DATA' }}</div></div>
+  <div class="kpi green"><div class="lbl">PASSED</div><div class="val">{{ ov.passed if ov.passed is not none else 'NO DATA' }}</div></div>
+  <div class="kpi red"><div class="lbl">REJECTED</div><div class="val">{{ '{:,}'.format(ov.rejected) if ov.rejected is not none else 'NO DATA' }}</div></div>
+  <div class="kpi yellow"><div class="lbl">NEAR</div><div class="val">{{ '{:,}'.format(near_count) if near_count is not none else 'NO DATA' }}</div></div>
+  <div class="kpi"><div class="lbl">PASS RATE</div><div class="val">{{ pass_rate or 'NO DATA' }}</div></div>
+  <div class="kpi {{ 'green' if (ov.unknown_reject == 0) else 'red' }}"><div class="lbl">UNKNOWN_REJ</div><div class="val">{{ ov.unknown_reject if ov.unknown_reject is not none else 'NO DATA' }}</div></div>
+  <div class="kpi {{ 'green' if (ov.not_evaluated == 0) else 'yellow' }}"><div class="lbl">NOT_EVAL</div><div class="val">{{ ov.not_evaluated if ov.not_evaluated is not none else 'NO DATA' }}</div></div>
+  <div class="kpi {{ 'green' if (ov.error == 0) else 'red' }}"><div class="lbl">ERROR</div><div class="val">{{ ov.error if ov.error is not none else 'NO DATA' }}</div></div>
+</div>
+
+<div class="card">
+  <div class="title">Top reject reasons</div>
+  <div class="depth">
+    {% for r in top_rejects %}
+    <div class="depth-row">
+      <span class="lbl">{{ r.label }}</span>
+      <span class="bar"><span style="width: {{ r.pct }}%"></span></span>
+      <span class="pct">{{ '%.1f'|format(r.pct) }}% <span class="mono">({{ r.count }})</span></span>
+    </div>
+    {% endfor %}
+    {% if not top_rejects %}<div class="empty">NO DATA</div>{% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="title">Top symbols (by candidate count)</div>
+  <table class="tbl">
+    <thead><tr><th>SYMBOL</th><th class="num">N</th><th class="num">PASSED</th><th class="num">NO_TRADE</th></tr></thead>
+    <tbody>
+    {% for s in symbol_rows %}
+      <tr>
+        <td>{{ s.symbol }}</td>
+        <td class="num">{{ s.n }}</td>
+        <td class="num green">{{ s.passed }}</td>
+        <td class="num">{{ s.no_trade }}</td>
+      </tr>
+    {% endfor %}
+    {% if not symbol_rows %}<tr><td colspan="4" class="empty">NO DATA</td></tr>{% endif %}
+    </tbody>
+  </table>
+</div>
+
+<div class="refresh-hint">auto-refresh 30s · UTC {{ now_utc }}</div>
+{% endif %}
+{% endblock %}
