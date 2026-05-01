@@ -1,0 +1,23 @@
+[Unit]
+Description=ZANGETSU Internal Observability Terminal V2 (0-9AF redesign)
+Documentation=file:///home/j13/j13-ops/zangetsu/docs/recovery/20260501-0-9af-dashboard-terminal-redesign/
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/j13/j13-ops
+Environment=PYTHONPATH=/home/j13/j13-ops
+Environment=ZANGETSU_DASHBOARD_HOST=127.0.0.1
+Environment=ZANGETSU_DASHBOARD_PORT=8785
+ExecStart=/home/j13/j13-ops/scripts/zangetsu/run_dashboard_terminal.sh
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ReadWritePaths=/tmp /home/j13/.streamlit /home/j13/.cache
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target
